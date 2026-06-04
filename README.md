@@ -40,15 +40,53 @@ The framework extends to age 35 rather than stopping at 18 or 25 because:
 
 ### Starting the App
 
+**Prerequisites:**
+- Python 3.12+
+- Node.js 18+ (for building the frontend)
+- Java 11+ (only if re-rendering diagrams)
+
+**First-time setup:**
+
 ```bash
+# Clone the repo
+cd life_plan
+
+# Create Python virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install backend dependencies
 cd app/backend
 pip install -r requirements.txt
+
+# Build the frontend
+cd ../frontend
+npm install
+npm run build
+cd ../backend
+```
+
+**Run the application:**
+
+```bash
+cd app/backend
+source ../../.venv/bin/activate
 uvicorn main:app --host 0.0.0.0 --port 8000 &
 ```
 
 Open **http://localhost:8000** in any browser (desktop or phone).
 
 Default login: `admin` / `changeme`
+
+**Subsequent starts** (after first-time setup):
+
+```bash
+cd app/backend
+source ../../.venv/bin/activate
+uvicorn main:app --host 0.0.0.0 --port 8000 &
+```
+
+The database (`life_plan.db`) persists between restarts. Do not delete it unless you want to reset everything.
 
 ### First-Time Setup
 

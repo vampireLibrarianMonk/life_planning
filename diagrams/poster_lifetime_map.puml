@@ -2,155 +2,101 @@
 !theme plain
 skinparam backgroundColor #FEFEFE
 skinparam defaultFontSize 14
-skinparam titleFontSize 24
-skinparam noteFontSize 11
+skinparam titleFontSize 22
 skinparam componentStyle rectangle
 
-title Robert Flanigan — Lifetime Development Map (0–35)\n\nRationale: Male prefrontal cortex matures ~25–30 (Giedd/NIH, Lebel & Beaulieu 2011).\nFemale prefrontal cortex matures ~21–24.\nExtending to 35 ensures 5–10 years of mature-brain operation to validate outcomes.
+title Lifetime Development Map (0–35)\n\nMale PFC matures ~25–30 | Female PFC matures ~21–24\nExtending to 35 validates 5–10 years of mature-brain outcomes.
 
 legend top left
-  |= Age Band |= Brain State |= Framework Phase |
-  | 0–5 | Rapid synaptogenesis | Foundation |
-  | 6–12 | Pruning & specialization | Exploration |
-  | 13–17 | Limbic dominance, risk-seeking | Formation |
-  | 18–24 | PFC still developing (♀ matures ~21–24) | Launch |
-  | 25–30 | PFC solidifies (♂ matures ~25–30) | Consolidation |
-  | 31–35 | Full executive maturity, pattern recognition | Stewardship |
+  |= Phase |= Ages |= Brain State |
+  | Foundation | 0–5 | Rapid synaptogenesis |
+  | Exploration | 6–12 | Pruning & specialization |
+  | Formation | 13–17 | Limbic dominance |
+  | Launch | 18–24 | PFC developing |
+  | Consolidation | 25–30 | PFC solidifies |
+  | Stewardship | 31–35 | Full maturity |
 end legend
 
-package "Pillar 1: Spiritual Formation" as spiritual {
-  [0–5\nFamily prayers\nGratitude\nForgiveness] as s1
-  [6–12\nScripture literacy\nChurch history\nWorld religions] as s2
-  [13–17\nTheology\nApologetics\nEthics\nService] as s3
-  [18–24\nIndependent practice\nMission/service\nCompeting worldviews] as s4
-  [25–30\nExamined convictions\nMentorship of others] as s5
-  [31–35\nSpiritual leadership\nLegacy transmission] as s6
+package "Spiritual Formation" as spiritual {
+  [0–5\nPrayers, Gratitude\nForgiveness] as s1
+  [6–12\nScripture, History\nWorld religions] as s2
+  [13–17\nTheology, Ethics\nApologetics] as s3
+  [18–24\nIndependent practice\nCompeting worldviews] as s4
+  [25–35\nExamined convictions\nSpiritual leadership] as s5
 }
 
-package "Pillar 2: Financial Development" as financial {
-  [0–5\n529 Plan\nSavings jar] as f1
-  [6–12\nCompound interest\nYouth account\nSpend/Save/Invest] as f2
-  [13–17\nCustodial brokerage\nFirst earnings\nBudget basics] as f3
-  [18–24\nRoth IRA\nIndependent budget\nCredit literacy] as f4
-  [25–30\nPositive net worth\nInvestment strategy] as f5
-  [31–35\nFinancial independence\ntrajectory\nGenerational planning] as f6
+package "Financial Development" as financial {
+  [0–5\n529 Plan, UTMA\nSavings jar] as f1
+  [6–12\nCompound interest\nStocks/Bonds/Index] as f2
+  [13–17\nSector research\nRoth IRA, DCA] as f3
+  [18–24\nMarket cycles\nBehavioral finance] as f4
+  [25–35\nTax harvesting\nGenerational wealth] as f5
 }
 
-package "Pillar 3: Education & Career" as education {
-  [0–5\nExpose, don't direct\nTrack interests 1–5] as e1
-  [6–12\nClubs\nCompetitions\nFavorite subjects] as e2
-  [13–17\nAptitudes\nJob shadowing\nInternships\nAcademic planning] as e3
-  [18–24\nDegree / Trade /\nMilitary / Venture\nCertifications] as e4
-  [25–30\nCareer establishment\nSpecialization\nLeadership entry] as e5
-  [31–35\nMastery\nMentorship\nStrategic career moves] as e6
+package "Education & Career" as education {
+  [0–5\nExpose, track\ninterests 1–5] as e1
+  [6–12\nClubs, projects\nCompetitions] as e2
+  [13–17\nAptitudes, shadowing\nInternships] as e3
+  [18–24\nDegree / Trade /\nMilitary / Venture] as e4
+  [25–35\nMastery\nMentorship] as e5
 }
 
-package "Pillar 4: Character" as character {
-  [0–5\nResponsibility\nHonesty\nKindness] as c1
-  [6–12\nCourage\nDiscipline\nCompassion\nCommitments] as c2
-  [13–17\nIntegrity under\npeer pressure\nSelf-regulation] as c3
-  [18–24\nAccountability\nResilience\nMoral reasoning] as c4
-  [25–30\nWisdom\nJudgment\nSelf-knowledge] as c5
-  [31–35\nCharacter leadership\nTeaching others\nLegacy character] as c6
+package "Character" as character {
+  [0–5\nResponsibility\nHonesty, Kindness] as c1
+  [6–12\nCourage, Discipline\nFirst case study] as c2
+  [13–17\nIntegrity, MLK vs\nMalcolm X analysis] as c3
+  [18–24\nResilience\nIndependent analysis] as c4
+  [25–35\nWisdom, Judgment\nCharacter leadership] as c5
 }
 
-package "Pillar 5: Life Skills" as skills {
-  [0–5\nSelf-care basics\nRoutines] as k1
-  [6–12\nCooking basics\nCleaning\nOrganization] as k2
-  [13–17\nFull home skills\nFirst aid\nDigital literacy\nDriving] as k3
-  [18–24\nTaxes\nInsurance\nLease/rent\nCybersecurity] as k4
-  [25–30\nHome ownership\nLegal literacy\nFamily planning] as k5
-  [31–35\nEstate planning\nAdvanced finance\nCommunity leadership] as k6
+package "Life Skills" as skills {
+  [0–5\nSelf-care\nRoutines] as k1
+  [6–12\nCooking\nCleaning] as k2
+  [13–17\nDriving, First aid\nCyber, AI literacy] as k3
+  [18–24\nTaxes, Insurance\nEmergency prep] as k4
+  [25–35\nEstate planning\nCommunity leadership] as k5
 }
 
-package "Pillar 6: Heritage & Identity" as heritage {
-  [0–5\nFamily stories\nWhere did\nGrandma live?] as h1
-  [6–12\nFamily tree\nMigration map\nLanguage fragments\nArtifacts] as h2
-  [13–17\nAncestor research\nFaith heritage\nOccupation patterns\nHealth awareness] as h3
-  [18–24\nHistorical context\nCultural inheritance\nLessons from ancestors] as h4
-  [25–30\nResponsibility\nof inheritance\nPreservation role] as h5
-  [31–35\nStory transmission\nActive stewardship\nLegacy creation] as h6
+package "Heritage & Identity" as heritage {
+  [0–5\nFamily stories] as h1
+  [6–12\nFamily tree\nMigration map] as h2
+  [13–17\nAncestor research\nFaith heritage] as h3
+  [18–24\nHistorical context\nLessons from ancestors] as h4
+  [25–35\nActive stewardship\nLegacy creation] as h5
 }
 
-package "Family Economy System" as economy {
-  [Tier 0: Citizenship\nNot paid\nFamily membership\nSelf-care, Respect,\nEducation, Spiritual] as t0
-  [Tier 1: Contribution\nHousehold, Property,\nCaregiving, Admin] as t1
-  [Tier 2: Competence\nTechnical, Creative,\nMechanical, Digital] as t2
-  [Tier 3: Stewardship\nBudgeting, Planning,\nResource allocation] as t3
-  [Tier 4: Initiative\nProcess improvement,\nOpportunity ID,\nService projects] as t4
-  [Tier 5: Entrepreneurship\nProducts, Services,\nVentures, Innovation] as t5
-}
-
-' Progression arrows within pillars
 s1 -right-> s2
 s2 -right-> s3
 s3 -right-> s4
 s4 -right-> s5
-s5 -right-> s6
 
 f1 -right-> f2
 f2 -right-> f3
 f3 -right-> f4
 f4 -right-> f5
-f5 -right-> f6
 
 e1 -right-> e2
 e2 -right-> e3
 e3 -right-> e4
 e4 -right-> e5
-e5 -right-> e6
 
 c1 -right-> c2
 c2 -right-> c3
 c3 -right-> c4
 c4 -right-> c5
-c5 -right-> c6
 
 k1 -right-> k2
 k2 -right-> k3
 k3 -right-> k4
 k4 -right-> k5
-k5 -right-> k6
 
 h1 -right-> h2
 h2 -right-> h3
 h3 -right-> h4
 h4 -right-> h5
-h5 -right-> h6
-
-t0 -right-> t1
-t1 -right-> t2
-t2 -right-> t3
-t3 -right-> t4
-t4 -right-> t5
-
-note bottom of economy
-  Eligibility is governed by Character + Reputation.
-  Progression: Allowance → Bounties → Projects → Entrepreneurship → Stewardship
-  "Value creation creates opportunity. Character determines eligibility.
-   Trust unlocks responsibility. Responsibility unlocks freedom."
-end note
-
-note right of spiritual
-  Goal: Not blind belief. Not rebellion.
-  An examined faith.
-end note
-
-note right of education
-  All outcomes valid:
-  Degree | Trade | Military
-  Entrepreneurship | Ministry
-end note
 
 note bottom
-  **Core Metric**: "Is Robert becoming a wise, capable, kind, and independent man?"
-  Everything else is downstream.
-
-  **Neuroscience Basis (0–35 range)**:
-  • Male PFC maturation: ~25–30 (Giedd, NIH longitudinal study; Lebel & Beaulieu 2011)
-  • Female PFC maturation: ~21–24 (Ingalhalikar et al., U. Penn, 2014)
-  • Extending to 35 validates mature-brain decisions over 5–10 year window
-  • Limbic system (emotion/risk) dominates until PFC catches up — this explains adolescent behavior
+  **Core Metric**: "Is this child becoming a wise, capable, kind, and independent person?"
 end note
 
 @enduml

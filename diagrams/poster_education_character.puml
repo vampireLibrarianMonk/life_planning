@@ -1,0 +1,42 @@
+@startuml poster_education_character
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+skinparam componentStyle rectangle
+
+title Lifetime Map: Education & Character (0–35)
+
+package "Education & Career" {
+  [**0–5 Foundation**\nExpose, don't direct\nTrack interests 1–5\n(Science, Art, Building\nReading, Nature, Athletics)] as e1
+  [**6–12 Exploration**\nFavorite subjects\nClubs & competitions\nProjects completed\n(Robotics, Chess, etc.)] as e2
+  [**13–17 Formation**\nAptitudes assessed\nJob shadowing\nInternships\nAcademic planning] as e3
+  [**18–24 Launch**\nDegree / Trade /\nMilitary / Venture\nCertifications\nAll valid outcomes] as e4
+  [**25–35 Stewardship**\nCareer establishment\nSpecialization\nMastery & mentorship] as e5
+
+  e1 -right-> e2
+  e2 -right-> e3
+  e3 -right-> e4
+  e4 -right-> e5
+}
+
+package "Character" {
+  [**0–5 Foundation**\nResponsibility\nHonesty\nKindness] as c1
+  [**6–12 Exploration**\nCourage & discipline\nCompassion\nFirst case study figure] as c2
+  [**13–17 Formation**\nIntegrity under pressure\nMLK vs Malcolm X analysis\nDaryl Davis, Goggins\nSacramental ladder analysis] as c3
+  [**18–24 Launch**\nAccountability\nResilience\nSebastian Junger\nIndependent analysis] as c4
+  [**25–35 Stewardship**\nWisdom & judgment\nSelf-knowledge\nCharacter leadership] as c5
+
+  c1 -right-> c2
+  c2 -right-> c3
+  c3 -right-> c4
+  c4 -right-> c5
+}
+
+note bottom
+  Character case studies: not propaganda — raw analysis
+  using real lives as mirrors through the sacramental ladder.
+  Every figure examined for BOTH contributions AND damage.
+end note
+
+@enduml

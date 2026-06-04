@@ -1,0 +1,41 @@
+@startuml poster_skills_heritage
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+skinparam componentStyle rectangle
+
+title Lifetime Map: Life Skills & Heritage (0–35)
+
+package "Life Skills" {
+  [**0–5 Foundation**\nSelf-care basics\nRoutines] as k1
+  [**6–12 Exploration**\nCooking basics\nCleaning\nOrganization] as k2
+  [**13–17 Formation**\nLaundry & repairs\nDriving & first aid\nCybersecurity\nAI literacy] as k3
+  [**18–24 Launch**\nTaxes & insurance\nBudget & credit\nEmergency prep\nLease/rent] as k4
+  [**25–35 Stewardship**\nHome ownership\nLegal literacy\nEstate planning\nCommunity leadership] as k5
+
+  k1 -right-> k2
+  k2 -right-> k3
+  k3 -right-> k4
+  k4 -right-> k5
+}
+
+package "Heritage & Identity" {
+  [**0–5 Foundation**\nFamily stories\nWhere did\nGrandma live?] as h1
+  [**6–12 Exploration**\nFamily tree\nMigration map\nLanguage fragments\nArtifacts preserved] as h2
+  [**13–17 Formation**\nAncestor research\nFaith heritage\nOccupation patterns\nHealth awareness] as h3
+  [**18–24 Launch**\nHistorical context\nCultural inheritance\nLessons from ancestors\nWhat to keep/end] as h4
+  [**25–35 Stewardship**\nResponsibility accepted\nActive preservation\nLegacy creation\nStory transmission] as h5
+
+  h1 -right-> h2
+  h2 -right-> h3
+  h3 -right-> h4
+  h4 -right-> h5
+}
+
+note bottom
+  Most people inherit money. Very few inherit a map.
+  By age 35: 35 years of family, financial, educational, and spiritual history.
+end note
+
+@enduml

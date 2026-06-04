@@ -4,7 +4,37 @@ A lifetime development tracking system for children (ages 0–35). It tracks six
 
 Instead of a generic chore chart or a college fund spreadsheet, this is a full navigation system. You define milestones, track character development, manage an earned-income economy, and maintain a living record that the child inherits as a map — not just money.
 
-![Lifetime Map](diagrams/poster_lifetime_map.png)
+## Overview
+
+![Spiritual & Financial](diagrams/poster_spiritual_financial.png)
+
+![Education & Character](diagrams/poster_education_character.png)
+
+![Life Skills & Heritage](diagrams/poster_skills_heritage.png)
+
+## Neuroscience Basis (Why 0–35)
+
+![Brain Maturation](diagrams/brain_maturation.png)
+
+The framework extends to age 35 rather than stopping at 18 or 25 because:
+
+- **Male prefrontal cortex** matures ~25–30 (Giedd, NIH longitudinal study; Lebel & Beaulieu, 2011)
+- **Female prefrontal cortex** matures ~21–24 (Ingalhalikar et al., U. Penn, 2014)
+- Extending to 35 provides 5–10 years of **mature-brain operation** to validate that the system produced sound judgment — not just early lucky outcomes
+
+## Family Economy
+
+![Family Economy](diagrams/family_economy.png)
+
+## Financial Targets & Investment Education
+
+![Financial Targets](diagrams/financial_targets.png)
+
+## Heritage & Identity
+
+![Heritage Identity](diagrams/heritage_identity.png)
+
+---
 
 ## How to Use It
 
@@ -24,7 +54,7 @@ Default login: `admin` / `changeme`
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 122 milestones across all 8 pillars from the planning documents
+3. The system automatically seeds 146 milestones across all 8 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -88,7 +118,7 @@ The app is responsive. On a phone, navigate to `http://<your-machine-ip>:8000` a
 ```
 life_plan/
 ├── README.md
-├── raw.txt                          # Original planning notes
+├── SBOM.md                          # Software Bill of Materials
 ├── docs/                            # Structured planning documents
 │   ├── 00_lifetime_development_dashboard.md
 │   ├── 01_career_guidance_template.md
@@ -100,12 +130,12 @@ life_plan/
 │   ├── 07_spiritual_warfare_discernment.md
 │   └── 08_power_of_language.md
 ├── diagrams/                        # PlantUML source + rendered PNGs
-│   ├── poster_lifetime_map.puml     # Full 0–35 poster (also .png, .svg)
-│   ├── brain_maturation.puml
-│   ├── pillars_detail.puml
-│   ├── family_economy.puml
-│   ├── heritage_identity.puml
-│   └── financial_targets.puml
+│   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
+│   ├── brain_maturation.puml        # PFC maturation by sex
+│   ├── pillars_detail.puml          # Six pillars progression
+│   ├── family_economy.puml          # Bounty/behavior system
+│   ├── heritage_identity.puml       # Heritage domains
+│   └── financial_targets.puml       # Investment education timeline
 └── app/
     ├── backend/
     │   ├── main.py                  # FastAPI entry point
@@ -113,7 +143,7 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 122 milestones from docs
+    │   ├── seed_data.py             # 146 milestones from docs
     │   ├── requirements.txt
     │   └── routes/
     │       ├── users.py             # Auth + user management
@@ -150,16 +180,6 @@ The poster SVG scales to any print size:
 ```bash
 java -jar ~/.local/lib/plantuml.jar -tsvg diagrams/poster_lifetime_map.puml
 ```
-
-## Neuroscience Basis (Why 0–35)
-
-The framework extends to age 35 rather than stopping at 18 or 25 because:
-
-- **Male prefrontal cortex** matures ~25–30 (Giedd, NIH longitudinal study; Lebel & Beaulieu, 2011)
-- **Female prefrontal cortex** matures ~21–24 (Ingalhalikar et al., U. Penn, 2014)
-- Extending to 35 provides 5–10 years of **mature-brain operation** to validate that the system produced sound judgment — not just early lucky outcomes
-
-See `diagrams/brain_maturation.puml` and `docs/06_environmental_resilience.md` for full detail.
 
 ## API Documentation
 

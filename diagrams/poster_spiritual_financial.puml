@@ -1,0 +1,41 @@
+@startuml poster_spiritual_financial
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+skinparam componentStyle rectangle
+
+title Lifetime Map: Spiritual & Financial (0–35)
+
+package "Spiritual Formation" {
+  [**0–5 Foundation**\nFamily prayers\nGratitude & forgiveness\nChurch attendance\nBible stories] as s1
+  [**6–12 Exploration**\nChildren's Bible\nKey verses\nChurch history\nWorld religions] as s2
+  [**13–17 Formation**\nTheology discussions\nApologetics & ethics\nVolunteer service] as s3
+  [**18–24 Launch**\nIndependent practice\nCompeting worldviews\nMission/service] as s4
+  [**25–35 Stewardship**\nExamined convictions\nMentorship of others\nSpiritual leadership] as s5
+
+  s1 -right-> s2
+  s2 -right-> s3
+  s3 -right-> s4
+  s4 -right-> s5
+}
+
+package "Financial Development" {
+  [**0–5 Foundation**\n529 Plan opened\nUTMA/UGMA opened\nSavings jar\nBrands → businesses] as f1
+  [**6–12 Exploration**\nCompound interest\nAccount statements\nStock/Bond/Index\nPaper trading] as f2
+  [**13–17 Formation**\nSector research\nPick stocks together\nRoth IRA\nDCA & allocation] as f3
+  [**18–24 Launch**\nMarket cycles\nBehavioral finance\nIndependent budget\nCredit literacy] as f4
+  [**25–35 Stewardship**\nTax-loss harvesting\nReal estate\nGenerational wealth\nFinancial independence] as f5
+
+  f1 -right-> f2
+  f2 -right-> f3
+  f3 -right-> f4
+  f4 -right-> f5
+}
+
+note bottom
+  Goal: Not blind belief, not rebellion — an examined faith.
+  Don't wait until they have money to teach them about money.
+end note
+
+@enduml

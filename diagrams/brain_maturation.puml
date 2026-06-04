@@ -1,58 +1,51 @@
 @startuml brain_maturation
 !theme plain
 skinparam backgroundColor #FEFEFE
-skinparam defaultFontSize 12
+skinparam defaultFontSize 13
 skinparam titleFontSize 18
 
-title Neuroscience Basis: Why 0–35?\nPrefrontal Cortex Maturation & Parenting Strategy
+title Prefrontal Cortex Maturation\nWhy the Framework Extends to Age 35
 
-map "Age 0–5" as a1 {
-  Brain => Amygdala, limbic, sensory cortex
+map "Age 0–5: Foundation" as a1 {
+  Brain => Rapid synaptogenesis, emotional wiring
   Male PFC => Forming
   Female PFC => Forming
-  Parenting => Safety, attachment, modeling
+  Style => Model, protect, expose
 }
 
-map "Age 6–12" as a2 {
-  Brain => Temporal/parietal specialization
+map "Age 6–12: Exploration" as a2 {
+  Brain => Synaptic pruning, specialization
   Male PFC => Pruning
   Female PFC => Pruning
-  Parenting => Skill exposure, habit formation
+  Style => Encourage, track, don't direct
 }
 
-map "Age 13–17" as a3 {
+map "Age 13–17: Formation" as a3 {
   Brain => Limbic system dominates
   Male PFC => Immature
   Female PFC => Approaching maturity
-  Parenting => Firm boundaries, explain consequences
+  Style => Firm boundaries + increasing autonomy
 }
 
-map "Age 18–21" as a4 {
+map "Age 18–24: Launch" as a4 {
   Brain => PFC gaining ground
   Male PFC => Still developing
-  Female PFC => Nearing completion
-  Parenting => Release control gradually
+  Female PFC => MATURE (~21–24)
+  Style => Advise, don't control
 }
 
-map "Age 21–24" as a5 {
-  Brain => PFC integration accelerates
-  Male PFC => Still developing
-  Female PFC => **MATURE**
-  Parenting => Female: peer relationship
-}
-
-map "Age 25–30" as a6 {
+map "Age 25–30: Consolidation" as a5 {
   Brain => Full myelination completing
-  Male PFC => **MATURE**
+  Male PFC => MATURE (~25–30)
   Female PFC => Mature
-  Parenting => Male: peer relationship
+  Style => Peer relationship
 }
 
-map "Age 31–35" as a7 {
-  Brain => Pattern recognition, wisdom circuits
+map "Age 31–35: Stewardship" as a6 {
+  Brain => Pattern recognition, wisdom
   Male PFC => Fully operational
   Female PFC => Fully operational
-  Parenting => Legacy transfer, mutual stewardship
+  Style => Legacy transfer
 }
 
 a1 -down-> a2
@@ -60,36 +53,23 @@ a2 -down-> a3
 a3 -down-> a4
 a4 -down-> a5
 a5 -down-> a6
-a6 -down-> a7
 
-note right of a3
-  Limbic-PFC imbalance explains
-  adolescent risk-taking.
-  (Casey et al., 2008)
+note right of a4
+  Female PFC matures ~21–24
+  (Ingalhalikar et al., 2014)
 end note
 
 note right of a5
-  Female PFC matures ~21–24
-  (Ingalhalikar et al., 2014, U. Penn)
-end note
-
-note right of a6
   Male PFC matures ~25–30
-  (Giedd, NIH; Lebel & Beaulieu, 2011)
+  (Giedd/NIH, Lebel & Beaulieu 2011)
 end note
 
-note bottom of a7
-  **Key Sources:**
-  • Giedd, J.N. et al. — NIH Longitudinal Brain Imaging Study (1999–2015)
-  • Lebel, C. & Beaulieu, C. (2011) — Longitudinal Development of Human Brain Wiring
-  • Ingalhalikar, M. et al. (2014) — U. Penn, sex-based connectivity differences
-  • Sowell, E.R. et al. (2003) — UCLA, cortical maturation through mid-20s
-  • Casey, B.J. et al. (2008) — The Adolescent Brain
-
-  **Practical Meaning:**
-  A 22-year-old male may appear adult but is still neurologically
-  forming executive judgment. Support through 30+.
-  The 0–35 window ensures 5–10 years of mature-brain validation.
+note bottom of a6
+  Sources:
+  • Giedd, J.N. — NIH Longitudinal Study
+  • Lebel & Beaulieu (2011)
+  • Ingalhalikar et al. (2014) U. Penn
+  • Casey, B.J. et al. (2008)
 end note
 
 @enduml

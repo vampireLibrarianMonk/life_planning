@@ -1,102 +1,60 @@
 @startuml pillars_detail
 !theme plain
 skinparam backgroundColor #FEFEFE
-skinparam defaultFontSize 12
+skinparam defaultFontSize 13
 skinparam titleFontSize 18
 
-title Six Pillars of Development — Detail View (0–35)\n\nMale PFC matures ~25–30 | Female PFC matures ~21–24\nFramework extends to 35 to validate outcomes post-maturation.
+title Six Pillars of Development\nEach pillar progresses through 5 phases (0–35)
 
-map "Phases" as phases {
-  Foundation (0–5) => Rapid synaptogenesis → Model, protect, expose
-  Exploration (6–12) => Synaptic pruning → Encourage, track, don't direct
-  Formation (13–17) => Limbic dominance → Boundaries with increasing autonomy
-  Launch (18–24) => PFC developing (♀ ~21–24) → Advise, don't control
-  Consolidation (25–30) => PFC solidifies (♂ ~25–30) → Peer relationship
-  Stewardship (31–35) => Full maturity → Legacy partner
+map "Development Phases" as phases {
+  Foundation (0–5) => Model, protect, expose
+  Exploration (6–12) => Encourage, track, don't direct
+  Formation (13–17) => Boundaries + increasing autonomy
+  Launch (18–24) => Advise, don't control
+  Consolidation (25–30) => Peer relationship
+  Stewardship (31–35) => Legacy partner
 }
 
-package "Spiritual Formation" {
-  (Family prayers & gratitude) as sp1
-  (Scripture & world religions) as sp2
-  (Theology & apologetics) as sp3
-  (Independent practice) as sp4
-  (Examined convictions) as sp5
-  (Spiritual leadership) as sp6
-  sp1 --> sp2
-  sp2 --> sp3
-  sp3 --> sp4
-  sp4 --> sp5
-  sp5 --> sp6
+package "Spiritual" {
+  (Prayers & gratitude) --> (Scripture & religions)
+  (Scripture & religions) --> (Theology & ethics)
+  (Theology & ethics) --> (Independent practice)
+  (Independent practice) --> (Spiritual leadership)
 }
 
-package "Financial Development" {
-  (529 Plan & savings jar) as fi1
-  (Compound interest & youth account) as fi2
-  (Earnings & budget basics) as fi3
-  (Roth IRA & credit literacy) as fi4
-  (Positive net worth) as fi5
-  (Financial independence trajectory) as fi6
-  fi1 --> fi2
-  fi2 --> fi3
-  fi3 --> fi4
-  fi4 --> fi5
-  fi5 --> fi6
+package "Financial" {
+  (529 + UTMA + jar) --> (Compound interest + paper trading)
+  (Compound interest + paper trading) --> (Stocks + Roth IRA + DCA)
+  (Stocks + Roth IRA + DCA) --> (Market cycles + behavioral finance)
+  (Market cycles + behavioral finance) --> (Generational wealth)
 }
 
 package "Education & Career" {
-  (Expose & track interests) as ed1
-  (Clubs & competitions) as ed2
-  (Aptitudes & shadowing) as ed3
-  (Degree/Trade/Military/Venture) as ed4
-  (Establishment & specialization) as ed5
-  (Mastery & mentorship) as ed6
-  ed1 --> ed2
-  ed2 --> ed3
-  ed3 --> ed4
-  ed4 --> ed5
-  ed5 --> ed6
+  (Expose & track interests) --> (Clubs & competitions)
+  (Clubs & competitions) --> (Aptitudes & shadowing)
+  (Aptitudes & shadowing) --> (Degree/Trade/Military)
+  (Degree/Trade/Military) --> (Mastery & mentorship)
 }
 
 package "Character" {
-  (Responsibility & kindness) as ch1
-  (Courage & discipline) as ch2
-  (Integrity under pressure) as ch3
-  (Accountability & resilience) as ch4
-  (Wisdom & judgment) as ch5
-  (Character leadership) as ch6
-  ch1 --> ch2
-  ch2 --> ch3
-  ch3 --> ch4
-  ch4 --> ch5
-  ch5 --> ch6
+  (Responsibility & kindness) --> (Courage + case studies)
+  (Courage + case studies) --> (Integrity + moral reasoning)
+  (Integrity + moral reasoning) --> (Resilience + independent analysis)
+  (Resilience + independent analysis) --> (Wisdom & character leadership)
 }
 
 package "Life Skills" {
-  (Self-care & routines) as ls1
-  (Cooking & cleaning) as ls2
-  (Home skills & driving) as ls3
-  (Taxes & insurance) as ls4
-  (Home ownership & legal) as ls5
-  (Estate & community leadership) as ls6
-  ls1 --> ls2
-  ls2 --> ls3
-  ls3 --> ls4
-  ls4 --> ls5
-  ls5 --> ls6
+  (Self-care & routines) --> (Cooking & cleaning)
+  (Cooking & cleaning) --> (Driving + cyber + first aid)
+  (Driving + cyber + first aid) --> (Taxes + insurance)
+  (Taxes + insurance) --> (Estate + community leadership)
 }
 
 package "Heritage & Identity" {
-  (Family stories) as he1
-  (Family tree & migration) as he2
-  (Ancestor research) as he3
-  (Historical context) as he4
-  (Preservation role) as he5
-  (Legacy creation) as he6
-  he1 --> he2
-  he2 --> he3
-  he3 --> he4
-  he4 --> he5
-  he5 --> he6
+  (Family stories) --> (Family tree + migration)
+  (Family tree + migration) --> (Ancestor research)
+  (Ancestor research) --> (Historical context)
+  (Historical context) --> (Legacy creation)
 }
 
 @enduml

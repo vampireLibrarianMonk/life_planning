@@ -1,0 +1,133 @@
+@startuml heritage_identity
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 12
+skinparam titleFontSize 18
+
+title Heritage & Identity Board — "Who Do You Think You Are?"\n\nScale-Invariant Questions:\nAge 5: Where did Grandma live?\nAge 10: Why did our family move?\nAge 15: What countries shaped us?\nAge 20: What historical events shaped us?\nAge 30: What responsibilities do I inherit?\nAge 35: What story am I leaving behind?
+
+package "Domain: Origins" {
+  [Family Tree] as o1
+  [Geography] as o2
+  [Migration] as o3
+  [Historical Events] as o4
+  [Cultural Practices] as o5
+}
+
+package "Domain: Language" {
+  [Family language] as l1
+  [Regional dialects] as l2
+  [Religious language] as l3
+  [Historical language] as l4
+  [Trade language] as l5
+}
+
+package "Domain: Faith Heritage" {
+  [Religious traditions] as f1
+  [Conversion stories] as f2
+  [Church records] as f3
+  [Family beliefs] as f4
+  [Religious migrations] as f5
+}
+
+package "Domain: Occupation Heritage" {
+  [Farmers] as oc1
+  [Soldiers] as oc2
+  [Craftsmen] as oc3
+  [Merchants] as oc4
+  [Teachers / Clergy] as oc5
+  [Engineers / Laborers] as oc6
+}
+
+note bottom of oc1
+  Patterns often emerge
+  across generations.
+end note
+
+package "Domain: Migration Board" {
+  [Origin points] as m1
+  [Migrations] as m2
+  [Settlements] as m3
+  [Military service] as m4
+  [Immigration events] as m5
+}
+
+package "Domain: Family Stories" {
+  [Hardship stories] as fs1
+  [Survival stories] as fs2
+  [Love stories] as fs3
+  [Military stories] as fs4
+  [Faith stories] as fs5
+  [Failure stories] as fs6
+}
+
+note right of fs1
+  Each story records:
+  • Source
+  • Date recorded
+  • Who told it
+  • Supporting evidence
+end note
+
+package "Domain: Artifacts" {
+  [Photos] as a1
+  [Letters & Journals] as a2
+  [Military records] as a3
+  [Church records] as a4
+  [Family Bibles] as a5
+  [Recipes] as a6
+}
+
+package "Domain: Genetics & Health" {
+  [Longevity] as g1
+  [Heart health] as g2
+  [Cancer history] as g3
+  [Mental resilience] as g4
+  [Athletic traits] as g5
+}
+
+note bottom of g1
+  Not destiny. Awareness.
+end note
+
+package "Domain: Lessons Purchased By Ancestors" {
+  [Sacrifices\nWhat did they give up?] as lp1
+  [Mistakes\nWhat errors repeated?] as lp2
+  [Victories\nWhat worked?] as lp3
+  [Warnings\nWhat should never\nhappen again?] as lp4
+  [Blessings\nWhat should be\npreserved?] as lp5
+}
+
+package "Heritage Roles (Progression)" {
+  (Explorer\nCollects stories) as r1
+  (Archivist\nPreserves records) as r2
+  (Researcher\nVerifies facts) as r3
+  (Historian\nConnects events) as r4
+  (Steward\nPasses knowledge forward) as r5
+  r1 --> r2
+  r2 --> r3
+  r3 --> r4
+  r4 --> r5
+}
+
+package "Annual Packet" {
+  [One Ancestor\nresearched] as ap1
+  [One Place\nresearched] as ap2
+  [One Story\nrecorded] as ap3
+  [One Artifact\npreserved] as ap4
+  [One Tradition\nunderstood] as ap5
+  [One Lesson\npassed forward] as ap6
+}
+
+note bottom of ap1
+  By age 35 he has:
+  35 years of family history,
+  financial history,
+  educational history,
+  spiritual history.
+
+  Most people inherit money.
+  Very few inherit a map.
+end note
+
+@enduml

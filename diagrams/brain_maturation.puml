@@ -1,0 +1,95 @@
+@startuml brain_maturation
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 12
+skinparam titleFontSize 18
+
+title Neuroscience Basis: Why 0–35?\nPrefrontal Cortex Maturation & Parenting Strategy
+
+map "Age 0–5" as a1 {
+  Brain => Amygdala, limbic, sensory cortex
+  Male PFC => Forming
+  Female PFC => Forming
+  Parenting => Safety, attachment, modeling
+}
+
+map "Age 6–12" as a2 {
+  Brain => Temporal/parietal specialization
+  Male PFC => Pruning
+  Female PFC => Pruning
+  Parenting => Skill exposure, habit formation
+}
+
+map "Age 13–17" as a3 {
+  Brain => Limbic system dominates
+  Male PFC => Immature
+  Female PFC => Approaching maturity
+  Parenting => Firm boundaries, explain consequences
+}
+
+map "Age 18–21" as a4 {
+  Brain => PFC gaining ground
+  Male PFC => Still developing
+  Female PFC => Nearing completion
+  Parenting => Release control gradually
+}
+
+map "Age 21–24" as a5 {
+  Brain => PFC integration accelerates
+  Male PFC => Still developing
+  Female PFC => **MATURE**
+  Parenting => Female: peer relationship
+}
+
+map "Age 25–30" as a6 {
+  Brain => Full myelination completing
+  Male PFC => **MATURE**
+  Female PFC => Mature
+  Parenting => Male: peer relationship
+}
+
+map "Age 31–35" as a7 {
+  Brain => Pattern recognition, wisdom circuits
+  Male PFC => Fully operational
+  Female PFC => Fully operational
+  Parenting => Legacy transfer, mutual stewardship
+}
+
+a1 -down-> a2
+a2 -down-> a3
+a3 -down-> a4
+a4 -down-> a5
+a5 -down-> a6
+a6 -down-> a7
+
+note right of a3
+  Limbic-PFC imbalance explains
+  adolescent risk-taking.
+  (Casey et al., 2008)
+end note
+
+note right of a5
+  Female PFC matures ~21–24
+  (Ingalhalikar et al., 2014, U. Penn)
+end note
+
+note right of a6
+  Male PFC matures ~25–30
+  (Giedd, NIH; Lebel & Beaulieu, 2011)
+end note
+
+note bottom of a7
+  **Key Sources:**
+  • Giedd, J.N. et al. — NIH Longitudinal Brain Imaging Study (1999–2015)
+  • Lebel, C. & Beaulieu, C. (2011) — Longitudinal Development of Human Brain Wiring
+  • Ingalhalikar, M. et al. (2014) — U. Penn, sex-based connectivity differences
+  • Sowell, E.R. et al. (2003) — UCLA, cortical maturation through mid-20s
+  • Casey, B.J. et al. (2008) — The Adolescent Brain
+
+  **Practical Meaning:**
+  A 22-year-old male may appear adult but is still neurologically
+  forming executive judgment. Support through 30+.
+  The 0–35 window ensures 5–10 years of mature-brain validation.
+end note
+
+@enduml

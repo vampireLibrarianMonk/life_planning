@@ -1,0 +1,95 @@
+@startuml financial_targets
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 12
+skinparam titleFontSize 18
+
+title Financial Targets Dashboard (0–35)\nCustodial account is a teaching tool, not just a savings vehicle.\nDon't wait until they have money to teach them about money.
+
+map "Birth" as ft0 {
+  Target => 529 opened + UTMA/UGMA custodial brokerage
+  Brain => Parent-managed; child unaware
+}
+
+map "Age 5–7" as ft5 {
+  Target => Savings jar (Spend/Save/Invest) + connect brands to businesses
+  Brain => Concrete thinking; habit formation window
+}
+
+map "Age 8–10" as ft10 {
+  Target => Compound interest + show account statements + graph growth
+  Brain => Cause/effect, basic math
+}
+
+map "Age 11–13" as ft11 {
+  Target => Stock=ownership, Bond=loan, Index=basket; paper trading
+  Brain => Abstract thinking emerging
+}
+
+map "Age 14–16" as ft14 {
+  Target => Sector research + pick stocks together + Roth IRA eligible
+  Brain => Future-outcome reasoning; reward circuitry developing
+}
+
+map "Age 16–18" as ft16 {
+  Target => Portfolio allocation, diversification, DCA, tax implications
+  Brain => Formal operational thinking; limbic still dominant
+}
+
+map "Age 18–25" as ft18 {
+  Target => Roth strategy, market cycles, behavioral finance
+  Brain => PFC developing; judgment incomplete
+}
+
+map "Age 25–30" as ft25 {
+  Target => Positive net worth + tax-loss harvesting + real estate
+  Brain => Male PFC maturing; judgment becoming reliable
+}
+
+map "Age 30–35" as ft35 {
+  Target => Financial independence trajectory + generational wealth
+  Brain => Full executive function; 5–10 years of validated decisions
+}
+
+ft0 -down-> ft5
+ft5 -down-> ft10
+ft10 -down-> ft11
+ft11 -down-> ft14
+ft14 -down-> ft16
+ft16 -down-> ft18
+ft18 -down-> ft25
+ft25 -down-> ft35
+
+note right of ft0
+  UTMA (Virginia): custodian
+  until age 21. No earned
+  income required. Opens
+  the door to teach investing
+  from the earliest age.
+end note
+
+note right of ft14
+  Custodial Roth IRA requires
+  earned income (W-2 or
+  legitimate self-employment).
+  Contribution limit = lesser of
+  $7,000 or total earned income.
+end note
+
+note right of ft18
+  PFC still developing — high
+  vulnerability to behavioral
+  finance errors (FOMO, panic
+  selling). Teach BEFORE they
+  experience their first downturn.
+end note
+
+note bottom of ft35
+  Key principle: A $100 custodial
+  account the child watches and
+  discusses is worth more educationally
+  than a $50,000 529 they never
+  think about.
+end note
+
+@enduml

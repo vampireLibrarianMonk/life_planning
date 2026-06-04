@@ -1,0 +1,84 @@
+@startuml family_economy
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 12
+skinparam titleFontSize 18
+
+title Family Economy System — Bounty Framework\n\n"Value creation creates opportunity. Character determines eligibility.\nTrust unlocks responsibility. Responsibility unlocks freedom."
+
+package "Layer 1: Citizenship (Not Paid)" {
+  [Self-care] as cit1
+  [Household participation] as cit2
+  [Respect] as cit3
+  [Education] as cit4
+  [Spiritual obligations] as cit5
+  [Community participation] as cit6
+}
+
+note bottom of cit1
+  "You do these because you are
+  a member of the family."
+  No bounty. No negotiation.
+end note
+
+package "Bounty Tiers" {
+  [Tier 1: Contribution\nHousehold | Property\nFamily support | Caregiving\nOrganization | Admin] as b1
+
+  [Tier 2: Competence\nTechnical | Creative\nMechanical | Academic\nResearch | Digital] as b2
+
+  [Tier 3: Stewardship\nBudgeting | Planning\nInventory | Scheduling\nResource allocation\nLeadership] as b3
+
+  [Tier 4: Initiative\nProcess improvement\nOpportunity identification\nInnovation | Service\nCommunity improvement] as b4
+
+  [Tier 5: Entrepreneurship\nProducts | Services\nEducation | Technology\nContent | Ventures] as b5
+
+  b1 -down-> b2 : Skill develops
+  b2 -down-> b3 : Trust earned
+  b3 -down-> b4 : Vision emerges
+  b4 -down-> b5 : Independence achieved
+}
+
+package "Eligibility (Character Gate)" {
+  [Character\nIntegrity | Honesty\nResponsibility | Courage] as elig1
+  [Competence\nSkill | Quality\nReliability | Learning] as elig2
+  [Citizenship\nFamily participation\nCommunity | Respect\nCooperation] as elig3
+  [Stewardship\nTime | Resources\nMoney | Commitments] as elig4
+}
+
+package "Reputation Tracker" {
+  [Reliability] as rep1
+  [Initiative] as rep2
+  [Quality] as rep3
+  [Leadership] as rep4
+  [Judgment] as rep5
+  [Service] as rep6
+}
+
+note right of rep1
+  Score is less important
+  than the trend.
+end note
+
+package "Reward Types" {
+  [Currency\nFinancial compensation] as rew1
+  [Authority\nDecision-making power] as rew2
+  [Access\nTools, resources, privileges] as rew3
+  [Responsibility\nGreater trust] as rew4
+  [Knowledge\nMentorship, training] as rew5
+  [Legacy\nPermanent recognition] as rew6
+}
+
+' Connections
+elig1 -right-> b1 : gates
+elig2 -right-> b2 : gates
+elig3 -right-> b3 : gates
+elig4 -right-> b4 : gates
+
+package "Progression Summary" {
+  (Allowance) -right-> (Bounties)
+  (Bounties) -right-> (Projects)
+  (Projects) -right-> (Entrepreneurship)
+  (Entrepreneurship) -right-> (Stewardship)
+}
+
+@enduml

@@ -159,12 +159,14 @@ Not all rewards should be money.
 
 ## Navigation Connection
 
-This connects into the larger lifetime navigation system:
+This connects into the larger lifetime navigation system via **navigational forces** (see Document 09 — Dimensional Navigation for the full model):
 
 - **Position** — Current maturity level
 - **Azimuth** — What kind of person is the child becoming?
 - **Velocity** — How quickly is responsibility increasing?
 - **Acceleration** — Is growth itself increasing?
 - **Current** — What environmental forces help or hinder progress?
+
+These are forces operating *within* the dimensional space (Knowledge, Character, Faith, Relationships, Stewardship, Legacy, etc.) — not dimensions themselves.
 
 The bounty system becomes one subsystem inside the larger lifetime map rather than a standalone chore chart. It evolves naturally from childhood contributions into adult stewardship, leadership, and eventually mentorship of others.

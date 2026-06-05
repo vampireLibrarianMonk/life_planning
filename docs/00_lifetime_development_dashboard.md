@@ -1,10 +1,10 @@
 # Lifetime Development Dashboard
 
-A system that tracks six dimensions of a child's development simultaneously from birth through age 35.
+A navigation system that tracks development across multiple pillars from birth through age 35.
 
 ---
 
-## The Six Pillars
+## Pillars of Development
 
 1. Spiritual
 2. Financial
@@ -12,6 +12,11 @@ A system that tracks six dimensions of a child's development simultaneously from
 4. Character
 5. Life Skills
 6. Heritage & Identity
+7. Family Economy (system)
+8. Environmental Resilience (system)
+9. Dimensional Thinking, Perception & Life Navigation
+
+> See **Document 09 — Dimensional Navigation** for the pillar that defines the navigational philosophy underpinning the entire system: the dimensional space (Knowledge, Character, Faith, Relationships, Stewardship, Legacy) and the navigational forces (Position, Azimuth, Velocity, Acceleration, Current, Time, Course Correction) operating within them.
 
 ---
 

@@ -57,4 +57,16 @@ package "Heritage & Identity" {
   (Historical context) --> (Legacy creation)
 }
 
+package "Life Navigation (Dimensional Thinking)" {
+  (Object permanence + cause/effect) as nav1
+  (Delayed consequences + system thinking) as nav2
+  (Navigation model + radius of influence) as nav3
+  (Full framework + presence principle) as nav4
+  (5th order influence + teach framework) as nav5
+  nav1 --> nav2
+  nav2 --> nav3
+  nav3 --> nav4
+  nav4 --> nav5
+}
+
 @enduml

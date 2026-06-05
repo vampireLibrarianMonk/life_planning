@@ -169,3 +169,37 @@ MILESTONES = {
         {"age_band": "25-35", "title": "Mentor younger people on pressure management", "category": "Stewardship"},
     ],
 }
+
+
+MILESTONES["dimensional_navigation"] = [
+    # Age 0-5: Foundation
+    {"age_band": "0-5", "title": "Object permanence fully developed", "category": "Foundation"},
+    {"age_band": "0-5", "title": "Teach: some things exist even when you can't see them (feelings, trust, love)", "category": "Foundation"},
+    {"age_band": "0-5", "title": "Cause and effect through play", "category": "Foundation"},
+    {"age_band": "0-5", "title": "'What happens next?' questioning habit", "category": "Foundation"},
+    # Age 6-12: Exploration
+    {"age_band": "6-12", "title": "Delayed consequences: 'If you do X today, what happens in a week?'", "category": "Exploration"},
+    {"age_band": "6-12", "title": "System thinking basics — family and school as systems", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Walls of perception: 'What might I not be seeing?'", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Comparative stories from world traditions introduced", "category": "Exploration"},
+    {"age_band": "6-12", "title": "First/second order consequences understood", "category": "Exploration"},
+    # Age 13-18: Formation
+    {"age_band": "13-18", "title": "Navigation model introduced: Position, Azimuth, Velocity", "category": "Formation"},
+    {"age_band": "13-18", "title": "Radius of influence: first and second order thinking", "category": "Formation"},
+    {"age_band": "13-18", "title": "Course correction cost: commitment accumulation understood", "category": "Formation"},
+    {"age_band": "13-18", "title": "Horizons of perception: delayed → lifetime", "category": "Formation"},
+    {"age_band": "13-18", "title": "Before/During/After Life engagement", "category": "Formation"},
+    {"age_band": "13-18", "title": "Comparative civilizational models explored", "category": "Formation"},
+    # Age 18-25: Launch
+    {"age_band": "18-25", "title": "Full navigation framework applied to major decisions", "category": "Launch"},
+    {"age_band": "18-25", "title": "Third and fourth order influence awareness", "category": "Launch"},
+    {"age_band": "18-25", "title": "Generational horizon: 'What am I building that outlasts me?'", "category": "Launch"},
+    {"age_band": "18-25", "title": "Current analysis: identify forces acting on trajectory", "category": "Launch"},
+    {"age_band": "18-25", "title": "Presence principle: trajectory recognition in real decisions", "category": "Launch"},
+    # Age 25-35: Stewardship
+    {"age_band": "25-35", "title": "Fifth order influence awareness", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Eternal horizon engagement", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Course correction audit: accumulated constraints assessed", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Teaching the navigation framework to others", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Legacy creation conscious and intentional", "category": "Stewardship"},
+]

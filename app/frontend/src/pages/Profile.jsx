@@ -12,6 +12,7 @@ const PILLARS = [
   { key: 'heritage', label: 'Heritage', icon: '🌳', placeholder: "e.g. 'Researched great-grandfather'" },
   { key: 'economy', label: 'Family Economy', icon: '⚖️', placeholder: "e.g. 'Completed first Silver task'" },
   { key: 'resilience', label: 'Resilience', icon: '🏔️', placeholder: "e.g. 'Discussed career pressure'" },
+  { key: 'dimensional_navigation', label: 'Life Navigation', icon: '🧭', placeholder: "e.g. 'Identified hidden consequence'" },
 ]
 
 const STATUS_COLORS = { pending: '#e0e0e0', in_progress: '#f5a623', complete: '#2ecc71' }

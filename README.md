@@ -2,6 +2,8 @@
 
 A lifetime development tracking system for children (ages 0–35). It tracks six pillars of development (Spiritual, Financial, Education & Career, Character, Life Skills, Heritage & Identity), a family economy with behavior-gated bounties, a wishlist, and pre-loaded milestones drawn from a structured set of planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
 
+Additionally, the system includes an Environmental Resilience framework and a Dimensional Thinking, Perception & Life Navigation pillar — the latter providing the navigational philosophy (dimensions as degrees of freedom, navigational forces operating within them, horizons of perception, radius of influence) that underpins the entire system.
+
 Instead of a generic chore chart or a college fund spreadsheet, this is a full navigation system. You define milestones, track character development, manage an earned-income economy, and maintain a living record that the child inherits as a map — not just money.
 
 ## Overview
@@ -92,7 +94,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 146 milestones across all 8 pillars from the planning documents
+3. The system automatically seeds 171 milestones across all 9 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -101,6 +103,7 @@ After selecting a profile, you see:
 
 - **Profile header** with name, current age, and developmental phase (Foundation/Exploration/Formation/Launch/Consolidation/Stewardship)
 - **8 pillar cards** with progress bars showing completion percentage
+- **🧭 Life Navigation** pillar for dimensional thinking and perception development
 - **💵 Bounty Board** card for the family economy system
 - **Roadmap** showing per-phase progress across all pillars with the current phase highlighted
 
@@ -166,11 +169,12 @@ life_plan/
 │   ├── 05_heritage_identity.md
 │   ├── 06_environmental_resilience.md
 │   ├── 07_spiritual_warfare_discernment.md
-│   └── 08_power_of_language.md
+│   ├── 08_power_of_language.md
+│   └── 09_dimensional_navigation.md
 ├── diagrams/                        # PlantUML source + rendered PNGs
 │   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
 │   ├── brain_maturation.puml        # PFC maturation by sex
-│   ├── pillars_detail.puml          # Six pillars progression
+│   ├── pillars_detail.puml          # Seven pillars progression
 │   ├── family_economy.puml          # Bounty/behavior system
 │   ├── heritage_identity.puml       # Heritage domains
 │   └── financial_targets.puml       # Investment education timeline
@@ -181,7 +185,7 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 146 milestones from docs
+    │   ├── seed_data.py             # 171 milestones from docs
     │   ├── requirements.txt
     │   └── routes/
     │       ├── users.py             # Auth + user management

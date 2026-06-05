@@ -21,6 +21,7 @@ class Pillar(str, Enum):
     heritage = "heritage"
     economy = "economy"
     resilience = "resilience"
+    dimensional_navigation = "dimensional_navigation"
 
 
 # Auth

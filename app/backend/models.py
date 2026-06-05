@@ -24,6 +24,7 @@ class Pillar(str, enum.Enum):
     heritage = "heritage"
     economy = "economy"
     resilience = "resilience"
+    dimensional_navigation = "dimensional_navigation"
 
 
 class BountyTier(str, enum.Enum):

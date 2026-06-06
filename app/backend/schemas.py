@@ -72,6 +72,8 @@ class ProfileResponse(BaseModel):
 # Pillar Entries
 class PillarEntryCreate(BaseModel):
     pillar: Pillar
+    parent_id: int | None = None
+    entry_type: str = "milestone"  # milestone, event, note, evidence
     age_band: str | None = None
     age_years: int | None = None
     title: str
@@ -92,7 +94,9 @@ class PillarEntryUpdate(BaseModel):
 class PillarEntryResponse(BaseModel):
     id: int
     profile_id: int
+    parent_id: int | None
     pillar: Pillar
+    entry_type: str
     age_band: str | None
     age_years: int | None
     title: str
@@ -214,6 +218,19 @@ class WishlistResponse(BaseModel):
     url: str | None
     priority: int
     status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# Event Attachments
+class AttachmentResponse(BaseModel):
+    id: int
+    entry_id: int
+    filename: str
+    original_name: str
+    mime_type: str
+    size_bytes: int
     created_at: datetime
 
     model_config = {"from_attributes": True}

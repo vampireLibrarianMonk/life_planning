@@ -81,13 +81,26 @@ class ProfileAccess(Base):
 
 
 class PillarEntry(Base):
-    """A tracked entry for a pillar at a point in time."""
+    """A tracked entry for a pillar at a point in time.
+    
+    Milestones can have children (sub-events, notes, evidence) via parent_id.
+    Status codes for milestones:
+      - not_started: Seeded but not yet relevant
+      - introduced: Concept introduced to child
+      - in_progress: Actively working on it
+      - practicing: Demonstrated but not consistent
+      - complete: Consistently demonstrated / achieved
+      - mastered: Fully internalized, can teach others
+    For non-milestone entries (notes/events): status is always 'complete'.
+    """
 
     __tablename__ = "pillar_entries"
 
     id = Column(Integer, primary_key=True, index=True)
     profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
+    parent_id = Column(Integer, ForeignKey("pillar_entries.id"), nullable=True)  # sub-entries nest under milestones
     pillar = Column(Enum(Pillar), nullable=False)
+    entry_type = Column(String(20), default="milestone")  # milestone, event, note, evidence
     age_band = Column(String(10), nullable=True)  # e.g. "0-5", "6-12"
     age_years = Column(Integer, nullable=True)
     title = Column(String(300), nullable=False)
@@ -95,11 +108,14 @@ class PillarEntry(Base):
     category = Column(String(100), nullable=True)  # Foundation, Exploration, etc.
     score = Column(Integer, nullable=True)  # 1-5 optional rating
     is_milestone = Column(Integer, default=0)  # 1=framework goal, 0=user entry
-    status = Column(String(20), default="pending")  # pending, in_progress, complete
+    status = Column(String(20), default="not_started")  # not_started, introduced, in_progress, practicing, complete, mastered
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     profile = relationship("Profile", back_populates="entries")
+    attachments = relationship("EventAttachment", back_populates="entry", cascade="all, delete-orphan")
+    children = relationship("PillarEntry", back_populates="parent", cascade="all, delete-orphan")
+    parent = relationship("PillarEntry", back_populates="children", remote_side=[id])
 
 
 class BehaviorScore(Base):
@@ -156,3 +172,19 @@ class WishlistItem(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     profile = relationship("Profile", back_populates="wishlist")
+
+
+class EventAttachment(Base):
+    """File attachment (image, video, document) linked to a pillar entry event."""
+
+    __tablename__ = "event_attachments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entry_id = Column(Integer, ForeignKey("pillar_entries.id", ondelete="CASCADE"), nullable=False)
+    filename = Column(String(500), nullable=False)
+    original_name = Column(String(500), nullable=False)
+    mime_type = Column(String(100), nullable=False)
+    size_bytes = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    entry = relationship("PillarEntry", back_populates="attachments")

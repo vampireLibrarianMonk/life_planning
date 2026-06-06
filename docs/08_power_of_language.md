@@ -211,4 +211,5 @@ Forms of blessing to practice:
 - **Document 07** (Spiritual Warfare) — The Accuser's primary mechanism is language: accusation, shame, false naming
 - **Document 00** (Dashboard, Pillar 1) — Spiritual formation includes learning to discern which words to accept and which to reject
 - **Document 02** (Consequence Analysis) — Elders must audit their own language for curses disguised as correction
-- **Document 05** (Heritage & Identity) — Family stories are spells. The narratives we inherit shape what we believe is possible.
+- **Document 05** (Heritage & Identity) — Family stories are spells. The narratives we inherit shape what we believe is possible. The Language Development domain treats language itself as living heritage requiring active family transmission.
+- **Document 09** (Dimensional Navigation) — The Golden Rule's three-directional symmetry applies to speech: words spoken to others, words accepted from others, and words spoken to self. The Circuit Breaker protects against internalizing curses disguised as correction.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren } from '../services/api'
 import Economy from './Economy'
 
 const PILLARS = [
@@ -9,15 +9,16 @@ const PILLARS = [
   { key: 'education', label: 'Education & Career', icon: '🎓', placeholder: "e.g. 'Joined robotics club'" },
   { key: 'character', label: 'Character', icon: '🛡️', placeholder: "e.g. 'Admitted mistake to teacher'" },
   { key: 'life_skills', label: 'Life Skills', icon: '🔧', placeholder: "e.g. 'Cooked first meal alone'" },
-  { key: 'heritage', label: 'Heritage', icon: '🌳', placeholder: "e.g. 'Researched great-grandfather'" },
+  { key: 'heritage', label: 'Heritage & Language', icon: '🌳', placeholder: "e.g. 'Reading chapter books in Spanish'" },
   { key: 'economy', label: 'Family Economy', icon: '⚖️', placeholder: "e.g. 'Completed first Silver task'" },
   { key: 'resilience', label: 'Resilience', icon: '🏔️', placeholder: "e.g. 'Discussed career pressure'" },
   { key: 'dimensional_navigation', label: 'Life Navigation', icon: '🧭', placeholder: "e.g. 'Identified hidden consequence'" },
 ]
 
-const STATUS_COLORS = { pending: '#e0e0e0', in_progress: '#f5a623', complete: '#2ecc71' }
-const STATUS_LABELS = { pending: '○', in_progress: '◐', complete: '●' }
-const STATUS_CYCLE = { pending: 'in_progress', in_progress: 'complete', complete: 'pending' }
+const STATUS_COLORS = { not_started: '#e0e0e0', introduced: '#a0d2db', in_progress: '#f5a623', practicing: '#c39bd3', complete: '#2ecc71', mastered: '#1a7a4c', pending: '#e0e0e0' }
+const STATUS_LABELS = { not_started: '○', introduced: '◔', in_progress: '◑', practicing: '◕', complete: '●', mastered: '★', pending: '○' }
+const STATUS_CYCLE = { not_started: 'introduced', introduced: 'in_progress', in_progress: 'practicing', practicing: 'complete', complete: 'mastered', mastered: 'not_started', pending: 'in_progress' }
+const STATUS_DISPLAY = { not_started: 'Not Started', introduced: 'Introduced', in_progress: 'In Progress', practicing: 'Practicing', complete: 'Complete', mastered: 'Mastered', pending: 'Pending' }
 
 export default function Profile() {
   const { id } = useParams()
@@ -36,6 +37,20 @@ export default function Profile() {
   const [editing, setEditing] = useState(null) // entry id being edited
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
+  const [showEventForm, setShowEventForm] = useState(false)
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventContent, setEventContent] = useState('')
+  const [eventFiles, setEventFiles] = useState([])
+  const [eventMilestone, setEventMilestone] = useState('') // entry id to mark complete
+  const [eventAgeBand, setEventAgeBand] = useState('')
+  const [attachmentsMap, setAttachmentsMap] = useState({}) // entryId -> [attachments]
+  const [expandedAttachments, setExpandedAttachments] = useState(null) // entry id or null
+  const [expandedMilestone, setExpandedMilestone] = useState(null) // entry id showing sub-entries
+  const [childrenMap, setChildrenMap] = useState({}) // entryId -> [children]
+  const [subFormParent, setSubFormParent] = useState(null) // entry id for sub-entry form
+  const [subTitle, setSubTitle] = useState('')
+  const [subContent, setSubContent] = useState('')
+  const [subType, setSubType] = useState('note') // note, event, evidence
 
   useEffect(() => { fetchProfile(id).then(setProfile); loadCounts() }, [id])
 
@@ -46,8 +61,8 @@ export default function Profile() {
       const counts = {}
       data.forEach(e => {
         if (!counts[e.pillar]) counts[e.pillar] = { total: 0, complete: 0 }
-        counts[e.pillar].total++
-        if (e.status === 'complete') counts[e.pillar].complete++
+        if (e.is_milestone) counts[e.pillar].total++
+        if (e.status === 'complete' || e.status === 'mastered') counts[e.pillar].complete++
       })
       setAllCounts(counts)
     })
@@ -66,13 +81,12 @@ export default function Profile() {
       pillar: activePillar,
       title: formTitle.trim(),
       content: formContent.trim() || null,
-      age_years: formAge ? parseInt(formAge) : null,
       age_band: formAgeBand || null,
       category: formAgeBand ? ({'0-5':'Foundation','6-12':'Exploration','13-18':'Formation','18-25':'Launch','25-35':'Stewardship'}[formAgeBand] || null) : null,
-      score: formScore ? parseInt(formScore) : null,
-      is_milestone: formType === 'milestone' ? 1 : 0,
+      entry_type: 'milestone',
+      is_milestone: 1,
     })
-    setFormTitle(''); setFormContent(''); setFormAge(''); setFormAgeBand(''); setFormScore(''); setShowForm(false); setFormType('note')
+    setFormTitle(''); setFormContent(''); setFormAgeBand(''); setShowForm(false)
     loadEntries(); loadCounts()
   }
 
@@ -98,6 +112,70 @@ export default function Profile() {
     if (!editTitle.trim()) return
     await updateEntry(id, entryId, { title: editTitle.trim(), content: editContent.trim() || null })
     cancelEdit(); loadEntries()
+  }
+
+  const handleAddEvent = async (e) => {
+    e.preventDefault()
+    if (!eventTitle.trim()) return
+    // Create the event entry
+    const entry = await createEntry(id, {
+      pillar: activePillar,
+      title: eventTitle.trim(),
+      content: eventContent.trim() || null,
+      age_band: eventAgeBand || null,
+      category: eventAgeBand ? ({'0-5':'Foundation','6-12':'Exploration','13-18':'Formation','18-25':'Launch','25-35':'Stewardship'}[eventAgeBand] || null) : null,
+      is_milestone: 0,
+    })
+    // Upload files if any
+    if (eventFiles.length > 0 && entry && entry.id) {
+      await uploadAttachments(id, entry.id, eventFiles)
+    }
+    // Mark linked milestone as complete if selected
+    if (eventMilestone && entry) {
+      await updateEntry(id, parseInt(eventMilestone), { status: 'complete' })
+    }
+    setEventTitle(''); setEventContent(''); setEventFiles([]); setEventMilestone(''); setEventAgeBand(''); setShowEventForm(false)
+    loadEntries(); loadCounts()
+  }
+
+  const loadAttachments = async (entryId) => {
+    if (expandedAttachments === entryId) { setExpandedAttachments(null); return }
+    const atts = await fetchAttachments(id, entryId)
+    setAttachmentsMap(prev => ({ ...prev, [entryId]: Array.isArray(atts) ? atts : [] }))
+    setExpandedAttachments(entryId)
+  }
+
+  const handleDeleteAttachment = async (entryId, attId) => {
+    if (!confirm('Delete this attachment?')) return
+    await deleteAttachment(id, entryId, attId)
+    const atts = await fetchAttachments(id, entryId)
+    setAttachmentsMap(prev => ({ ...prev, [entryId]: Array.isArray(atts) ? atts : [] }))
+  }
+
+  const toggleMilestoneExpand = async (entryId) => {
+    if (expandedMilestone === entryId) { setExpandedMilestone(null); return }
+    const kids = await fetchChildren(id, entryId)
+    setChildrenMap(prev => ({ ...prev, [entryId]: Array.isArray(kids) ? kids : [] }))
+    setExpandedMilestone(entryId)
+  }
+
+  const handleAddSubEntry = async (e, parentId) => {
+    e.preventDefault()
+    if (!subTitle.trim()) return
+    const parent = entries.find(en => en.id === parentId)
+    await createEntry(id, {
+      pillar: activePillar,
+      parent_id: parentId,
+      entry_type: subType,
+      title: subTitle.trim(),
+      content: subContent.trim() || null,
+      age_band: parent?.age_band || null,
+      is_milestone: 0,
+    })
+    const kids = await fetchChildren(id, parentId)
+    setChildrenMap(prev => ({ ...prev, [parentId]: Array.isArray(kids) ? kids : [] }))
+    setSubTitle(''); setSubContent(''); setSubFormParent(null); setSubType('note')
+    loadCounts()
   }
 
   const getAge = (dob) => {
@@ -177,7 +255,7 @@ export default function Profile() {
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                     {PILLARS.map(p => {
                       const pillarEntries = allRaw.filter(e => e.pillar === p.key && e.age_band === band && e.is_milestone)
-                      const done = pillarEntries.filter(e => e.status === 'complete').length
+                      const done = pillarEntries.filter(e => e.status === 'complete' || e.status === 'mastered').length
                       const total = pillarEntries.length
                       if (!total) return null
                       return <span key={p.key} style={{ fontSize: 11, padding: '1px 6px', borderRadius: 8, background: done === total ? '#e8f8f0' : '#f5f5f5', color: done === total ? '#27ae60' : '#888' }}>{p.icon} {done}/{total}</span>
@@ -215,7 +293,7 @@ export default function Profile() {
   milestones.forEach(m => { const band = m.age_band || 'Other'; if (!grouped[band]) grouped[band] = []; grouped[band].push(m) })
   const bandOrder = ['0-5', '6-12', '13-18', '18-25', '25-35', 'Other']
 
-  const renderItem = (item, showDelete = true) => {
+  const renderItem = (item, showDelete = true, isChild = false) => {
     if (editing === item.id) {
       return (
         <div key={item.id} style={{ ...s.milestone, flexDirection: 'column', alignItems: 'stretch', borderLeft: `3px solid ${STATUS_COLORS[item.status]}` }}>
@@ -228,21 +306,82 @@ export default function Profile() {
         </div>
       )
     }
+    const atts = attachmentsMap[item.id] || []
+    const kids = childrenMap[item.id] || []
+    const isMilestone = item.is_milestone === 1
+    const isExpanded = expandedMilestone === item.id
     return (
-      <div key={item.id} style={{ ...s.milestone, borderLeft: `3px solid ${STATUS_COLORS[item.status]}` }}>
-        <button onClick={() => handleStatusToggle(item)} style={s.statusBtn} title={`Status: ${item.status} (click to cycle)`}>
-          <span style={{ color: STATUS_COLORS[item.status], fontSize: 18 }}>{STATUS_LABELS[item.status]}</span>
-        </button>
-        <div style={{ flex: 1 }}>
-          <span style={{ textDecoration: item.status === 'complete' ? 'line-through' : 'none', color: item.status === 'complete' ? '#888' : '#1a1a1a' }}>{item.title}</span>
-          {item.content && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>{item.content}</p>}
+      <div key={item.id} style={{ marginBottom: 6, marginLeft: isChild ? 24 : 0 }}>
+        <div style={{ ...s.milestone, borderLeft: `3px solid ${STATUS_COLORS[item.status] || '#e0e0e0'}` }}>
+          <button onClick={() => handleStatusToggle(item)} style={s.statusBtn} title={`Status: ${STATUS_DISPLAY[item.status] || item.status} (click to advance)`}>
+            <span style={{ color: STATUS_COLORS[item.status] || '#e0e0e0', fontSize: 18 }}>{STATUS_LABELS[item.status] || '○'}</span>
+          </button>
+          <div style={{ flex: 1, cursor: isMilestone ? 'pointer' : 'default' }} onClick={() => isMilestone && toggleMilestoneExpand(item.id)}>
+            <span style={{ textDecoration: item.status === 'complete' || item.status === 'mastered' ? 'line-through' : 'none', color: item.status === 'mastered' ? '#1a7a4c' : item.status === 'complete' ? '#888' : '#1a1a1a' }}>{item.title}</span>
+            {item.content && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>{item.content}</p>}
+            {isMilestone && <span style={{ fontSize: 10, color: '#bbb', marginLeft: 4 }}>{isExpanded ? '▾' : '▸'} details</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 8, background: STATUS_COLORS[item.status] || '#e0e0e0', color: '#fff', whiteSpace: 'nowrap' }}>{STATUS_DISPLAY[item.status] || item.status}</span>
+            {item.category && <span style={s.categoryBadge}>{item.category}</span>}
+            {item.score != null && <span style={s.scoreBadge}>{item.score}/5</span>}
+            <button onClick={() => loadAttachments(item.id)} style={s.editBtn} title="Attachments">📎</button>
+            <button onClick={() => startEdit(item)} style={s.editBtn} title="Edit">✎</button>
+            {showDelete && <button onClick={() => handleDelete(item.id)} style={s.deleteBtn} title="Delete">&times;</button>}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {item.category && <span style={s.categoryBadge}>{item.category}</span>}
-          {item.score != null && <span style={s.scoreBadge}>{item.score}/5</span>}
-          <button onClick={() => startEdit(item)} style={s.editBtn} title="Edit">✎</button>
-          {showDelete && <button onClick={() => handleDelete(item.id)} style={s.deleteBtn} title="Delete">&times;</button>}
-        </div>
+        {expandedAttachments === item.id && (
+          <div style={s.attachPanel}>
+            {atts.length === 0 && <span style={{ fontSize: 12, color: '#999' }}>No attachments</span>}
+            {atts.map(a => (
+              <div key={a.id} style={s.attachItem}>
+                {a.mime_type.startsWith('image/') ? (
+                  <a href={`/api/uploads/${a.filename}`} target="_blank" rel="noreferrer">
+                    <img src={`/api/uploads/${a.filename}`} alt={a.original_name} style={{ maxWidth: 120, maxHeight: 80, borderRadius: 4 }} />
+                  </a>
+                ) : a.mime_type.startsWith('video/') ? (
+                  <video src={`/api/uploads/${a.filename}`} controls style={{ maxWidth: 180, maxHeight: 100, borderRadius: 4 }} />
+                ) : (
+                  <a href={`/api/uploads/${a.filename}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#4a90d9' }}>📄 {a.original_name}</a>
+                )}
+                <button onClick={() => handleDeleteAttachment(item.id, a.id)} style={{ ...s.deleteBtn, fontSize: 14 }} title="Remove">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Sub-entries panel for milestones */}
+        {isMilestone && isExpanded && (
+          <div style={s.subPanel}>
+            {kids.length > 0 && kids.map(child => (
+              <div key={child.id} style={s.subEntry}>
+                <span style={{ fontSize: 11, color: '#666', fontWeight: 600, textTransform: 'uppercase' }}>{child.entry_type}</span>
+                <span style={{ fontSize: 13 }}>{child.title}</span>
+                {child.content && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#999' }}>{child.content}</p>}
+                <span style={{ fontSize: 10, color: '#bbb' }}>{new Date(child.created_at).toLocaleDateString()}</span>
+              </div>
+            ))}
+            {subFormParent === item.id ? (
+              <form onSubmit={(e) => handleAddSubEntry(e, item.id)} style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {['note','event','evidence'].map(t => (
+                    <label key={t} style={{ fontSize: 11, cursor: 'pointer' }}>
+                      <input type="radio" name="subType" value={t} checked={subType === t} onChange={() => setSubType(t)} style={{ marginRight: 3 }} />
+                      {t}
+                    </label>
+                  ))}
+                </div>
+                <input type="text" placeholder="What happened or was observed?" value={subTitle} onChange={e => setSubTitle(e.target.value)} style={{ ...s.input, fontSize: 12 }} autoFocus />
+                <textarea placeholder="Details (optional)" value={subContent} onChange={e => setSubContent(e.target.value)} style={{ ...s.input, fontSize: 12, minHeight: 40, resize: 'vertical' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="submit" style={{ ...s.submitBtn, fontSize: 11, padding: '6px 14px' }}>Add</button>
+                  <button type="button" onClick={() => setSubFormParent(null)} style={{ ...s.cancelBtn, fontSize: 11, padding: '6px 14px' }}>Cancel</button>
+                </div>
+              </form>
+            ) : (
+              <button onClick={() => setSubFormParent(item.id)} style={{ fontSize: 11, color: '#4a90d9', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', textAlign: 'left' }}>+ Add note, event, or evidence</button>
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -257,33 +396,26 @@ export default function Profile() {
           <h2 style={{ margin: 0 }}>{currentPillar.label}</h2>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => { setShowForm(!showForm); setFormType('milestone') }} style={s.addBtn}>{showForm && formType === 'milestone' ? 'Cancel' : '+ Milestone'}</button>
-          <button onClick={() => { setShowForm(!showForm); setFormType('note') }} style={{ ...s.addBtn, background: '#8e44ad' }}>{showForm && formType === 'note' ? 'Cancel' : '+ Note'}</button>
+          <button onClick={() => { setShowForm(!showForm); setFormType('milestone') }} style={s.addBtn}>{showForm ? 'Cancel' : '+ Milestone'}</button>
         </div>
       </div>
 
       {showForm && (
         <form onSubmit={handleAddEntry} style={s.form}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: formType === 'milestone' ? '#4a90d9' : '#8e44ad', marginBottom: 4 }}>
-            {formType === 'milestone' ? '📌 New Milestone (goal/target)' : '📝 New Note (observation/record)'}
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#4a90d9', marginBottom: 4 }}>
+            📌 New Milestone (goal/target)
           </div>
           <input type="text" placeholder={currentPillar.placeholder} value={formTitle} onChange={e => setFormTitle(e.target.value)} style={s.input} autoFocus />
           <textarea placeholder="Details (optional)" value={formContent} onChange={e => setFormContent(e.target.value)} style={{ ...s.input, minHeight: 60, resize: 'vertical' }} />
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {formType === 'milestone' && (
-              <select value={formAgeBand} onChange={e => setFormAgeBand(e.target.value)} style={{ ...s.input, maxWidth: 140 }}>
-                <option value="">Age band...</option>
-                <option value="0-5">0–5</option>
-                <option value="6-12">6–12</option>
-                <option value="13-18">13–18</option>
-                <option value="18-25">18–25</option>
-                <option value="25-35">25–35</option>
-              </select>
-            )}
-            {formType === 'note' && (
-              <input type="number" placeholder="Age" value={formAge} onChange={e => setFormAge(e.target.value)} style={{ ...s.input, maxWidth: 100 }} min="0" max="35" />
-            )}
-            <input type="number" placeholder="Score 1-5" value={formScore} onChange={e => setFormScore(e.target.value)} style={{ ...s.input, maxWidth: 100 }} min="1" max="5" />
+            <select value={formAgeBand} onChange={e => setFormAgeBand(e.target.value)} style={{ ...s.input, maxWidth: 140 }}>
+              <option value="">Age band...</option>
+              <option value="0-5">0–5</option>
+              <option value="6-12">6–12</option>
+              <option value="13-18">13–18</option>
+              <option value="18-25">18–25</option>
+              <option value="25-35">25–35</option>
+            </select>
             <button type="submit" style={s.submitBtn}>Save</button>
           </div>
         </form>
@@ -297,13 +429,6 @@ export default function Profile() {
         </div>
       ))}
 
-      {/* User notes */}
-      {notes.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 14, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>Notes & Observations</h3>
-          {notes.map(e => renderItem(e, true))}
-        </div>
-      )}
     </div>
   )
 }
@@ -335,4 +460,8 @@ const s = {
   roadmapPhase: { display: 'flex', gap: 12, padding: '12px 16px', borderLeft: '2px solid #e8e8e8', marginLeft: 6 },
   roadmapActive: { background: '#f0f6ff', borderRadius: 8, borderLeft: '2px solid #4a90d9' },
   roadmapDot: { position: 'relative', left: -27, display: 'flex', alignItems: 'center' },
+  attachPanel: { padding: '8px 12px 8px 40px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: '#fafafa', borderRadius: '0 0 8px 8px', marginTop: -2 },
+  attachItem: { display: 'flex', alignItems: 'center', gap: 6, padding: 4, background: '#fff', borderRadius: 6, border: '1px solid #eee' },
+  subPanel: { marginLeft: 32, padding: '8px 12px', background: '#f9f9ff', borderLeft: '2px solid #e0e0f0', borderRadius: '0 8px 8px 0', marginTop: 2, maxHeight: 240, overflowY: 'auto' },
+  subEntry: { display: 'flex', flexDirection: 'column', gap: 2, padding: '6px 0', borderBottom: '1px solid #f0f0f0' },
 }

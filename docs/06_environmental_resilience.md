@@ -283,3 +283,4 @@ This document maps directly onto:
 - **Document 00** (Lifetime Dashboard, Pillar 4: Character) — discipline, courage, honesty enable resilience
 - **Document 04** (Bounty Framework, Tier 4: Initiative) — recognizing unsustainable patterns is initiative
 - **Document 02** (Consequence Analysis) — elders must model resilience, not just achievement
+- **Document 09** (Dimensional Navigation) — the ADAPT framework exit criteria are extended into the Circuit Breaker rules for relationships and self-treatment; the cascade pattern maps to the Golden Rule's equal-and-opposite regression chains

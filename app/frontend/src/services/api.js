@@ -30,6 +30,11 @@ export async function fetchEntries(profileId, pillar = null) {
   return res.json()
 }
 
+export async function fetchChildren(profileId, entryId) {
+  const res = await fetch(`/api/profiles/${profileId}/entries/${entryId}/children`, { headers: headers() })
+  return res.json()
+}
+
 export async function createEntry(profileId, entry) {
   const res = await fetch(`/api/profiles/${profileId}/entries/`, {
     method: 'POST',
@@ -145,6 +150,32 @@ export async function updateWishlistItem(profileId, itemId, data) {
 
 export async function deleteWishlistItem(profileId, itemId) {
   await fetch(`/api/profiles/${profileId}/wishlist/${itemId}`, {
+    method: 'DELETE',
+    headers: headers(),
+  })
+}
+
+// Event Attachments
+export async function uploadAttachments(profileId, entryId, files) {
+  const formData = new FormData()
+  for (const file of files) {
+    formData.append('files', file)
+  }
+  const res = await fetch(`/api/profiles/${profileId}/entries/${entryId}/attachments/`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${getToken()}` },
+    body: formData,
+  })
+  return res.json()
+}
+
+export async function fetchAttachments(profileId, entryId) {
+  const res = await fetch(`/api/profiles/${profileId}/entries/${entryId}/attachments/`, { headers: headers() })
+  return res.json()
+}
+
+export async function deleteAttachment(profileId, entryId, attachmentId) {
+  await fetch(`/api/profiles/${profileId}/entries/${entryId}/attachments/${attachmentId}`, {
     method: 'DELETE',
     headers: headers(),
   })

@@ -222,12 +222,17 @@ Questions:
 - Begin teaching: "Some things exist even when you can't see them" (feelings, trust, love)
 - Cause and effect through play
 - "What happens next?" questioning
+- Golden Rule introduced: "How would you feel if someone did that to you?"
+- Teach: "You deserve kindness too" — dignity as floor
 
 ### Ages 6–12 (Exploration)
 - Delayed consequences introduced: "If you do X today, what happens in a week?"
 - System thinking basics: family as a system, school as a system
 - Walls of perception: introduce "What might I not be seeing?"
 - Begin comparative stories from world traditions
+- Reciprocity deepened: how your actions return to you over time
+- Circuit breaker introduced: difference between guilt ("I did wrong") and shame ("I am wrong")
+- Teach: "Correction ends. If it never ends, something is wrong."
 
 ### Ages 13–18 (Formation)
 - Navigation model introduced: Position, Azimuth, Velocity
@@ -236,6 +241,10 @@ Questions:
 - Horizons of perception: delayed → lifetime
 - Before/During/After Life engagement
 - Comparative models exploration
+- Three-directional Golden Rule: self→others, others→self, self→self
+- Conviction vs. accusation framework applied to relationships
+- Identify abuse patterns: "Is this forming me or destroying me?"
+- Exit criteria: learn to define non-negotiable boundaries BEFORE pressure arrives
 
 ### Ages 18–25 (Launch)
 - Full navigation framework in use for major decisions
@@ -243,6 +252,10 @@ Questions:
 - Generational horizon: "What am I building that outlasts me?"
 - Current analysis: identify forces acting on trajectory
 - Presence principle practice: trajectory recognition in real decisions
+- Reciprocity audit: "Am I treating others as I want to be treated?"
+- Self-treatment audit: "Am I accepting treatment I would never impose on someone I love?"
+- Distinguish freely chosen discipline from externally imposed suffering
+- Recognize the Accuser wearing the mask of formation
 
 ### Ages 25–35 (Consolidation/Stewardship)
 - Fifth order influence awareness
@@ -250,6 +263,127 @@ Questions:
 - Course correction audit: what accumulated commitments constrain?
 - Teaching the framework to others
 - Legacy creation conscious and intentional
+- Teach circuit breaker to others — prevent generational transmission of abuse patterns
+- Model three-directional reciprocity in marriage, parenting, community
+- Annual audit: "Is endurance in any area of my life actually unrecognized destruction?"
+
+---
+
+## The Golden Rule of Consequence
+
+### The Reciprocity Principle
+
+"Do unto others as you would have them do unto you" (Matthew 7:12).
+
+The standard is your *desired* treatment — not your *current* self-treatment. This distinction is critical: a person who mistreats themselves has a corrupted baseline. The Golden Rule presupposes dignity as the floor.
+
+For every action in dimensional space, there is an equal and opposite reaction. The same forces that compound growth compound decay when reversed. This is not morality — it is navigational physics.
+
+### Three-Directional Symmetry
+
+| Direction | Healthy Form | Corrupted Form |
+|-----------|-------------|----------------|
+| **Self → Others** | Treat others with the dignity and care you desire | "I endure pain, so I impose it on others" (hazing, generational abuse) |
+| **Others → Self** | Receive treatment that calls you forward (blessing) | Accept treatment that destroys you and call it "growth" or "God's will" |
+| **Self → Self** | Honest self-assessment; discipline WITH compassion | Self-hatred disguised as discipline; shame accepted as conviction |
+
+### Navigational Force Reciprocity
+
+| Force | Constructive Action (+) | Equal & Opposite Reaction (−) |
+|-------|------------------------|-------------------------------|
+| **Position** | Honest self-assessment → clarity | Self-deception → invisible drift into danger |
+| **Azimuth** | Intentional direction → convergence toward purpose | Refusal to choose → current chooses for you |
+| **Velocity** | Disciplined habits → compounding growth | Undisciplined drift → compounding decay |
+| **Acceleration** | Growth compounding (mentorship, investment, faith deepening) | Decline compounding (addiction, debt, isolation) |
+| **Current** | Choosing environments that carry you forward | Remaining in environments that erode you |
+| **Time** | Compound interest of virtue — trust, reputation, relationships | Compound interest of neglect — marriage, health, identity hollowed out |
+| **Course Correction** | Early correction is cheap (low commitment accumulated) | Late correction is catastrophic (sunk cost, identity fusion, relational debt) |
+
+> The cost of course correction increases exponentially with time. A 5° azimuth error at age 14 is a conversation. At age 34, it is a divorce.
+
+### Dimensional Progression vs. Regression
+
+Every dimension has a forward chain and a backward chain of equal force:
+
+| Dimension | Forward Chain | Backward Chain |
+|-----------|--------------|----------------|
+| **Knowledge** | Learning → competence → opportunity → stewardship → teaching others | Ignorance → incompetence → dependency → exploitation |
+| **Character** | Integrity → trust → responsibility → authority → influence | Dishonesty → distrust → exclusion → powerlessness |
+| **Faith** | Examined faith → conviction → resilience → spiritual leadership | Unexamined belief → brittle certainty → collapse → despair |
+| **Relationships** | Investment → depth → mutual sanctification → generational transmission | Neglect → superficiality → isolation → "well-funded loneliness" |
+| **Stewardship** | Faithfulness with small → entrusted with more → generational wealth | Waste → loss of trust → diminished access → nothing to pass on |
+| **Legacy** | Conscious creation → institutions, children, traditions outlast actor | Unconscious consumption → nothing outlasts the actor |
+| **Responsibility** | Accept → grow → expand radius of influence (1st→5th order) | Avoid → remain small → radius contracts |
+| **Wisdom** | Perception expands → see further in time and across systems | Perception contracts → blindsided by visible consequences |
+| **Freedom** | Discipline → capacity → options multiply → true freedom | Indulgence → dependency → options narrow → slavery disguised as freedom |
+
+---
+
+## The Circuit Breaker: Endurance vs. Abuse
+
+### The Danger
+
+Without a circuit breaker, the entire framework of "endurance compounds, discipline builds, course correction costs increase" becomes a weapon — either in the hands of an abuser, or in the hands of one's own corrupted self-image.
+
+The short-circuit pattern:
+
+```
+Pain received → "I must endure — endurance builds character"
+  → Shame internalized → "I deserve this — correction is growth"
+    → Abuse normalized → "Leaving would be weakness / sin / failure"
+      → Identity fuses with suffering → Cannot distinguish
+         formation from destruction
+```
+
+This is the Accuser wearing the mask of formation.
+
+### Conviction vs. Accusation — Applied to Self-Treatment
+
+| | Conviction (Healthy) | Accusation (Abusive) |
+|--|---------------------|---------------------|
+| **Specificity** | "This specific behavior needs to change" | "You are fundamentally broken" |
+| **Direction** | Leads toward repair and communion | Leads toward shame and isolation |
+| **Endpoint** | Peace after repentance | Endless inadequacy; no suffering is ever enough |
+| **Agency** | You can act; correction is possible | You are helpless; endurance is all that remains |
+| **Fruit** | Growth, reconnection, restored capacity | Diminishment, withdrawal, identity collapse |
+
+### The Circuit Breaker Rules
+
+1. **Pain that produces isolation is not formation — it is destruction.** Legitimate discipline brings you closer to community. Abuse drives you from it.
+
+2. **If "endurance" requires hiding what is happening, it is not sanctification.** The sacramental system demands confession and communion. Anything requiring secrecy to survive operates outside it.
+
+3. **Legitimate correction has an endpoint.** Confess, be forgiven, move forward. Accusation has no endpoint — you can never suffer enough.
+
+4. **The Golden Rule has a minimum floor: dignity is non-negotiable.** "Do unto others as you would have them do unto you" presupposes you would NOT have them destroy you.
+
+5. **Discipline chosen freely ≠ abuse imposed externally.** The distinction: who holds the exit?
+
+6. **Any voice — internal or external — that removes your agency to leave is the Accuser's voice, regardless of what it claims to be.**
+
+### Exit Criteria (Adapted from ADAPT Framework)
+
+Recognize destruction — not formation — if:
+
+- It has no defined endpoint
+- It requires hiding
+- It produces isolation rather than communion
+- It tells you that you are irredeemable rather than correctable
+- It removes your agency to leave
+- It escalates regardless of compliance
+
+### The Sacramental Ladder — Ascent vs. Descent
+
+Each rung has a blessing (ascent) and a curse (descent). The mechanism is identical; the direction determines whether it builds or destroys.
+
+| Level | Ascent (Expanded Perception) | Descent (Short-Circuited Abuse) |
+|-------|------------------------------|--------------------------------|
+| **Individual** | Reconciliation → sins confessed lose power; identity restored | Self-accusation accepted → "I am my worst moment"; no forgiveness is enough |
+| **Marriage** | Covenant language → mutual sanctification | "Submission" weaponized; one spouse's destruction called sacrifice |
+| **Family** | Blessing → "I see you becoming..." opens possibility | Punishment with no restoration path; child can never earn standing |
+| **Community** | Accountability → restoration | Shunning with no path back; permanent exclusion |
+| **Nation** | Justice → restoration and reintegration | Retribution with no endpoint; populations defined by guilt forever |
+| **Universal** | Dignity affirmed for all | Nihilism: "Humanity is irredeemable" |
 
 ---
 
@@ -264,6 +398,9 @@ The successful participant develops the habit of asking:
 5. What happens if this continues?
 6. What survives my death?
 7. What inheritance am I leaving behind?
+8. Am I treating others as I would want to be treated?
+9. Am I accepting treatment I would never impose on someone I love?
+10. Is this pain forming me or destroying me? What is the evidence?
 
 ---
 
@@ -282,5 +419,6 @@ The goal is **perception**.
 - **Document 00** (Lifetime Dashboard) — This pillar provides the navigational philosophy that underpins the entire system
 - **Document 04** (Bounty Framework) — Navigation Connection section uses forces (Position, Azimuth, Velocity, Acceleration, Current) — these are the *navigational forces* operating within the dimensional space defined here
 - **Document 05** (Heritage & Identity) — "Before Life" maps directly to heritage domains; "After Life" maps to legacy creation
-- **Document 07** (Spiritual Warfare) — The Sacramental Ladder in that document is the same ladder referenced here, viewed through the lens of perception rather than combat
-- **Document 08** (Power of Language) — Language as a dimension of influence; words as forces that alter trajectory
+- **Document 06** (Environmental Resilience) — The cascade pattern is the Accuser's preferred temporal weapon; the ADAPT framework provides exit criteria that the Circuit Breaker rules extend to relationships and self-treatment
+- **Document 07** (Spiritual Warfare) — The Sacramental Ladder in that document is the same ladder referenced here, viewed through the lens of perception rather than combat; the conviction vs. accusation diagnostic is the primary tool of the Circuit Breaker
+- **Document 08** (Power of Language) — Language as a dimension of influence; words as forces that alter trajectory; blessings and curses as the Golden Rule applied to speech

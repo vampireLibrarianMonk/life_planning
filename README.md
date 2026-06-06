@@ -94,7 +94,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 171 milestones across all 9 pillars from the planning documents
+3. The system automatically seeds 228 milestones across all 9 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -112,11 +112,26 @@ After selecting a profile, you see:
 Click any pillar card to see:
 
 - **Milestones grouped by age band** (0–5, 6–12, 13–18, 18–25, 25–35)
-- **Status toggle** on each milestone: ○ Pending → ◐ In Progress → ● Complete
+- **Status toggle** on each milestone (click to advance): ○ Not Started → ◔ Introduced → ◑ In Progress → ◕ Practicing → ● Complete → ★ Mastered
 - **✎ Edit button** to modify title or add notes to any milestone
+- **📎 Attachments button** to view images, videos, or documents attached to an entry
+- **▸ Expand milestone** (click title) to see sub-entries and add notes, events, or evidence beneath it
 - **× Delete button** to remove milestones that don't apply
+- **+ Event** to record a moment with photos/videos/documents that marks a milestone complete
 - **+ Milestone** to create new goals with an age band
 - **+ Note** to add freeform observations/records
+
+### Adding Events
+
+The **+ Event** button opens a form for recording significant moments:
+
+1. Describe what happened (title + optional details)
+2. Select the age band
+3. Optionally **link to a pending milestone** — the event marks it complete automatically
+4. Attach multiple files (images, videos, PDFs, documents)
+5. Save — the event appears in Notes & Observations with attachments accessible via 📎
+
+This creates a living record: milestones aren't just checked off — they're documented with evidence of the moment they occurred.
 
 ### Bounty Board (Family Economy)
 
@@ -185,13 +200,15 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 171 milestones from docs
+    │   ├── seed_data.py             # 228 milestones from docs
     │   ├── requirements.txt
+    │   ├── uploads/                 # User-uploaded event attachments (auto-created)
     │   └── routes/
     │       ├── users.py             # Auth + user management
     │       ├── profiles.py          # Profile CRUD + milestone seeding
     │       ├── pillars.py           # Pillar entry CRUD
-    │       └── economy.py           # Behavior, bounties, wishlist, earnings
+    │       ├── economy.py           # Behavior, bounties, wishlist, earnings
+    │       └── events.py            # Event attachments (upload, list, delete, serve)
     └── frontend/
         ├── index.html
         ├── package.json

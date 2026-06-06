@@ -15,13 +15,32 @@ router = APIRouter(prefix="/api/profiles/{profile_id}/entries", tags=["pillars"]
 def list_entries(
     profile_id: int,
     pillar: Pillar | None = None,
+    parent_id: int | None = None,
+    top_level: bool = True,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     q = db.query(PillarEntry).filter(PillarEntry.profile_id == profile_id)
     if pillar:
         q = q.filter(PillarEntry.pillar == pillar)
+    if top_level:
+        q = q.filter(PillarEntry.parent_id == parent_id)
     return q.order_by(PillarEntry.is_milestone.desc(), PillarEntry.age_band, PillarEntry.created_at).all()
+
+
+@router.get("/{entry_id}/children", response_model=list[PillarEntryResponse])
+def list_children(
+    profile_id: int,
+    entry_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    return (
+        db.query(PillarEntry)
+        .filter(PillarEntry.profile_id == profile_id, PillarEntry.parent_id == entry_id)
+        .order_by(PillarEntry.created_at.desc())
+        .all()
+    )
 
 
 @router.post("/", response_model=PillarEntryResponse, status_code=201)
@@ -33,7 +52,14 @@ def create_entry(
 ):
     data = req.model_dump()
     is_milestone = data.pop("is_milestone", 0)
-    entry = PillarEntry(profile_id=profile_id, is_milestone=is_milestone, status="pending" if is_milestone else "complete", **data)
+    entry_type = data.get("entry_type", "note")
+    default_status = "not_started" if is_milestone else "complete"
+    entry = PillarEntry(
+        profile_id=profile_id,
+        is_milestone=is_milestone,
+        status=default_status,
+        **data,
+    )
     db.add(entry)
     db.commit()
     db.refresh(entry)

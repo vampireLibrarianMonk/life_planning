@@ -51,13 +51,52 @@ def create_profile(
                 title=m["title"],
                 category=m.get("category"),
                 is_milestone=1,
-                status="pending",
+                entry_type="milestone",
+                status="not_started",
             )
             db.add(entry)
 
     db.commit()
     db.refresh(profile)
     return profile
+
+
+@router.post("/{profile_id}/reseed", status_code=200)
+def reseed_milestones(
+    profile_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Add any milestones from seed_data that don't already exist on this profile."""
+    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    existing = {
+        (e.pillar.value if hasattr(e.pillar, 'value') else e.pillar, e.title)
+        for e in db.query(PillarEntry).filter(
+            PillarEntry.profile_id == profile_id, PillarEntry.is_milestone == 1
+        ).all()
+    }
+
+    added = 0
+    for pillar_key, milestones in MILESTONES.items():
+        for m in milestones:
+            if (pillar_key, m["title"]) not in existing:
+                db.add(PillarEntry(
+                    profile_id=profile_id,
+                    pillar=pillar_key,
+                    age_band=m["age_band"],
+                    title=m["title"],
+                    category=m.get("category"),
+                    is_milestone=1,
+                    entry_type="milestone",
+                    status="not_started",
+                ))
+                added += 1
+
+    db.commit()
+    return {"detail": f"Added {added} new milestones", "added": added}
 
 
 @router.get("/{profile_id}", response_model=ProfileResponse)

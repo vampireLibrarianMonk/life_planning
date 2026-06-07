@@ -57,6 +57,8 @@ class Profile(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     name = Column(String(200), nullable=False)
     date_of_birth = Column(String(10), nullable=True)  # YYYY-MM-DD
+    avatar = Column(String(500), nullable=True)  # cropped avatar filename in uploads/
+    avatar_original = Column(String(500), nullable=True)  # original full photo filename
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="profile")

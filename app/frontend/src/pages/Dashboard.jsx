@@ -89,7 +89,11 @@ export default function Dashboard() {
           <div style={styles.grid}>
             {profiles.map(p => (
               <Link to={`/profile/${p.id}`} key={p.id} style={styles.card}>
-                <div style={styles.avatar}>{p.name.charAt(0)}</div>
+                {p.avatar ? (
+                  <img src={`/api/uploads/${p.avatar}`} alt={p.name} style={styles.avatarImg} />
+                ) : (
+                  <div style={styles.avatar}>{p.name.charAt(0)}</div>
+                )}
                 <div style={styles.cardBody}>
                   <h3 style={styles.cardName}>{p.name}</h3>
                   {p.date_of_birth && (
@@ -129,6 +133,7 @@ const styles = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 },
   card: { display: 'flex', alignItems: 'center', padding: 20, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, textDecoration: 'none', color: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   avatar: { width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 600, flexShrink: 0 },
+  avatarImg: { width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
   cardBody: { flex: 1, marginLeft: 16 },
   cardName: { margin: 0, fontSize: 18, fontWeight: 600 },
   cardMeta: { margin: '4px 0 0', color: '#888', fontSize: 13 },

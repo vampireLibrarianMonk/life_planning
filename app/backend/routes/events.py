@@ -99,7 +99,7 @@ file_router = APIRouter(prefix="/api/uploads", tags=["events"])
 
 
 @file_router.get("/{filename}")
-def serve_upload(filename: str, _: User = Depends(get_current_user)):
+def serve_upload(filename: str):
     file_path = UPLOAD_DIR / filename
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")

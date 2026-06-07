@@ -64,6 +64,8 @@ class ProfileResponse(BaseModel):
     id: int
     name: str
     date_of_birth: str | None
+    avatar: str | None
+    avatar_original: str | None
     created_at: datetime
 
     model_config = {"from_attributes": True}

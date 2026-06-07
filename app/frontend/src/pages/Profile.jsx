@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar } from '../services/api'
+import AvatarCrop from '../components/AvatarCrop'
 import Economy from './Economy'
 
 const PILLARS = [
@@ -51,6 +52,8 @@ export default function Profile() {
   const [subTitle, setSubTitle] = useState('')
   const [subContent, setSubContent] = useState('')
   const [subType, setSubType] = useState('note') // note, event, evidence
+  const [avatarSrc, setAvatarSrc] = useState(null) // data URL for crop modal
+  const [avatarFile, setAvatarFile] = useState(null) // original File object
 
   useEffect(() => { fetchProfile(id).then(setProfile); loadCounts() }, [id])
 
@@ -178,6 +181,23 @@ export default function Profile() {
     loadCounts()
   }
 
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setAvatarFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setAvatarSrc(reader.result)
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const handleAvatarCropped = async (blob) => {
+    const updated = await uploadAvatar(id, avatarFile, blob)
+    setProfile(updated)
+    setAvatarSrc(null)
+    setAvatarFile(null)
+  }
+
   const getAge = (dob) => {
     if (!dob) return null
     const born = new Date(dob), now = new Date()
@@ -195,9 +215,18 @@ export default function Profile() {
   if (!activePillar) {
     return (
       <div style={s.container}>
+        {avatarSrc && <AvatarCrop imageSrc={avatarSrc} onComplete={handleAvatarCropped} onCancel={() => { setAvatarSrc(null); setAvatarFile(null) }} />}
         <Link to="/" style={s.back}>&larr; All Profiles</Link>
         <div style={s.profileHeader}>
-          <div style={s.bigAvatar}>{profile.name.charAt(0)}</div>
+          <label style={{ cursor: 'pointer', position: 'relative' }} title="Click to change photo">
+            {profile.avatar ? (
+              <img src={`/api/uploads/${profile.avatar}`} alt={profile.name} style={s.bigAvatar} />
+            ) : (
+              <div style={s.bigAvatarPlaceholder}>{profile.name.charAt(0)}</div>
+            )}
+            <input type="file" accept="image/*" onChange={handleAvatarSelect} style={{ display: 'none' }} />
+            <span style={s.avatarEdit}>📷</span>
+          </label>
           <div>
             <h1 style={s.name}>{profile.name}</h1>
             <p style={s.meta}>{age !== null && <>Age {age} &middot; </>}Phase: <strong>{phase}</strong>{profile.date_of_birth && <> &middot; Born {profile.date_of_birth}</>}</p>
@@ -438,7 +467,9 @@ const s = {
   back: { color: '#4a90d9', textDecoration: 'none', fontSize: 14 },
   backBtn: { background: 'none', border: 'none', color: '#4a90d9', cursor: 'pointer', fontSize: 14, padding: 0 },
   profileHeader: { display: 'flex', alignItems: 'center', gap: 20, margin: '24px 0 32px', padding: 24, background: 'linear-gradient(135deg, #f8f9ff, #f0f4ff)', borderRadius: 16 },
-  bigAvatar: { width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 600, flexShrink: 0 },
+  bigAvatar: { width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
+  bigAvatarPlaceholder: { width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 600, flexShrink: 0 },
+  avatarEdit: { position: 'absolute', bottom: 0, right: 0, background: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' },
   name: { margin: 0, fontSize: 26 },
   meta: { margin: '4px 0 0', color: '#666', fontSize: 15 },
   sectionTitle: { margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: '#444' },

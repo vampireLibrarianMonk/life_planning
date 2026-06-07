@@ -155,6 +155,19 @@ export async function deleteWishlistItem(profileId, itemId) {
   })
 }
 
+// Profile Avatar
+export async function uploadAvatar(profileId, originalFile, croppedBlob) {
+  const formData = new FormData()
+  formData.append('original', originalFile)
+  formData.append('cropped', croppedBlob, 'avatar.png')
+  const res = await fetch(`/api/profiles/${profileId}/avatar`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${getToken()}` },
+    body: formData,
+  })
+  return res.json()
+}
+
 // Event Attachments
 export async function uploadAttachments(profileId, entryId, files) {
   const formData = new FormData()

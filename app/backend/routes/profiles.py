@@ -1,13 +1,19 @@
 """Profile CRUD routes."""
 
-from fastapi import APIRouter, Depends, HTTPException
+import uuid
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin
+from auth import get_current_user, require_admin, require_admin_or_child
 from database import get_db
 from models import PillarEntry, Profile, ProfileAccess, User
 from schemas import ProfileAccessCreate, ProfileCreate, ProfileResponse
 from seed_data import MILESTONES
+
+UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 router = APIRouter(prefix="/api/profiles", tags=["profiles"])
 
@@ -122,3 +128,44 @@ def grant_access(
     db.add(access)
     db.commit()
     return {"detail": "Access granted"}
+
+
+@router.post("/{profile_id}/avatar", response_model=ProfileResponse)
+async def upload_avatar(
+    profile_id: int,
+    original: UploadFile = File(...),
+    cropped: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Save original (full photo for gallery)
+    orig_ext = Path(original.filename).suffix
+    orig_name = f"avatar_orig_{profile_id}_{uuid.uuid4().hex}{orig_ext}"
+    orig_content = await original.read()
+    (UPLOAD_DIR / orig_name).write_bytes(orig_content)
+
+    # Save cropped version
+    crop_ext = Path(cropped.filename).suffix or ".png"
+    crop_name = f"avatar_{profile_id}_{uuid.uuid4().hex}{crop_ext}"
+    crop_content = await cropped.read()
+    (UPLOAD_DIR / crop_name).write_bytes(crop_content)
+
+    # Remove old files if they exist
+    if profile.avatar:
+        old = UPLOAD_DIR / profile.avatar
+        if old.exists():
+            old.unlink()
+    if profile.avatar_original:
+        old = UPLOAD_DIR / profile.avatar_original
+        if old.exists():
+            old.unlink()
+
+    profile.avatar = crop_name
+    profile.avatar_original = orig_name
+    db.commit()
+    db.refresh(profile)
+    return profile

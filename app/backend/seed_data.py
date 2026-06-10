@@ -265,3 +265,42 @@ MILESTONES["dimensional_navigation"] = [
     {"age_band": "25-35", "title": "Model three-directional reciprocity in marriage, parenting, community", "category": "Stewardship"},
     {"age_band": "25-35", "title": "Annual audit: 'Is endurance in any area actually unrecognized destruction?'", "category": "Stewardship"},
 ]
+
+MILESTONES["civic"] = [
+    # Age 0-5: Foundation
+    {"age_band": "0-5", "title": "Learns: family is a system with roles and shared responsibilities", "category": "Foundation"},
+    {"age_band": "0-5", "title": "Understands: some people have jobs that help the community (firefighters, teachers, doctors)", "category": "Foundation"},
+    {"age_band": "0-5", "title": "Introduces: 'Who decides?' questions about everyday rules", "category": "Foundation"},
+    # Age 6-12: Exploration
+    {"age_band": "6-12", "title": "Layers of governance: self → family → community → local → state → national", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Voting beyond elections: money, time, attention, purchases are all 'votes'", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Local institutions identified: school board, town council, churches, community orgs", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Ownership basics: what does it mean to own part of a business (stocks)?", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Owning the means of production: buying stock = owning the factory, not just buying its products", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Power of time: compound interest, skill development, institutional growth", "category": "Exploration"},
+    {"age_band": "6-12", "title": "Civic symbol literacy: reads first political cartoon — 'What is this saying about power?'", "category": "Exploration"},
+    # Age 13-18: Formation
+    {"age_band": "13-18", "title": "Visibility problem: most influence is local/invisible, not presidential/celebrity", "category": "Formation"},
+    {"age_band": "13-18", "title": "How local government actually works: attends or watches a council/board meeting", "category": "Formation"},
+    {"age_band": "13-18", "title": "Economic participation: understands shareholders, dividends, capital allocation", "category": "Formation"},
+    {"age_band": "13-18", "title": "Ownership vs. employment: the difference between working for vs. owning productive assets", "category": "Formation"},
+    {"age_band": "13-18", "title": "Stock market as means of production: anyone can own the companies that make, ship, and sell — not just the wealthy", "category": "Formation"},
+    {"age_band": "13-18", "title": "Long-term ownership: early investment + time + dividends reinvested = compounding ownership stake", "category": "Formation"},
+    {"age_band": "13-18", "title": "Civic symbol literacy: analyzes propaganda, ads, memes, speeches for power structures", "category": "Formation"},
+    {"age_band": "13-18", "title": "Identifies: 'Who benefits if the crowd keeps moving?' in public messaging", "category": "Formation"},
+    {"age_band": "13-18", "title": "Institutional awareness: which institutions shape daily life beyond government?", "category": "Formation"},
+    {"age_band": "13-18", "title": "Distributed influence: understands that a crowd's participation sustains authority", "category": "Formation"},
+    # Age 18-25: Launch
+    {"age_band": "18-25", "title": "Votes in elections with understanding of local, state, and national layers", "category": "Launch"},
+    {"age_band": "18-25", "title": "Investment as participation: builds portfolio as ownership stake in productive systems", "category": "Launch"},
+    {"age_band": "18-25", "title": "Organizational influence: joins or builds organizations (professional, civic, religious)", "category": "Launch"},
+    {"age_band": "18-25", "title": "Institutional criticism → stewardship: moves from 'this is broken' to 'how do I fix it?'", "category": "Launch"},
+    {"age_band": "18-25", "title": "Can articulate how influence flows through any system they participate in", "category": "Launch"},
+    {"age_band": "18-25", "title": "Civic symbol literacy: detects narrative framing in news, corporate messaging, political speech", "category": "Launch"},
+    # Age 25-35: Stewardship
+    {"age_band": "25-35", "title": "Institutional stewardship: supports, reforms, or creates institutions", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Civilizational influence: contributes ideas, structures, or traditions that persist beyond self", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Teaches civic/institutional navigation to others", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Asks: 'Which institutions deserve support? Reform? Creation?'", "category": "Stewardship"},
+    {"age_band": "25-35", "title": "Understands society as something they actively shape, not something happening to them", "category": "Stewardship"},
+]

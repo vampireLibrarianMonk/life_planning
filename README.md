@@ -94,7 +94,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 228 milestones across all 9 pillars from the planning documents
+3. The system automatically seeds 256 milestones across all 10 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -104,6 +104,7 @@ After selecting a profile, you see:
 - **Profile header** with name, current age, and developmental phase (Foundation/Exploration/Formation/Launch/Consolidation/Stewardship)
 - **8 pillar cards** with progress bars showing completion percentage
 - **🧭 Life Navigation** pillar for dimensional thinking and perception development
+- **🏛️ Civic & Institutional** pillar for governance, markets, and institutional literacy
 - **💵 Bounty Board** card for the family economy system
 - **Roadmap** showing per-phase progress across all pillars with the current phase highlighted
 
@@ -185,7 +186,8 @@ life_plan/
 │   ├── 06_environmental_resilience.md
 │   ├── 07_spiritual_warfare_discernment.md
 │   ├── 08_power_of_language.md
-│   └── 09_dimensional_navigation.md
+│   ├── 09_dimensional_navigation.md
+│   └── 10_civic_institutional_navigation.md
 ├── diagrams/                        # PlantUML source + rendered PNGs
 │   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
 │   ├── brain_maturation.puml        # PFC maturation by sex

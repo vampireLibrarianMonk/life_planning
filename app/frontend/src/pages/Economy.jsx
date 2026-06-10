@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem } from '../services/api'
+import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident } from '../services/api'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
 const TRAIT_LABELS = { integrity: 'Integrity', honesty: 'Honesty', responsibility: 'Responsibility', respect: 'Respect', school_effort: 'School Effort', citizenship: 'Citizenship' }
@@ -8,21 +8,21 @@ const TIER_ORDER = ['bronze', 'silver', 'gold', 'platinum']
 const BOUNTY_STATUS_CYCLE = { available: 'claimed', claimed: 'complete', complete: 'paid' }
 
 export default function Economy({ profileId }) {
-  const [behavior, setBehavior] = useState([])
   const [eligibility, setEligibility] = useState(null)
+  const [incidents, setIncidents] = useState([])
   const [bounties, setBounties] = useState([])
   const [earnings, setEarnings] = useState(null)
-  const [showBehaviorForm, setShowBehaviorForm] = useState(false)
+  const [showIncidentForm, setShowIncidentForm] = useState(false)
+  const [incForm, setIncForm] = useState({ trait: 'integrity', positive: 1, description: '', date: new Date().toISOString().split('T')[0] })
   const [showBountyForm, setShowBountyForm] = useState(false)
-  const [bForm, setBForm] = useState({ integrity: 3, honesty: 3, responsibility: 3, respect: 3, school_effort: 3, citizenship: 3, notes: '' })
   const [bountyForm, setBountyForm] = useState({ tier: 'bronze', title: '', description: '', reward_amount: '' })
   const [wishlist, setWishlist] = useState([])
   const [showWishForm, setShowWishForm] = useState(false)
   const [wishForm, setWishForm] = useState({ title: '', description: '', cost_cents: '', url: '', priority: 2 })
 
   const load = () => {
-    fetchBehavior(profileId).then(d => Array.isArray(d) && setBehavior(d))
     fetchEligibility(profileId).then(setEligibility)
+    fetchIncidents(profileId).then(d => Array.isArray(d) && setIncidents(d))
     fetchBounties(profileId).then(d => Array.isArray(d) && setBounties(d))
     fetchEarnings(profileId).then(setEarnings)
     fetchWishlist(profileId).then(d => Array.isArray(d) && setWishlist(d))
@@ -30,17 +30,18 @@ export default function Economy({ profileId }) {
 
   useEffect(() => { load() }, [profileId])
 
-  const getMonday = () => {
-    const d = new Date(); d.setDate(d.getDate() - d.getDay() + 1)
-    return d.toISOString().split('T')[0]
+  const handleIncidentSubmit = async (e) => {
+    e.preventDefault()
+    if (!incForm.description.trim()) return
+    await createIncident(profileId, { ...incForm, description: incForm.description.trim() })
+    setShowIncidentForm(false)
+    setIncForm({ trait: 'integrity', positive: 1, description: '', date: new Date().toISOString().split('T')[0] })
+    load()
   }
 
-  const handleBehaviorSubmit = async (e) => {
-    e.preventDefault()
-    await createBehavior(profileId, { ...bForm, week_of: getMonday(), notes: bForm.notes || null })
-    setShowBehaviorForm(false)
-    setBForm({ integrity: 3, honesty: 3, responsibility: 3, respect: 3, school_effort: 3, citizenship: 3, notes: '' })
-    load()
+  const handleDeleteIncident = async (id) => {
+    if (!confirm('Delete this incident?')) return
+    await deleteIncident(profileId, id); load()
   }
 
   const handleBountySubmit = async (e) => {
@@ -101,11 +102,43 @@ export default function Economy({ profileId }) {
             <h3 style={{ margin: '4px 0 0', color: TIER_COLORS[eligibility.eligible_tier], textTransform: 'capitalize' }}>{eligibility.eligible_tier} Tier</h3>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: 12, color: '#888' }}>Avg Score</span>
-            <h3 style={{ margin: '4px 0 0' }}>{eligibility.average}/5</h3>
+            <span style={{ fontSize: 12, color: '#888' }}>Overall Score</span>
+            <h3 style={{ margin: '4px 0 0' }}>{eligibility.percentage}%</h3>
           </div>
         </div>
       )}
+
+      {/* Per-trait breakdown */}
+      {eligibility && eligibility.trait_scores && Object.keys(eligibility.trait_scores).length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 20 }}>
+          {TRAITS.map(t => {
+            const ts = eligibility.trait_scores[t] || { positive: 0, negative: 0, ratio: 100 }
+            return (
+              <div key={t} style={{ padding: 10, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#888' }}>{TRAIT_LABELS[t]}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: ts.ratio >= 90 ? '#1a7a4c' : ts.ratio >= 70 ? '#f5a623' : ts.ratio >= 50 ? '#e67e22' : '#c0392b' }}>{ts.ratio}%</div>
+                <div style={{ fontSize: 10, color: '#aaa' }}>✓{ts.positive} ✗{ts.negative}</div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Tier requirements */}
+      <details style={{ marginBottom: 16, background: '#f8f9ff', border: '1px solid #e8e8f0', borderRadius: 10, padding: '0 16px' }}>
+        <summary style={{ padding: '12px 0', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#666' }}>How Tiers Work</summary>
+        <p style={{ margin: '0 0 8px', fontSize: 13, color: '#444', lineHeight: 1.6 }}>
+          Record positive (✓) and negative (✗) incidents for each trait. Your tier is determined by the ratio of positives to total incidents over the last 30 days:
+        </p>
+        <table style={{ ...st.table, marginBottom: 12 }}>
+          <tbody>
+            <tr><td style={st.td}>💎 Platinum (90%+)</td><td style={st.td}>Can propose projects, negotiate rates</td></tr>
+            <tr><td style={st.td}>🥇 Gold (70–89%)</td><td style={st.td}>Larger projects requiring skill</td></tr>
+            <tr><td style={st.td}>🥈 Silver (50–69%)</td><td style={st.td}>Property and organization tasks</td></tr>
+            <tr><td style={st.td}>🥉 Bronze (&lt;50%)</td><td style={st.td}>Household help at entry level</td></tr>
+          </tbody>
+        </table>
+      </details>
 
       {/* Earnings Summary */}
       {earnings && (
@@ -117,51 +150,44 @@ export default function Economy({ profileId }) {
         </div>
       )}
 
-      {/* Behavior Matrix */}
+      {/* Behavior Incidents */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 12px' }}>
-        <h3 style={{ margin: 0 }}>Behavior Matrix</h3>
-        <button onClick={() => setShowBehaviorForm(!showBehaviorForm)} style={st.btn}>{showBehaviorForm ? 'Cancel' : '+ Score Week'}</button>
+        <h3 style={{ margin: 0 }}>Behavior Log</h3>
+        <button onClick={() => setShowIncidentForm(!showIncidentForm)} style={st.btn}>{showIncidentForm ? 'Cancel' : '+ Record Incident'}</button>
       </div>
 
-      {showBehaviorForm && (
-        <form onSubmit={handleBehaviorSubmit} style={st.form}>
-          <p style={{ margin: '0 0 8px', fontSize: 13, color: '#666' }}>Rate each trait 1–5 for this week:</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
-            {TRAITS.map(t => (
-              <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                {TRAIT_LABELS[t]}
-                <input type="number" min="1" max="5" value={bForm[t]} onChange={e => setBForm({ ...bForm, [t]: parseInt(e.target.value) || 3 })} style={{ width: 40, padding: 4, borderRadius: 4, border: '1px solid #ddd', textAlign: 'center' }} />
+      {showIncidentForm && (
+        <form onSubmit={handleIncidentSubmit} style={st.form}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <select value={incForm.trait} onChange={e => setIncForm({ ...incForm, trait: e.target.value })} style={{ ...st.input, maxWidth: 160 }}>
+              {TRAITS.map(t => <option key={t} value={t}>{TRAIT_LABELS[t]}</option>)}
+            </select>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <label style={{ fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 6, background: incForm.positive ? '#e8f8f0' : '#fff', border: '1px solid #ccc' }}>
+                <input type="radio" name="positive" checked={incForm.positive === 1} onChange={() => setIncForm({ ...incForm, positive: 1 })} style={{ display: 'none' }} /> ✓ Positive
               </label>
-            ))}
+              <label style={{ fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 6, background: !incForm.positive ? '#fde8e8' : '#fff', border: '1px solid #ccc' }}>
+                <input type="radio" name="positive" checked={incForm.positive === 0} onChange={() => setIncForm({ ...incForm, positive: 0 })} style={{ display: 'none' }} /> ✗ Negative
+              </label>
+            </div>
+            <input type="date" value={incForm.date} onChange={e => setIncForm({ ...incForm, date: e.target.value })} style={{ ...st.input, maxWidth: 150 }} />
           </div>
-          <input placeholder="Notes (optional)" value={bForm.notes} onChange={e => setBForm({ ...bForm, notes: e.target.value })} style={st.input} />
-          <button type="submit" style={st.submitBtn}>Save Week</button>
+          <input placeholder="What happened? e.g. 'Told the truth about breaking the vase'" value={incForm.description} onChange={e => setIncForm({ ...incForm, description: e.target.value })} style={st.input} autoFocus />
+          <button type="submit" style={st.submitBtn}>Save Incident</button>
         </form>
       )}
 
-      {behavior.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={st.table}>
-            <thead>
-              <tr>
-                <th style={st.th}>Week</th>
-                {TRAITS.map(t => <th key={t} style={st.th}>{TRAIT_LABELS[t].slice(0, 6)}</th>)}
-                <th style={st.th}>Avg</th>
-              </tr>
-            </thead>
-            <tbody>
-              {behavior.slice(0, 8).map(s => {
-                const avg = (TRAITS.reduce((sum, t) => sum + s[t], 0) / 6).toFixed(1)
-                return (
-                  <tr key={s.id}>
-                    <td style={st.td}>{s.week_of}</td>
-                    {TRAITS.map(t => <td key={t} style={{ ...st.td, color: s[t] >= 4 ? '#27ae60' : s[t] <= 2 ? '#c0392b' : '#333' }}>{s[t]}</td>)}
-                    <td style={{ ...st.td, fontWeight: 600 }}>{avg}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      {incidents.length > 0 && (
+        <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 20 }}>
+          {incidents.map(inc => (
+            <div key={inc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderBottom: '1px solid #f0f0f0' }}>
+              <span style={{ fontSize: 14 }}>{inc.positive ? '✓' : '✗'}</span>
+              <span style={{ fontSize: 11, color: '#888', minWidth: 70 }}>{TRAIT_LABELS[inc.trait]?.slice(0, 8)}</span>
+              <span style={{ flex: 1, fontSize: 13 }}>{inc.description}</span>
+              <span style={{ fontSize: 11, color: '#bbb' }}>{inc.date}</span>
+              <button onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>
+            </div>
+          ))}
         </div>
       )}
 

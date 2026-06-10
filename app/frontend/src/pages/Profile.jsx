@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import Economy from './Economy'
 
 const PILLARS = [
-  { key: 'spiritual', label: 'Spiritual', icon: '✝️', placeholder: "e.g. 'First prayer unprompted'" },
-  { key: 'financial', label: 'Financial', icon: '💰', placeholder: "e.g. 'Opened savings account'" },
-  { key: 'education', label: 'Education & Career', icon: '🎓', placeholder: "e.g. 'Joined robotics club'" },
-  { key: 'character', label: 'Character', icon: '🛡️', placeholder: "e.g. 'Admitted mistake to teacher'" },
-  { key: 'life_skills', label: 'Life Skills', icon: '🔧', placeholder: "e.g. 'Cooked first meal alone'" },
-  { key: 'heritage', label: 'Heritage & Language', icon: '🌳', placeholder: "e.g. 'Reading chapter books in Spanish'" },
-  { key: 'economy', label: 'Family Economy', icon: '⚖️', placeholder: "e.g. 'Completed first Silver task'" },
-  { key: 'resilience', label: 'Resilience', icon: '🏔️', placeholder: "e.g. 'Discussed career pressure'" },
-  { key: 'dimensional_navigation', label: 'Life Navigation', icon: '🧭', placeholder: "e.g. 'Identified hidden consequence'" },
+  { key: 'spiritual', label: 'Spiritual', icon: '✝️', placeholder: "e.g. 'First prayer unprompted'", about: "Spiritual formation tracks the development of an examined faith — not blind belief, not rebellion. It progresses from family prayers and Bible stories through theology, apologetics, and competing worldviews, culminating in personal convictions that have been tested, owned, and can be articulated. The goal is a faith that survives challenge because it has already faced it." },
+  { key: 'financial', label: 'Financial', icon: '💰', placeholder: "e.g. 'Opened savings account'", about: "Financial development builds real investment literacy from birth through generational wealth planning. Starting with savings jars and compound interest stories, progressing through custodial accounts, Roth IRAs, portfolio allocation, and behavioral finance. The child learns not just to save but to understand markets, manage risk, and eventually build wealth structures that outlast them." },
+  { key: 'education', label: 'Education & Career', icon: '🎓', placeholder: "e.g. 'Joined robotics club'", about: "Education & Career tracks interests, aptitudes, and experiences across all valid paths — college, trade, military, entrepreneurship. Early years expose without directing. Adolescence tracks emerging strengths through job shadowing, internships, and projects. Adulthood tracks specialization and mastery. All outcomes are valid; the metric is fit, not prestige." },
+  { key: 'character', label: 'Character', icon: '🛡️', placeholder: "e.g. 'Admitted mistake to teacher'", about: "Character is the pillar most parents ignore. It tracks responsibility, courage, compassion, and discipline annually — not as abstract virtues but as observable behaviors. Can they admit mistakes? Finish hard things? Handle criticism? Case studies of real figures (MLK, Malcolm X, Goggins, Daryl Davis) teach analysis without hero worship through the sacramental ladder framework." },
+  { key: 'life_skills', label: 'Life Skills', icon: '🔧', placeholder: "e.g. 'Cooked first meal alone'", about: "Life Skills ensures that by age 18 the child can cook, clean, do laundry, manage money, drive, perform first aid, and navigate digital security. By 35: home ownership literacy, legal literacy, estate planning, and community leadership. These are the competencies that prevent capable adults from being helpless in daily life." },
+  { key: 'heritage', label: 'Heritage & Language', icon: '🌳', placeholder: "e.g. 'Reading chapter books in Spanish'", about: "Heritage & Language combines identity investigation ('Who do you think you are?') with active bilingual development. It tracks family origins, stories, artifacts, and traditions alongside a full language comprehension pathway — phonology, vocabulary, grammar, discourse, pragmatics, and literacy. Family participation roles ensure language transmission doesn't rest on one person. The goal: by 35 they inherit a map, not just money, and can transmit their languages to their own children." },
+  { key: 'economy', label: 'Family Economy', icon: '⚖️', placeholder: "e.g. 'Completed first Silver task'", about: "Family Economy separates citizenship (unpaid family duties) from contribution (earned bounties). It teaches that value creation creates opportunity, character determines eligibility, trust unlocks responsibility, and responsibility unlocks freedom. Tiers progress from household help through competence, stewardship, initiative, and eventually entrepreneurship — mirroring how the adult world actually works." },
+  { key: 'resilience', label: 'Resilience', icon: '🏔️', placeholder: "e.g. 'Discussed career pressure'", about: "Environmental Resilience maps the failure modes of every high-performance career path before the child enters one. It teaches: every field has a substance culture, institutions will frame your destruction as personal failure, and sustainable excellence beats unsustainable brilliance. The ADAPT framework (Assess, Detect, Alternatives, Protect, Threshold) is applied before entering any high-pressure environment." },
+  { key: 'dimensional_navigation', label: 'Life Navigation', icon: '🧭', placeholder: "e.g. 'Identified hidden consequence'", about: "Life Navigation is the meta-pillar underpinning the entire system. It defines dimensions (Knowledge, Character, Faith, Relationships, Stewardship, Legacy, Responsibility, Wisdom, Freedom) and the navigational forces acting within them (Position, Azimuth, Velocity, Acceleration, Current, Time, Course Correction). It includes the Golden Rule of Consequence, the Circuit Breaker against abuse, horizons of perception from immediate through eternal, and the radius of influence from self through civilization. The goal is not prediction — it is perception." },
+  { key: 'civic', label: 'Civic & Institutional', icon: '🏛️', placeholder: "e.g. 'Attended town council meeting'", about: "Civic, Economic & Institutional Navigation teaches how society actually functions — not as spectators watching presidents and CEOs, but as participants in overlapping systems. Voting is not the only vote: money, time, attention, labor, purchases, and investment are all forms of influence. It covers layers of governance from self through civilization, ownership as participation, the visibility problem (most influence is local/invisible), civic symbol literacy (reading political cartoons, propaganda, and public messaging for hidden power structures), and institutional stewardship. The goal is informed citizens who understand that society is not happening around them — they are already shaping it." },
 ]
 
 const STATUS_COLORS = { not_started: '#e0e0e0', introduced: '#a0d2db', in_progress: '#f5a623', practicing: '#c39bd3', complete: '#2ecc71', mastered: '#1a7a4c', pending: '#e0e0e0' }
@@ -47,6 +48,10 @@ export default function Profile() {
   const [attachmentsMap, setAttachmentsMap] = useState({}) // entryId -> [attachments]
   const [expandedAttachments, setExpandedAttachments] = useState(null) // entry id or null
   const [expandedMilestone, setExpandedMilestone] = useState(null) // entry id showing sub-entries
+  const [pillarTab, setPillarTab] = useState('milestones') // 'milestones' or 'bounties'
+  const [pillarBounties, setPillarBounties] = useState([])
+  const [showPillarBountyForm, setShowPillarBountyForm] = useState(false)
+  const [pBountyForm, setPBountyForm] = useState({ tier: 'bronze', title: '', description: '', reward_amount: '' })
   const [childrenMap, setChildrenMap] = useState({}) // entryId -> [children]
   const [subFormParent, setSubFormParent] = useState(null) // entry id for sub-entry form
   const [subTitle, setSubTitle] = useState('')
@@ -76,6 +81,11 @@ export default function Profile() {
   }
 
   useEffect(() => { loadEntries() }, [id, activePillar])
+  useEffect(() => {
+    if (activePillar && activePillar !== '__economy__') {
+      fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
+    }
+  }, [id, activePillar, pillarTab])
 
   const handleAddEntry = async (e) => {
     e.preventDefault()
@@ -179,6 +189,28 @@ export default function Profile() {
     setChildrenMap(prev => ({ ...prev, [parentId]: Array.isArray(kids) ? kids : [] }))
     setSubTitle(''); setSubContent(''); setSubFormParent(null); setSubType('note')
     loadCounts()
+  }
+
+  const handlePillarBountySubmit = async (e) => {
+    e.preventDefault()
+    if (!pBountyForm.title.trim()) return
+    await createBounty(id, { ...pBountyForm, title: pBountyForm.title.trim(), description: pBountyForm.description.trim() || null, reward_amount: Math.round((parseFloat(pBountyForm.reward_amount) || 0) * 100), pillar: activePillar })
+    setShowPillarBountyForm(false)
+    setPBountyForm({ tier: 'bronze', title: '', description: '', reward_amount: '' })
+    fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
+  }
+
+  const cyclePillarBountyStatus = async (b) => {
+    const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]
+    if (!next) return
+    await updateBounty(id, b.id, { status: next })
+    fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
+  }
+
+  const handleDeletePillarBounty = async (bountyId) => {
+    if (!confirm('Delete this bounty?')) return
+    await deleteBounty(id, bountyId)
+    fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
   }
 
   const handleAvatarSelect = (e) => {
@@ -425,11 +457,65 @@ export default function Profile() {
           <h2 style={{ margin: 0 }}>{currentPillar.label}</h2>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => { setShowForm(!showForm); setFormType('milestone') }} style={s.addBtn}>{showForm ? 'Cancel' : '+ Milestone'}</button>
+          {pillarTab === 'milestones' && <button onClick={() => { setShowForm(!showForm); setFormType('milestone') }} style={s.addBtn}>{showForm ? 'Cancel' : '+ Milestone'}</button>}
         </div>
       </div>
 
-      {showForm && (
+      <details style={s.aboutDropdown}>
+        <summary style={s.aboutSummary}>About this Pillar</summary>
+        <p style={s.aboutText}>{currentPillar.about}</p>
+      </details>
+
+      {/* Tab toggle */}
+      <div style={s.tabRow}>
+        <button onClick={() => setPillarTab('milestones')} style={pillarTab === 'milestones' ? s.tabActive : s.tab}>Milestones</button>
+        <button onClick={() => setPillarTab('bounties')} style={pillarTab === 'bounties' ? s.tabActive : s.tab}>Bounties</button>
+      </div>
+
+      {pillarTab === 'bounties' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <button onClick={() => setShowPillarBountyForm(!showPillarBountyForm)} style={s.addBtn}>{showPillarBountyForm ? 'Cancel' : '+ New Bounty'}</button>
+          </div>
+          {showPillarBountyForm && (
+            <form onSubmit={handlePillarBountySubmit} style={s.form}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <select value={pBountyForm.tier} onChange={e => setPBountyForm({ ...pBountyForm, tier: e.target.value })} style={{ ...s.input, maxWidth: 130 }}>
+                  <option value="bronze">Bronze</option>
+                  <option value="silver">Silver</option>
+                  <option value="gold">Gold</option>
+                  <option value="platinum">Platinum</option>
+                </select>
+                <input placeholder="Task title" value={pBountyForm.title} onChange={e => setPBountyForm({ ...pBountyForm, title: e.target.value })} style={{ ...s.input, flex: 1 }} autoFocus />
+                <input placeholder="$ amount" type="number" step="0.25" min="0" value={pBountyForm.reward_amount} onChange={e => setPBountyForm({ ...pBountyForm, reward_amount: e.target.value })} style={{ ...s.input, maxWidth: 90 }} />
+              </div>
+              <input placeholder="Description (optional)" value={pBountyForm.description} onChange={e => setPBountyForm({ ...pBountyForm, description: e.target.value })} style={s.input} />
+              <button type="submit" style={s.submitBtn}>Create Bounty</button>
+            </form>
+          )}
+          {pillarBounties.length === 0 && !showPillarBountyForm && (
+            <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No bounties for this pillar yet.</p>
+          )}
+          {pillarBounties.map(b => (
+            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#fff', borderRadius: 6, marginBottom: 4 }}>
+              <button onClick={() => cyclePillarBountyStatus(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                <span style={{ fontSize: 16, color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
+                  {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
+                </span>
+              </button>
+              <div style={{ flex: 1 }}>
+                <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none' }}>{b.title}</span>
+                {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{b.description}</p>}
+              </div>
+              <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#888','gold':'#b8860b','platinum':'#4a90d9'}[b.tier] }}>{b.tier}</span>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>${(b.reward_amount / 100).toFixed(2)}</span>
+              <button onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {pillarTab === 'milestones' && showForm && (
         <form onSubmit={handleAddEntry} style={s.form}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#4a90d9', marginBottom: 4 }}>
             📌 New Milestone (goal/target)
@@ -451,7 +537,7 @@ export default function Profile() {
       )}
 
       {/* Milestones by age band */}
-      {bandOrder.filter(b => grouped[b]).map(band => (
+      {pillarTab === 'milestones' && bandOrder.filter(b => grouped[b]).map(band => (
         <div key={band} style={{ marginBottom: 24 }}>
           <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ages {band}</h3>
           {grouped[band].map(m => renderItem(m, true))}
@@ -495,4 +581,10 @@ const s = {
   attachItem: { display: 'flex', alignItems: 'center', gap: 6, padding: 4, background: '#fff', borderRadius: 6, border: '1px solid #eee' },
   subPanel: { marginLeft: 32, padding: '8px 12px', background: '#f9f9ff', borderLeft: '2px solid #e0e0f0', borderRadius: '0 8px 8px 0', marginTop: 2, maxHeight: 240, overflowY: 'auto' },
   subEntry: { display: 'flex', flexDirection: 'column', gap: 2, padding: '6px 0', borderBottom: '1px solid #f0f0f0' },
+  aboutDropdown: { marginBottom: 16, background: '#f8f9ff', border: '1px solid #e8e8f0', borderRadius: 10, padding: '0 16px' },
+  aboutSummary: { padding: '12px 0', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#666', listStyle: 'none' },
+  aboutText: { margin: '0 0 12px', fontSize: 13, lineHeight: 1.6, color: '#444' },
+  tabRow: { display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #e8e8e8' },
+  tab: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', borderBottom: '2px solid transparent', marginBottom: -2 },
+  tabActive: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#4a90d9', fontWeight: 600, borderBottom: '2px solid #4a90d9', marginBottom: -2 },
 }

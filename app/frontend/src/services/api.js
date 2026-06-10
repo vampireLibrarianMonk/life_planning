@@ -89,8 +89,9 @@ export async function fetchEligibility(profileId) {
   return res.json()
 }
 
-export async function fetchBounties(profileId) {
-  const res = await fetch(`/api/profiles/${profileId}/bounties`, { headers: headers() })
+export async function fetchBounties(profileId, pillar = null) {
+  const params = pillar ? `?pillar=${pillar}` : ''
+  const res = await fetch(`/api/profiles/${profileId}/bounties${params}`, { headers: headers() })
   return res.json()
 }
 
@@ -166,6 +167,28 @@ export async function uploadAvatar(profileId, originalFile, croppedBlob) {
     body: formData,
   })
   return res.json()
+}
+
+// Behavior Incidents
+export async function fetchIncidents(profileId, days = 30) {
+  const res = await fetch(`/api/profiles/${profileId}/incidents?days=${days}`, { headers: headers() })
+  return res.json()
+}
+
+export async function createIncident(profileId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/incidents`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(data),
+  })
+  return res.json()
+}
+
+export async function deleteIncident(profileId, incidentId) {
+  await fetch(`/api/profiles/${profileId}/incidents/${incidentId}`, {
+    method: 'DELETE',
+    headers: headers(),
+  })
 }
 
 // Event Attachments

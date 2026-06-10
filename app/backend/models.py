@@ -25,6 +25,7 @@ class Pillar(str, enum.Enum):
     economy = "economy"
     resilience = "resilience"
     dimensional_navigation = "dimensional_navigation"
+    civic = "civic"
 
 
 class BountyTier(str, enum.Enum):
@@ -65,6 +66,7 @@ class Profile(Base):
     entries = relationship("PillarEntry", back_populates="profile")
     access_grants = relationship("ProfileAccess", back_populates="profile")
     behavior_scores = relationship("BehaviorScore", back_populates="profile")
+    behavior_incidents = relationship("BehaviorIncident", back_populates="profile")
     bounties = relationship("Bounty", back_populates="profile")
     wishlist = relationship("WishlistItem", back_populates="profile")
 
@@ -128,7 +130,7 @@ class BehaviorScore(Base):
     id = Column(Integer, primary_key=True, index=True)
     profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
     week_of = Column(String(10), nullable=False)  # YYYY-MM-DD (Monday of that week)
-    integrity = Column(Integer, default=3)  # 1-5
+    integrity = Column(Integer, default=3)  # 1-5 (legacy, kept for backward compat)
     honesty = Column(Integer, default=3)
     responsibility = Column(Integer, default=3)
     respect = Column(Integer, default=3)
@@ -140,6 +142,22 @@ class BehaviorScore(Base):
     profile = relationship("Profile", back_populates="behavior_scores")
 
 
+class BehaviorIncident(Base):
+    """A single positive or negative behavioral incident linked to a trait."""
+
+    __tablename__ = "behavior_incidents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
+    trait = Column(String(50), nullable=False)  # integrity, honesty, responsibility, respect, school_effort, citizenship
+    positive = Column(Integer, default=1)  # 1=positive demonstration, 0=violation
+    description = Column(String(500), nullable=False)  # what happened
+    date = Column(String(10), nullable=False)  # YYYY-MM-DD
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    profile = relationship("Profile", back_populates="behavior_incidents")
+
+
 class Bounty(Base):
     """A bounty task that can be claimed and completed for reward."""
 
@@ -147,6 +165,7 @@ class Bounty(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
+    pillar = Column(Enum(Pillar), nullable=True)  # optional link to a developmental pillar
     tier = Column(Enum(BountyTier), nullable=False)
     title = Column(String(300), nullable=False)
     description = Column(Text, nullable=True)

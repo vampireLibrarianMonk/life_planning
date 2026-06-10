@@ -22,6 +22,7 @@ class Pillar(str, Enum):
     economy = "economy"
     resilience = "resilience"
     dimensional_navigation = "dimensional_navigation"
+    civic = "civic"
 
 
 # Auth
@@ -170,6 +171,7 @@ class BountyCreate(BaseModel):
     title: str
     description: str | None = None
     reward_amount: int = 0  # cents
+    pillar: Pillar | None = None
 
 
 class BountyUpdate(BaseModel):
@@ -177,11 +179,13 @@ class BountyUpdate(BaseModel):
     description: str | None = None
     reward_amount: int | None = None
     status: str | None = None
+    pillar: Pillar | None = None
 
 
 class BountyResponse(BaseModel):
     id: int
     profile_id: int
+    pillar: Pillar | None
     tier: BountyTier
     title: str
     description: str | None
@@ -233,6 +237,26 @@ class AttachmentResponse(BaseModel):
     original_name: str
     mime_type: str
     size_bytes: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# Behavior Incidents
+class IncidentCreate(BaseModel):
+    trait: str  # integrity, honesty, responsibility, respect, school_effort, citizenship
+    positive: int = 1  # 1=positive, 0=negative
+    description: str
+    date: str  # YYYY-MM-DD
+
+
+class IncidentResponse(BaseModel):
+    id: int
+    profile_id: int
+    trait: str
+    positive: int
+    description: str
+    date: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

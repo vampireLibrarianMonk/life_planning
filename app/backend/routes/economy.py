@@ -1,22 +1,56 @@
 """Behavior scoring and bounty routes."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin_or_child
 from database import get_db
-from models import BehaviorScore, Bounty, User, WishlistItem
+from models import BehaviorIncident, BehaviorScore, Bounty, User, WishlistItem
 from schemas import (
     BehaviorScoreCreate, BehaviorScoreResponse, BehaviorScoreUpdate,
     BountyCreate, BountyResponse, BountyUpdate,
+    IncidentCreate, IncidentResponse,
     WishlistCreate, WishlistResponse, WishlistUpdate,
 )
 
 router = APIRouter(prefix="/api/profiles/{profile_id}", tags=["economy"])
 
-# --- Behavior Scores ---
+TRAITS = ["integrity", "honesty", "responsibility", "respect", "school_effort", "citizenship"]
+
+# --- Behavior Incidents ---
+
+@router.get("/incidents", response_model=list[IncidentResponse])
+def list_incidents(profile_id: int, days: int = 30, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    return db.query(BehaviorIncident).filter(
+        BehaviorIncident.profile_id == profile_id,
+        BehaviorIncident.date >= cutoff,
+    ).order_by(BehaviorIncident.date.desc()).all()
+
+
+@router.post("/incidents", response_model=IncidentResponse, status_code=201)
+def create_incident(profile_id: int, req: IncidentCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+    if req.trait not in TRAITS:
+        raise HTTPException(status_code=400, detail=f"Trait must be one of: {TRAITS}")
+    incident = BehaviorIncident(profile_id=profile_id, **req.model_dump())
+    db.add(incident)
+    db.commit()
+    db.refresh(incident)
+    return incident
+
+
+@router.delete("/incidents/{incident_id}", status_code=204)
+def delete_incident(profile_id: int, incident_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+    inc = db.query(BehaviorIncident).filter(BehaviorIncident.id == incident_id, BehaviorIncident.profile_id == profile_id).first()
+    if not inc:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    db.delete(inc)
+    db.commit()
+
+
+# --- Behavior Scores (legacy — kept for backward compat) ---
 
 @router.get("/behavior", response_model=list[BehaviorScoreResponse])
 def list_behavior(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
@@ -47,8 +81,11 @@ def update_behavior(profile_id: int, score_id: int, req: BehaviorScoreUpdate, db
 # --- Bounties ---
 
 @router.get("/bounties", response_model=list[BountyResponse])
-def list_bounties(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    return db.query(Bounty).filter(Bounty.profile_id == profile_id).order_by(Bounty.created_at.desc()).all()
+def list_bounties(profile_id: int, pillar: str | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    q = db.query(Bounty).filter(Bounty.profile_id == profile_id)
+    if pillar:
+        q = q.filter(Bounty.pillar == pillar)
+    return q.order_by(Bounty.created_at.desc()).all()
 
 
 @router.post("/bounties", response_model=BountyResponse, status_code=201)
@@ -87,23 +124,52 @@ def delete_bounty(profile_id: int, bounty_id: int, db: Session = Depends(get_db)
 
 @router.get("/eligibility")
 def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    """Check bounty tier eligibility based on latest behavior score."""
-    latest = db.query(BehaviorScore).filter(BehaviorScore.profile_id == profile_id).order_by(BehaviorScore.week_of.desc()).first()
-    if not latest:
-        return {"eligible_tier": "bronze", "average": 0, "message": "No behavior scores yet — defaults to Bronze"}
+    """Check bounty tier eligibility based on behavior incidents (last 30 days).
+    
+    Scoring: For each trait, ratio = positives / (positives + negatives).
+    Overall average of all trait ratios determines tier.
+    
+    >=90% → Platinum | >=70% → Gold | >=50% → Silver | <50% → Bronze
+    """
+    cutoff = (datetime.utcnow() - timedelta(days=30)).strftime("%Y-%m-%d")
+    incidents = db.query(BehaviorIncident).filter(
+        BehaviorIncident.profile_id == profile_id,
+        BehaviorIncident.date >= cutoff,
+    ).all()
 
-    avg = (latest.integrity + latest.honesty + latest.responsibility + latest.respect + latest.school_effort + latest.citizenship) / 6
+    if not incidents:
+        # No incidents in 30 days = no violations = full standing
+        return {
+            "eligible_tier": "platinum",
+            "percentage": 100,
+            "trait_scores": {t: {"positive": 0, "negative": 0, "ratio": 100} for t in TRAITS},
+            "message": "No incidents recorded — clean record defaults to Platinum",
+        }
 
-    if avg >= 4.5:
+    # Calculate per-trait ratios
+    trait_scores = {}
+    for trait in TRAITS:
+        trait_incidents = [i for i in incidents if i.trait == trait]
+        if not trait_incidents:
+            trait_scores[trait] = {"positive": 0, "negative": 0, "ratio": 100}  # no incidents = no violations
+            continue
+        pos = sum(1 for i in trait_incidents if i.positive)
+        neg = sum(1 for i in trait_incidents if not i.positive)
+        ratio = round((pos / (pos + neg)) * 100) if (pos + neg) > 0 else 100
+        trait_scores[trait] = {"positive": pos, "negative": neg, "ratio": ratio}
+
+    overall = round(sum(t["ratio"] for t in trait_scores.values()) / len(TRAITS))
+
+    if overall >= 90:
         tier = "platinum"
-    elif avg >= 3.5:
+    elif overall >= 70:
         tier = "gold"
-    elif avg >= 2.5:
+    elif overall >= 50:
         tier = "silver"
     else:
         tier = "bronze"
 
-    return {"eligible_tier": tier, "average": round(avg, 1), "week_of": latest.week_of}
+    return {"eligible_tier": tier, "percentage": overall, "trait_scores": trait_scores}
 
 
 # --- Earnings Summary ---

@@ -80,12 +80,60 @@ def update_behavior(profile_id: int, score_id: int, req: BehaviorScoreUpdate, db
 
 # --- Bounties ---
 
+def _compute_current_reward(bounty):
+    """Calculate the current reward after decay. Resets if reset_days have passed."""
+    if not bounty.repeatable or bounty.times_completed == 0:
+        return bounty.reward_amount
+    times = bounty.times_completed
+    # Check if reset period has elapsed
+    if bounty.reset_days and bounty.last_completed_at:
+        from datetime import timedelta
+        if datetime.utcnow() - bounty.last_completed_at >= timedelta(days=bounty.reset_days):
+            return bounty.reward_amount  # reset
+    divisor = bounty.decay_divisor or 2
+    return max(1, bounty.reward_amount // (divisor ** times))
+
+
+def _bounty_response(bounty):
+    """Convert a Bounty ORM object to a response dict with current_reward."""
+    return {
+        "id": bounty.id,
+        "profile_id": bounty.profile_id,
+        "pillar": bounty.pillar,
+        "tier": bounty.tier,
+        "title": bounty.title,
+        "description": bounty.description,
+        "reward_amount": bounty.reward_amount,
+        "age_band": bounty.age_band,
+        "repeatable": bounty.repeatable,
+        "decay_divisor": bounty.decay_divisor or 2,
+        "reset_days": bounty.reset_days,
+        "times_completed": bounty.times_completed or 0,
+        "last_completed_at": bounty.last_completed_at,
+        "current_reward": _compute_current_reward(bounty),
+        "status": bounty.status,
+        "completed_at": bounty.completed_at,
+        "created_at": bounty.created_at,
+    }
+
+
 @router.get("/bounties", response_model=list[BountyResponse])
 def list_bounties(profile_id: int, pillar: str | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     q = db.query(Bounty).filter(Bounty.profile_id == profile_id)
     if pillar:
         q = q.filter(Bounty.pillar == pillar)
-    return q.order_by(Bounty.created_at.desc()).all()
+    bounties = q.order_by(Bounty.created_at.desc()).all()
+    # Check for reset on repeatable bounties
+    for b in bounties:
+        if b.repeatable and b.reset_days and b.last_completed_at and b.times_completed:
+            from datetime import timedelta
+            if datetime.utcnow() - b.last_completed_at >= timedelta(days=b.reset_days):
+                b.times_completed = 0
+                b.last_completed_at = None
+                if b.status == 'paid':
+                    b.status = 'available'
+    db.commit()
+    return [_bounty_response(b) for b in bounties]
 
 
 @router.post("/bounties", response_model=BountyResponse, status_code=201)
@@ -94,7 +142,7 @@ def create_bounty(profile_id: int, req: BountyCreate, db: Session = Depends(get_
     db.add(bounty)
     db.commit()
     db.refresh(bounty)
-    return bounty
+    return _bounty_response(bounty)
 
 
 @router.patch("/bounties/{bounty_id}", response_model=BountyResponse)
@@ -104,11 +152,17 @@ def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Sessio
         raise HTTPException(status_code=404, detail="Bounty not found")
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(bounty, field, value)
-    if req.status == "complete":
+    if req.status == "paid" and bounty.repeatable:
+        # Repeatable: increment times_completed, reset to available
+        bounty.times_completed = (bounty.times_completed or 0) + 1
+        bounty.last_completed_at = datetime.utcnow()
+        bounty.status = "available"
+        bounty.completed_at = None
+    elif req.status == "complete":
         bounty.completed_at = datetime.utcnow()
     db.commit()
     db.refresh(bounty)
-    return bounty
+    return _bounty_response(bounty)
 
 
 @router.delete("/bounties/{bounty_id}", status_code=204)
@@ -138,12 +192,12 @@ def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = 
     ).all()
 
     if not incidents:
-        # No incidents in 30 days = no violations = full standing
+        # No incidents recorded — start at Bronze, must earn higher tiers
         return {
-            "eligible_tier": "platinum",
-            "percentage": 100,
-            "trait_scores": {t: {"positive": 0, "negative": 0, "ratio": 100} for t in TRAITS},
-            "message": "No incidents recorded — clean record defaults to Platinum",
+            "eligible_tier": "bronze",
+            "percentage": 0,
+            "trait_scores": {t: {"positive": 0, "negative": 0, "ratio": 0} for t in TRAITS},
+            "message": "No incidents recorded — start at Bronze, earn your way up",
         }
 
     # Calculate per-trait ratios
@@ -151,7 +205,7 @@ def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = 
     for trait in TRAITS:
         trait_incidents = [i for i in incidents if i.trait == trait]
         if not trait_incidents:
-            trait_scores[trait] = {"positive": 0, "negative": 0, "ratio": 100}  # no incidents = no violations
+            trait_scores[trait] = {"positive": 0, "negative": 0, "ratio": 0}  # no incidents = unproven
             continue
         pos = sum(1 for i in trait_incidents if i.positive)
         neg = sum(1 for i in trait_incidents if not i.positive)

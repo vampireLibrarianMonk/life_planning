@@ -26,6 +26,10 @@ class Pillar(str, enum.Enum):
     resilience = "resilience"
     dimensional_navigation = "dimensional_navigation"
     civic = "civic"
+    scientific_reality_testing = "scientific_reality_testing"
+    inheritance_burden_stewardship = "inheritance_burden_stewardship"
+    catholic_formation = "catholic_formation"
+    secular_sacred_formation = "secular_sacred_formation"
 
 
 class BountyTier(str, enum.Enum):
@@ -169,7 +173,13 @@ class Bounty(Base):
     tier = Column(Enum(BountyTier), nullable=False)
     title = Column(String(300), nullable=False)
     description = Column(Text, nullable=True)
-    reward_amount = Column(Integer, default=0)  # cents
+    reward_amount = Column(Integer, default=0)  # cents (original base amount)
+    age_band = Column(String(10), nullable=True)  # e.g. "0-5", "6-12"
+    repeatable = Column(Integer, default=0)  # 1=repeatable, 0=one-time
+    decay_divisor = Column(Integer, default=2)  # divide reward by this each completion (2=halve)
+    reset_days = Column(Integer, nullable=True)  # days after last completion before decay resets (null=never)
+    times_completed = Column(Integer, default=0)  # how many times completed (for decay calc)
+    last_completed_at = Column(DateTime, nullable=True)  # for reset timer
     status = Column(String(20), default="available")  # available, claimed, complete, paid
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

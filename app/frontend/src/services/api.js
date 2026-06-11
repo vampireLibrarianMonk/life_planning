@@ -216,3 +216,9 @@ export async function deleteAttachment(profileId, entryId, attachmentId) {
     headers: headers(),
   })
 }
+
+export async function fetchPillarGuide(pillar) {
+  const res = await fetch(`/api/docs/${pillar}`, { headers: headers() })
+  if (!res.ok) return null
+  return res.json()
+}

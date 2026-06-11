@@ -6,6 +6,7 @@ const TRAIT_LABELS = { integrity: 'Integrity', honesty: 'Honesty', responsibilit
 const TIER_COLORS = { bronze: '#cd7f32', silver: '#a0a0a0', gold: '#ffd700', platinum: '#4a90d9' }
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'platinum']
 const BOUNTY_STATUS_CYCLE = { available: 'claimed', claimed: 'complete', complete: 'paid' }
+const BOUNTY_STATUSES = ['available', 'claimed', 'complete', 'paid']
 
 export default function Economy({ profileId }) {
   const [eligibility, setEligibility] = useState(null)
@@ -15,9 +16,11 @@ export default function Economy({ profileId }) {
   const [showIncidentForm, setShowIncidentForm] = useState(false)
   const [incForm, setIncForm] = useState({ trait: 'integrity', positive: 1, description: '', date: new Date().toISOString().split('T')[0] })
   const [showBountyForm, setShowBountyForm] = useState(false)
-  const [bountyForm, setBountyForm] = useState({ tier: 'bronze', title: '', description: '', reward_amount: '' })
+  const [bountyForm, setBountyForm] = useState({ tier: 'bronze', title: '', description: '', reward_amount: '', age_band: '', repeatable: false, decay_divisor: '2', reset_days: '' })
   const [wishlist, setWishlist] = useState([])
   const [showWishForm, setShowWishForm] = useState(false)
+  const [editingBounty, setEditingBounty] = useState(null) // bounty id being edited
+  const [editBountyForm, setEditBountyForm] = useState({})
   const [wishForm, setWishForm] = useState({ title: '', description: '', cost_cents: '', url: '', priority: 2 })
 
   const load = () => {
@@ -47,9 +50,9 @@ export default function Economy({ profileId }) {
   const handleBountySubmit = async (e) => {
     e.preventDefault()
     if (!bountyForm.title.trim()) return
-    await createBounty(profileId, { ...bountyForm, title: bountyForm.title.trim(), description: bountyForm.description.trim() || null, reward_amount: Math.round((parseFloat(bountyForm.reward_amount) || 0) * 100) })
+    await createBounty(profileId, { ...bountyForm, title: bountyForm.title.trim(), description: bountyForm.description.trim() || null, reward_amount: Math.round((parseFloat(bountyForm.reward_amount) || 0) * 100), age_band: bountyForm.age_band || null, repeatable: bountyForm.repeatable ? 1 : 0, decay_divisor: parseInt(bountyForm.decay_divisor) || 2, reset_days: bountyForm.reset_days ? parseInt(bountyForm.reset_days) : null })
     setShowBountyForm(false)
-    setBountyForm({ tier: 'bronze', title: '', description: '', reward_amount: '' })
+    setBountyForm({ tier: 'bronze', title: '', description: '', reward_amount: '', age_band: '', repeatable: false, decay_divisor: '2', reset_days: '' })
     load()
   }
 
@@ -63,6 +66,26 @@ export default function Economy({ profileId }) {
   const handleDeleteBounty = async (id) => {
     if (!confirm('Delete this bounty?')) return
     await deleteBounty(profileId, id); load()
+  }
+
+  const startEditBounty = (b) => {
+    setEditingBounty(b.id)
+    setEditBountyForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), tier: b.tier, age_band: b.age_band || '', status: b.status, repeatable: !!b.repeatable, decay_divisor: String(b.decay_divisor || 2), reset_days: b.reset_days ? String(b.reset_days) : '' })
+  }
+
+  const saveEditBounty = async (b) => {
+    await updateBounty(profileId, b.id, {
+      title: editBountyForm.title.trim(),
+      description: editBountyForm.description.trim() || null,
+      reward_amount: Math.round((parseFloat(editBountyForm.reward_amount) || 0) * 100),
+      status: editBountyForm.status,
+      age_band: editBountyForm.age_band || null,
+      repeatable: editBountyForm.repeatable ? 1 : 0,
+      decay_divisor: parseInt(editBountyForm.decay_divisor) || 2,
+      reset_days: editBountyForm.reset_days ? parseInt(editBountyForm.reset_days) : null,
+    })
+    setEditingBounty(null)
+    load()
   }
 
   const handleWishSubmit = async (e) => {
@@ -203,10 +226,27 @@ export default function Economy({ profileId }) {
             <select value={bountyForm.tier} onChange={e => setBountyForm({ ...bountyForm, tier: e.target.value })} style={{ ...st.input, maxWidth: 140 }}>
               {TIER_ORDER.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
             </select>
+            <select value={bountyForm.age_band} onChange={e => setBountyForm({ ...bountyForm, age_band: e.target.value })} style={{ ...st.input, maxWidth: 110 }}>
+              <option value="">Age band</option>
+              <option value="0-5">0–5</option>
+              <option value="6-12">6–12</option>
+              <option value="13-18">13–18</option>
+              <option value="18-25">18–25</option>
+              <option value="25-35">25–35</option>
+            </select>
             <input placeholder="Task title" value={bountyForm.title} onChange={e => setBountyForm({ ...bountyForm, title: e.target.value })} style={{ ...st.input, flex: 1 }} />
             <input placeholder="$ amount" type="number" step="0.25" min="0" value={bountyForm.reward_amount} onChange={e => setBountyForm({ ...bountyForm, reward_amount: e.target.value })} style={{ ...st.input, maxWidth: 100 }} />
           </div>
           <input placeholder="Description (optional)" value={bountyForm.description} onChange={e => setBountyForm({ ...bountyForm, description: e.target.value })} style={st.input} />
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={bountyForm.repeatable} onChange={e => setBountyForm({ ...bountyForm, repeatable: e.target.checked })} /> Repeatable
+            </label>
+            {bountyForm.repeatable && <>
+              <label style={{ fontSize: 14, color: '#333' }}>Divide by <input type="number" min="2" value={bountyForm.decay_divisor} onChange={e => setBountyForm({ ...bountyForm, decay_divisor: e.target.value })} style={{ ...st.input, width: 55, margin: '0 4px', display: 'inline', fontSize: 14 }} /> each time</label>
+              <label style={{ fontSize: 14, color: '#333' }}>Reset after <input type="number" min="1" placeholder="days" value={bountyForm.reset_days} onChange={e => setBountyForm({ ...bountyForm, reset_days: e.target.value })} style={{ ...st.input, width: 65, margin: '0 4px', display: 'inline', fontSize: 14 }} /> days</label>
+            </>}
+          </div>
           <button type="submit" style={st.submitBtn}>Create Bounty</button>
         </form>
       )}
@@ -220,17 +260,59 @@ export default function Economy({ profileId }) {
           <h4 style={{ margin: '0 0 8px', color: TIER_COLORS[tier], textTransform: 'capitalize', fontSize: 14 }}>{tier} Tier</h4>
           {bounties.filter(b => b.tier === tier).map(b => (
             <div key={b.id} style={st.bountyItem}>
-              <button onClick={() => cycleBountyStatus(b)} style={st.statusDot} title={b.status}>
-                <span style={{ color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd', fontSize: 16 }}>
-                  {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
-                </span>
-              </button>
-              <div style={{ flex: 1 }}>
-                <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none', color: b.status === 'paid' ? '#888' : '#1a1a1a' }}>{b.title}</span>
-                {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{b.description}</p>}
-              </div>
-              <span style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>${(b.reward_amount / 100).toFixed(2)}</span>
-              <button onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>
+              {editingBounty === b.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <select value={editBountyForm.status} onChange={e => setEditBountyForm({ ...editBountyForm, status: e.target.value })} style={{ ...st.input, maxWidth: 110, margin: 0 }}>
+                      {BOUNTY_STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                    </select>
+                    <select value={editBountyForm.tier} onChange={e => setEditBountyForm({ ...editBountyForm, tier: e.target.value })} style={{ ...st.input, maxWidth: 110, margin: 0 }}>
+                      {TIER_ORDER.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                    </select>
+                    <select value={editBountyForm.age_band} onChange={e => setEditBountyForm({ ...editBountyForm, age_band: e.target.value })} style={{ ...st.input, maxWidth: 100, margin: 0 }}>
+                      <option value="">Age band</option>
+                      <option value="0-5">0–5</option>
+                      <option value="6-12">6–12</option>
+                      <option value="13-18">13–18</option>
+                      <option value="18-25">18–25</option>
+                      <option value="25-35">25–35</option>
+                    </select>
+                    <input value={editBountyForm.reward_amount} onChange={e => setEditBountyForm({ ...editBountyForm, reward_amount: e.target.value })} type="number" step="0.25" min="0" placeholder="$" style={{ ...st.input, maxWidth: 80, margin: 0 }} />
+                  </div>
+                  <input value={editBountyForm.title} onChange={e => setEditBountyForm({ ...editBountyForm, title: e.target.value })} style={{ ...st.input, margin: 0 }} />
+                  <input value={editBountyForm.description} onChange={e => setEditBountyForm({ ...editBountyForm, description: e.target.value })} placeholder="Description" style={{ ...st.input, margin: 0 }} />
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="checkbox" checked={editBountyForm.repeatable} onChange={e => setEditBountyForm({ ...editBountyForm, repeatable: e.target.checked })} /> Repeatable
+                    </label>
+                    {editBountyForm.repeatable && <>
+                      <label style={{ fontSize: 14, color: '#333' }}>Divide by <input type="number" min="2" value={editBountyForm.decay_divisor} onChange={e => setEditBountyForm({ ...editBountyForm, decay_divisor: e.target.value })} style={{ ...st.input, width: 55, margin: '0 4px', display: 'inline', fontSize: 14 }} /> each time</label>
+                      <label style={{ fontSize: 14, color: '#333' }}>Reset after <input type="number" min="1" placeholder="days" value={editBountyForm.reset_days} onChange={e => setEditBountyForm({ ...editBountyForm, reset_days: e.target.value })} style={{ ...st.input, width: 65, margin: '0 4px', display: 'inline', fontSize: 14 }} /> days</label>
+                    </>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => saveEditBounty(b)} style={{ ...st.submitBtn, padding: '6px 14px', fontSize: 12 }}>Save</button>
+                    <button onClick={() => setEditingBounty(null)} style={{ padding: '6px 14px', fontSize: 12, background: '#eee', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button onClick={() => cycleBountyStatus(b)} style={st.statusDot} title={`${b.status} — click to advance`}>
+                    <span style={{ color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd', fontSize: 16 }}>
+                      {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
+                    </span>
+                  </button>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none', color: b.status === 'paid' ? '#888' : '#1a1a1a' }}>{b.title}</span>
+                    {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄 ×{b.times_completed}</span> : null}
+                    {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{b.description}</p>}
+                  </div>
+                  {b.age_band && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f0f4ff', color: '#4a90d9' }}>{b.age_band}</span>}
+                  <span style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>${(b.current_reward / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 10, color: '#999', textDecoration: 'line-through', marginLeft: 4 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
+                  <button onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#aaa' }} title="Edit">✎</button>
+                  <button onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>
+                </>
+              )}
             </div>
           ))}
         </div>

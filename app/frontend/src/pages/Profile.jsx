@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import Economy from './Economy'
 
@@ -15,12 +15,21 @@ const PILLARS = [
   { key: 'resilience', label: 'Resilience', icon: '🏔️', placeholder: "e.g. 'Discussed career pressure'", about: "Environmental Resilience maps the failure modes of every high-performance career path before the child enters one. It teaches: every field has a substance culture, institutions will frame your destruction as personal failure, and sustainable excellence beats unsustainable brilliance. The ADAPT framework (Assess, Detect, Alternatives, Protect, Threshold) is applied before entering any high-pressure environment." },
   { key: 'dimensional_navigation', label: 'Life Navigation', icon: '🧭', placeholder: "e.g. 'Identified hidden consequence'", about: "Life Navigation is the meta-pillar underpinning the entire system. It defines dimensions (Knowledge, Character, Faith, Relationships, Stewardship, Legacy, Responsibility, Wisdom, Freedom) and the navigational forces acting within them (Position, Azimuth, Velocity, Acceleration, Current, Time, Course Correction). It includes the Golden Rule of Consequence, the Circuit Breaker against abuse, horizons of perception from immediate through eternal, and the radius of influence from self through civilization. The goal is not prediction — it is perception." },
   { key: 'civic', label: 'Civic & Institutional', icon: '🏛️', placeholder: "e.g. 'Attended town council meeting'", about: "Civic, Economic & Institutional Navigation teaches how society actually functions — not as spectators watching presidents and CEOs, but as participants in overlapping systems. Voting is not the only vote: money, time, attention, labor, purchases, and investment are all forms of influence. It covers layers of governance from self through civilization, ownership as participation, the visibility problem (most influence is local/invisible), civic symbol literacy (reading political cartoons, propaganda, and public messaging for hidden power structures), and institutional stewardship. The goal is informed citizens who understand that society is not happening around them — they are already shaping it." },
+  { key: 'scientific_reality_testing', label: 'Scientific Method', icon: '🔬', placeholder: "e.g. 'Conducted first experiment'", about: "Scientific Method & Reality Testing teaches disciplined contact with reality — not merely academic science. It trains the child to distinguish what they know from what they assume, what they feel from what they can test, and what should change when new evidence appears. Includes introspective testing of habits and routines, claim confidence levels, institutional humility, and the knowledge decay cycle (how truths are discovered, corrupted, forgotten, and rediscovered). The goal is a person harder to deceive, easier to correct, and equipped for both measurable reality and deeper mystery." },
+  { key: 'inheritance_burden_stewardship', label: 'Inheritance & Stewardship', icon: '📜', placeholder: "e.g. 'Mapped family financial patterns'", about: "Inheritance, Burden & Stewardship teaches the child to receive inheritance without naivety and evaluate burden without bitterness. Every generation hands the next a mixed estate: treasure, debt, wisdom, trauma, institutions, and unfinished work. This pillar covers financial, cultural, moral, civic, institutional, and health inheritance. It teaches the difference between fault and responsibility, honor without blindness, and the Bag Principle: open it, inventory it, keep what is good, repair what is damaged, discard what is poisonous, and prepare a better one for those who come after." },
+  { key: 'catholic_formation', label: 'Catholic Formation', icon: '⛪', placeholder: "e.g. 'First Reconciliation received'", about: "Catholic Sacramental Formation tracks the child's Catholic life from baptism through adult vocation — not as checkbox spirituality but as examined, sacramental, safe, and transmissible faith. It includes sacramental records, domestic church practices, authority literacy, safe-environment formation, transmission audit (what was inherited, neglected, corrupted, or repaired), and the distinction between faithful discernment and both cynicism and naivety. The goal is a Catholic life that is owned, not merely inherited." },
+  { key: 'secular_sacred_formation', label: 'Secular Sacred', icon: '🌅', placeholder: "e.g. 'Studied origin accounts across cultures'", about: "Secular Sacred Formation & Civilizational Literacy preserves proper formation even when belief is uncertain, rejected, or recovering. It teaches the human realities that religion has always addressed — origin, death, sacrifice, moral repair, ritual, authority, belonging — in language accessible to the atheist, agnostic, or wounded. The child can question, doubt, leave, and still remain capable of serious formation. The door home must remain visible. A child may become atheist and still come home." },
 ]
 
 const STATUS_COLORS = { not_started: '#e0e0e0', introduced: '#a0d2db', in_progress: '#f5a623', practicing: '#c39bd3', complete: '#2ecc71', mastered: '#1a7a4c', pending: '#e0e0e0' }
 const STATUS_LABELS = { not_started: '○', introduced: '◔', in_progress: '◑', practicing: '◕', complete: '●', mastered: '★', pending: '○' }
 const STATUS_CYCLE = { not_started: 'introduced', introduced: 'in_progress', in_progress: 'practicing', practicing: 'complete', complete: 'mastered', mastered: 'not_started', pending: 'in_progress' }
 const STATUS_DISPLAY = { not_started: 'Not Started', introduced: 'Introduced', in_progress: 'In Progress', practicing: 'Practicing', complete: 'Complete', mastered: 'Mastered', pending: 'Pending' }
+
+function renderInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part)
+}
 
 export default function Profile() {
   const { id } = useParams()
@@ -51,7 +60,9 @@ export default function Profile() {
   const [pillarTab, setPillarTab] = useState('milestones') // 'milestones' or 'bounties'
   const [pillarBounties, setPillarBounties] = useState([])
   const [showPillarBountyForm, setShowPillarBountyForm] = useState(false)
-  const [pBountyForm, setPBountyForm] = useState({ tier: 'bronze', title: '', description: '', reward_amount: '' })
+  const [pBountyForm, setPBountyForm] = useState({ tier: 'bronze', title: '', description: '', reward_amount: '', age_band: '' })
+  const [editingPBounty, setEditingPBounty] = useState(null)
+  const [editPBForm, setEditPBForm] = useState({})
   const [childrenMap, setChildrenMap] = useState({}) // entryId -> [children]
   const [subFormParent, setSubFormParent] = useState(null) // entry id for sub-entry form
   const [subTitle, setSubTitle] = useState('')
@@ -59,6 +70,7 @@ export default function Profile() {
   const [subType, setSubType] = useState('note') // note, event, evidence
   const [avatarSrc, setAvatarSrc] = useState(null) // data URL for crop modal
   const [avatarFile, setAvatarFile] = useState(null) // original File object
+  const [guideContent, setGuideContent] = useState(null) // markdown text for pillar guide
 
   useEffect(() => { fetchProfile(id).then(setProfile); loadCounts() }, [id])
 
@@ -84,6 +96,9 @@ export default function Profile() {
   useEffect(() => {
     if (activePillar && activePillar !== '__economy__') {
       fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
+      fetchPillarGuide(activePillar).then(d => setGuideContent(d && d.content ? d.content : null))
+    } else {
+      setGuideContent(null)
     }
   }, [id, activePillar, pillarTab])
 
@@ -194,9 +209,9 @@ export default function Profile() {
   const handlePillarBountySubmit = async (e) => {
     e.preventDefault()
     if (!pBountyForm.title.trim()) return
-    await createBounty(id, { ...pBountyForm, title: pBountyForm.title.trim(), description: pBountyForm.description.trim() || null, reward_amount: Math.round((parseFloat(pBountyForm.reward_amount) || 0) * 100), pillar: activePillar })
+    await createBounty(id, { ...pBountyForm, title: pBountyForm.title.trim(), description: pBountyForm.description.trim() || null, reward_amount: Math.round((parseFloat(pBountyForm.reward_amount) || 0) * 100), pillar: activePillar, age_band: pBountyForm.age_band || null })
     setShowPillarBountyForm(false)
-    setPBountyForm({ tier: 'bronze', title: '', description: '', reward_amount: '' })
+    setPBountyForm({ tier: 'bronze', title: '', description: '', reward_amount: '', age_band: '' })
     fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
   }
 
@@ -210,6 +225,17 @@ export default function Profile() {
   const handleDeletePillarBounty = async (bountyId) => {
     if (!confirm('Delete this bounty?')) return
     await deleteBounty(id, bountyId)
+    fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
+  }
+
+  const startEditPBounty = (b) => {
+    setEditingPBounty(b.id)
+    setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), tier: b.tier, age_band: b.age_band || '', status: b.status })
+  }
+
+  const saveEditPBounty = async (b) => {
+    await updateBounty(id, b.id, { title: editPBForm.title.trim(), description: editPBForm.description.trim() || null, reward_amount: Math.round((parseFloat(editPBForm.reward_amount) || 0) * 100), status: editPBForm.status, age_band: editPBForm.age_band || null })
+    setEditingPBounty(null)
     fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
   }
 
@@ -466,6 +492,62 @@ export default function Profile() {
         <p style={s.aboutText}>{currentPillar.about}</p>
       </details>
 
+      {guideContent && (
+        <details style={{ ...s.aboutDropdown, marginTop: 8 }}>
+          <summary style={s.aboutSummary}>📖 Pillar Guide</summary>
+          <div style={{ padding: '12px 16px', fontSize: 14, lineHeight: 1.7, color: '#333', maxHeight: 500, overflow: 'auto' }}>
+            {(() => {
+              const lines = guideContent.split('\n')
+              const elements = []
+              let i = 0
+              while (i < lines.length) {
+                const line = lines[i]
+                // Code block
+                if (line.startsWith('```')) {
+                  const codeLines = []
+                  i++
+                  while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++ }
+                  i++ // skip closing ```
+                  elements.push(<pre key={elements.length} style={{ background: '#f5f5f5', padding: '10px 14px', borderRadius: 6, fontSize: 13, overflow: 'auto', whiteSpace: 'pre-wrap', margin: '8px 0' }}>{codeLines.join('\n')}</pre>)
+                  continue
+                }
+                // Table
+                if (line.includes('|') && line.trim().startsWith('|') && i + 1 < lines.length && lines[i + 1].includes('---')) {
+                  const tableRows = []
+                  while (i < lines.length && lines[i].includes('|') && lines[i].trim().startsWith('|')) {
+                    tableRows.push(lines[i]); i++
+                  }
+                  const parseRow = r => r.split('|').filter((_, idx) => idx > 0 && idx < r.split('|').length - 1).map(c => c.trim())
+                  const headerCells = parseRow(tableRows[0])
+                  const bodyRows = tableRows.slice(2).map(parseRow)
+                  elements.push(
+                    <table key={elements.length} style={{ borderCollapse: 'collapse', margin: '8px 0', fontSize: 13, width: '100%' }}>
+                      <thead><tr>{headerCells.map((c, j) => <th key={j} style={{ border: '1px solid #ddd', padding: '6px 10px', background: '#f8f8f8', textAlign: 'left', fontWeight: 600 }}>{c}</th>)}</tr></thead>
+                      <tbody>{bodyRows.map((row, ri) => <tr key={ri}>{row.map((c, j) => <td key={j} style={{ border: '1px solid #ddd', padding: '6px 10px' }}>{c}</td>)}</tr>)}</tbody>
+                    </table>
+                  )
+                  continue
+                }
+                // Headings
+                if (line.startsWith('# ')) { elements.push(<h2 key={elements.length} style={{ fontSize: 18, margin: '16px 0 8px', color: '#1a1a1a' }}>{line.slice(2)}</h2>); i++; continue }
+                if (line.startsWith('## ')) { elements.push(<h3 key={elements.length} style={{ fontSize: 15, margin: '14px 0 6px', color: '#333' }}>{line.slice(3)}</h3>); i++; continue }
+                if (line.startsWith('### ')) { elements.push(<h4 key={elements.length} style={{ fontSize: 14, margin: '10px 0 4px', color: '#555', fontWeight: 600 }}>{line.slice(4)}</h4>); i++; continue }
+                // HR
+                if (line.trim() === '---') { elements.push(<hr key={elements.length} style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #eee' }} />); i++; continue }
+                // List items
+                if (line.startsWith('- ')) { elements.push(<li key={elements.length} style={{ marginLeft: 16, marginBottom: 2 }}>{renderInline(line.slice(2))}</li>); i++; continue }
+                // Blank line
+                if (line.trim() === '') { i++; continue }
+                // Paragraph
+                elements.push(<p key={elements.length} style={{ margin: '4px 0' }}>{renderInline(line)}</p>)
+                i++
+              }
+              return elements
+            })()}
+          </div>
+        </details>
+      )}
+
       {/* Tab toggle */}
       <div style={s.tabRow}>
         <button onClick={() => setPillarTab('milestones')} style={pillarTab === 'milestones' ? s.tabActive : s.tab}>Milestones</button>
@@ -486,6 +568,14 @@ export default function Profile() {
                   <option value="gold">Gold</option>
                   <option value="platinum">Platinum</option>
                 </select>
+                <select value={pBountyForm.age_band} onChange={e => setPBountyForm({ ...pBountyForm, age_band: e.target.value })} style={{ ...s.input, maxWidth: 110 }}>
+                  <option value="">Age band</option>
+                  <option value="0-5">0–5</option>
+                  <option value="6-12">6–12</option>
+                  <option value="13-18">13–18</option>
+                  <option value="18-25">18–25</option>
+                  <option value="25-35">25–35</option>
+                </select>
                 <input placeholder="Task title" value={pBountyForm.title} onChange={e => setPBountyForm({ ...pBountyForm, title: e.target.value })} style={{ ...s.input, flex: 1 }} autoFocus />
                 <input placeholder="$ amount" type="number" step="0.25" min="0" value={pBountyForm.reward_amount} onChange={e => setPBountyForm({ ...pBountyForm, reward_amount: e.target.value })} style={{ ...s.input, maxWidth: 90 }} />
               </div>
@@ -497,19 +587,47 @@ export default function Profile() {
             <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No bounties for this pillar yet.</p>
           )}
           {pillarBounties.map(b => (
-            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#fff', borderRadius: 6, marginBottom: 4 }}>
-              <button onClick={() => cyclePillarBountyStatus(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                <span style={{ fontSize: 16, color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
-                  {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
-                </span>
-              </button>
-              <div style={{ flex: 1 }}>
-                <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none' }}>{b.title}</span>
-                {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{b.description}</p>}
-              </div>
-              <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#888','gold':'#b8860b','platinum':'#4a90d9'}[b.tier] }}>{b.tier}</span>
-              <span style={{ fontWeight: 600, fontSize: 14 }}>${(b.reward_amount / 100).toFixed(2)}</span>
-              <button onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
+            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#fff', borderRadius: 6, marginBottom: 4, flexWrap: editingPBounty === b.id ? 'wrap' : 'nowrap' }}>
+              {editingPBounty === b.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <select value={editPBForm.status} onChange={e => setEditPBForm({ ...editPBForm, status: e.target.value })} style={{ ...s.input, maxWidth: 110, margin: 0 }}>
+                      <option value="available">Available</option><option value="claimed">Claimed</option><option value="complete">Complete</option><option value="paid">Paid</option>
+                    </select>
+                    <select value={editPBForm.tier} onChange={e => setEditPBForm({ ...editPBForm, tier: e.target.value })} style={{ ...s.input, maxWidth: 110, margin: 0 }}>
+                      <option value="bronze">Bronze</option><option value="silver">Silver</option><option value="gold">Gold</option><option value="platinum">Platinum</option>
+                    </select>
+                    <select value={editPBForm.age_band} onChange={e => setEditPBForm({ ...editPBForm, age_band: e.target.value })} style={{ ...s.input, maxWidth: 100, margin: 0 }}>
+                      <option value="">Age band</option><option value="0-5">0–5</option><option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
+                    </select>
+                    <input value={editPBForm.reward_amount} onChange={e => setEditPBForm({ ...editPBForm, reward_amount: e.target.value })} type="number" step="0.25" min="0" placeholder="$" style={{ ...s.input, maxWidth: 80, margin: 0 }} />
+                  </div>
+                  <input value={editPBForm.title} onChange={e => setEditPBForm({ ...editPBForm, title: e.target.value })} style={{ ...s.input, margin: 0 }} />
+                  <input value={editPBForm.description} onChange={e => setEditPBForm({ ...editPBForm, description: e.target.value })} placeholder="Description" style={{ ...s.input, margin: 0 }} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => saveEditPBounty(b)} style={{ ...s.submitBtn, padding: '6px 14px', fontSize: 12 }}>Save</button>
+                    <button onClick={() => setEditingPBounty(null)} style={{ padding: '6px 14px', fontSize: 12, background: '#eee', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button onClick={() => cyclePillarBountyStatus(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }} title={`${b.status} — click to advance`}>
+                    <span style={{ fontSize: 16, color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
+                      {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
+                    </span>
+                  </button>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none' }}>{b.title}</span>
+                    {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄 ×{b.times_completed}</span> : null}
+                    {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{b.description}</p>}
+                  </div>
+                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#888','gold':'#b8860b','platinum':'#4a90d9'}[b.tier] }}>{b.tier}</span>
+                  {b.age_band && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f0f4ff', color: '#4a90d9' }}>{b.age_band}</span>}
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>${((b.current_reward ?? b.reward_amount) / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 10, color: '#999', textDecoration: 'line-through', marginLeft: 4 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
+                  <button onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#aaa' }} title="Edit">✎</button>
+                  <button onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
+                </>
+              )}
             </div>
           ))}
         </div>

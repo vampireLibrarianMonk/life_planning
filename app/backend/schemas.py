@@ -23,6 +23,10 @@ class Pillar(str, Enum):
     resilience = "resilience"
     dimensional_navigation = "dimensional_navigation"
     civic = "civic"
+    scientific_reality_testing = "scientific_reality_testing"
+    inheritance_burden_stewardship = "inheritance_burden_stewardship"
+    catholic_formation = "catholic_formation"
+    secular_sacred_formation = "secular_sacred_formation"
 
 
 # Auth
@@ -172,6 +176,10 @@ class BountyCreate(BaseModel):
     description: str | None = None
     reward_amount: int = 0  # cents
     pillar: Pillar | None = None
+    age_band: str | None = None
+    repeatable: int = 0
+    decay_divisor: int = 2
+    reset_days: int | None = None
 
 
 class BountyUpdate(BaseModel):
@@ -180,6 +188,10 @@ class BountyUpdate(BaseModel):
     reward_amount: int | None = None
     status: str | None = None
     pillar: Pillar | None = None
+    age_band: str | None = None
+    repeatable: int | None = None
+    decay_divisor: int | None = None
+    reset_days: int | None = None
 
 
 class BountyResponse(BaseModel):
@@ -190,6 +202,13 @@ class BountyResponse(BaseModel):
     title: str
     description: str | None
     reward_amount: int
+    age_band: str | None
+    repeatable: int
+    decay_divisor: int
+    reset_days: int | None
+    times_completed: int
+    last_completed_at: datetime | None
+    current_reward: int  # computed: what it's worth right now
     status: str
     completed_at: datetime | None
     created_at: datetime

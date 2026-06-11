@@ -94,7 +94,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 256 milestones across all 10 pillars from the planning documents
+3. The system automatically seeds 451 milestones across all 14 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -102,7 +102,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 After selecting a profile, you see:
 
 - **Profile header** with name, current age, and developmental phase (Foundation/Exploration/Formation/Launch/Consolidation/Stewardship)
-- **8 pillar cards** with progress bars showing completion percentage
+- **14 pillar cards** with progress bars showing completion percentage
 - **🧭 Life Navigation** pillar for dimensional thinking and perception development
 - **🏛️ Civic & Institutional** pillar for governance, markets, and institutional literacy
 - **💵 Bounty Board** card for the family economy system
@@ -138,17 +138,20 @@ This creates a living record: milestones aren't just checked off — they're doc
 
 The 💵 Bounty Board has four sections:
 
-**Eligibility Banner** — Shows current tier (Bronze/Silver/Gold/Platinum) based on behavior scores.
+**Eligibility Banner** — Shows current tier (Bronze/Silver/Gold/Platinum) based on behavior incidents. Children start at Bronze and must earn positive incidents to climb tiers:
+- ≥ 90% positive → Platinum (can propose projects, negotiate rates)
+- ≥ 70% positive → Gold (larger projects requiring skill)
+- ≥ 50% positive → Silver (property and organization tasks)
+- < 50% positive → Bronze (household help at entry level)
 
 **Earnings Summary** — Total earned, paid out, pending payout, bounties completed.
 
-**Behavior Matrix** — Score 6 character traits weekly (Integrity, Honesty, Responsibility, Respect, School Effort, Citizenship) on a 1–5 scale. The average determines tier eligibility:
-- ≥ 4.5 → Platinum (can propose projects, negotiate rates)
-- ≥ 3.5 → Gold (larger projects requiring skill)
-- ≥ 2.5 → Silver (property and organization tasks)
-- < 2.5 → Bronze (household help at entry level)
+**Behavior Incidents** — Record positive demonstrations or violations for 6 traits (Integrity, Honesty, Responsibility, Respect, School Effort, Citizenship). The ratio of positive to total incidents over the last 30 days determines tier eligibility.
 
-**Bounties** — Create tasks by tier with dollar amounts. Status cycles: Available → Claimed → Complete → Paid.
+**Bounties** — Create tasks by tier with dollar amounts and age bands. Full CRUD: edit any field including status (can go backward). Status cycles: Available → Claimed → Complete → Paid.
+
+- **Repeatable bounties** use diminishing returns ("Dark Souls" decay): each completion divides the reward by a configurable divisor (default ÷2). The child sees the decayed value and completion count. An optional reset period restores full value after N days.
+- **One-time bounties** pay once and stay paid.
 
 **🎁 Wishlist** — The child adds items they want to save toward. Each shows a progress bar based on total earnings vs. item cost. Status: 💭 Saving → 👍 Approved → ✓ Purchased.
 
@@ -178,6 +181,7 @@ life_plan/
 ├── SBOM.md                          # Software Bill of Materials
 ├── docs/                            # Structured planning documents
 │   ├── 00_lifetime_development_dashboard.md
+│   ├── 00_integration_index.md
 │   ├── 01_career_guidance_template.md
 │   ├── 02_consequence_analysis.md
 │   ├── 03_family_economy_system.md
@@ -187,7 +191,16 @@ life_plan/
 │   ├── 07_spiritual_warfare_discernment.md
 │   ├── 08_power_of_language.md
 │   ├── 09_dimensional_navigation.md
-│   └── 10_civic_institutional_navigation.md
+│   ├── 10_civic_institutional_navigation.md
+│   ├── 11_scientific_method_reality_testing.md
+│   ├── 11a_lost_knowledge_corruption_institutional_blindness.md
+│   ├── 12_inheritance_burden_stewardship.md
+│   ├── 13_catholic_sacramental_formation_domestic_church.md
+│   ├── 14_secular_sacred_formation_civilizational_literacy.md
+│   ├── 14a_recidivism_forgiveness_forgetting_addendum.md
+│   ├── 15_financial_development_investment_literacy.md
+│   ├── 16_life_skills_practical_competence.md
+│   └── IMPLEMENTATION_NOTES.md
 ├── diagrams/                        # PlantUML source + rendered PNGs
 │   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
 │   ├── brain_maturation.puml        # PFC maturation by sex
@@ -202,15 +215,16 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 228 milestones from docs
+    │   ├── seed_data.py             # 451 milestones from docs
     │   ├── requirements.txt
     │   ├── uploads/                 # User-uploaded event attachments (auto-created)
     │   └── routes/
     │       ├── users.py             # Auth + user management
     │       ├── profiles.py          # Profile CRUD + milestone seeding
     │       ├── pillars.py           # Pillar entry CRUD
-    │       ├── economy.py           # Behavior, bounties, wishlist, earnings
-    │       └── events.py            # Event attachments (upload, list, delete, serve)
+    │       ├── economy.py           # Behavior, bounties (repeatable + decay), wishlist, earnings
+    │       ├── events.py            # Event attachments (upload, list, delete, serve)
+    │       └── docs.py              # Pillar guide content (filtered markdown from docs/)
     └── frontend/
         ├── index.html
         ├── package.json

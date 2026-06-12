@@ -168,6 +168,12 @@ class BountyTier(str, Enum):
     silver = "silver"
     gold = "gold"
     platinum = "platinum"
+    diamond = "diamond"
+    obsidian = "obsidian"
+    legendary = "legendary"
+    covenant = "covenant"
+    ooh_shiny = "ooh_shiny"
+    ironforged = "ironforged"
 
 
 class BountyCreate(BaseModel):
@@ -177,6 +183,7 @@ class BountyCreate(BaseModel):
     reward_amount: int = 0  # cents
     pillar: Pillar | None = None
     age_band: str | None = None
+    category: str | None = None
     repeatable: int = 0
     decay_divisor: int = 2
     reset_days: int | None = None
@@ -189,9 +196,11 @@ class BountyUpdate(BaseModel):
     status: str | None = None
     pillar: Pillar | None = None
     age_band: str | None = None
+    category: str | None = None
     repeatable: int | None = None
     decay_divisor: int | None = None
     reset_days: int | None = None
+    times_completed: int | None = None
 
 
 class BountyResponse(BaseModel):
@@ -203,10 +212,14 @@ class BountyResponse(BaseModel):
     description: str | None
     reward_amount: int
     age_band: str | None
+    category: str | None
     repeatable: int
     decay_divisor: int
     reset_days: int | None
     times_completed: int
+    streak_count: int
+    streak_best: int
+    streak_bonus: int  # computed: bonus earned at current streak milestone
     last_completed_at: datetime | None
     current_reward: int  # computed: what it's worth right now
     status: str

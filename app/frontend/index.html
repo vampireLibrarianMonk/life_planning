@@ -4,6 +4,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Life Plan Tracker</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; -webkit-text-size-adjust: 100%; }
+
+    /* Desktop: grid layout for pillars */
+    .pillar-grid-desktop {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    /* Roadmap phases */
+    .roadmap-phase summary::-webkit-details-marker { display: none; }
+
+    /* Mobile: <768px */
+    @media (max-width: 767px) {
+      .pillar-grid-desktop {
+        display: flex !important;
+        overflow-x: auto;
+        gap: 10px;
+        padding-bottom: 8px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+      .pillar-grid-desktop > button {
+        min-width: 140px;
+        max-width: 140px;
+        flex-shrink: 0;
+        scroll-snap-align: start;
+        padding: 14px 10px !important;
+      }
+      .pillar-filter {
+        display: block !important;
+      }
+    }
+
+    /* Milestone items — responsive */
+    .milestone-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: #fff;
+      border-radius: 8px;
+    }
+    .milestone-actions {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    @media (max-width: 767px) {
+      .milestone-item {
+        flex-wrap: wrap;
+        padding: 12px;
+      }
+      .milestone-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid #f0f0f0;
+      }
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>

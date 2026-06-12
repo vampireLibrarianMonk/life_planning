@@ -94,6 +94,18 @@ def _compute_current_reward(bounty):
     return max(1, bounty.reward_amount // (divisor ** times))
 
 
+def _compute_streak_bonus(bounty):
+    """Calculate streak bonus. 4=2x, 12=5x, 52=20x base reward."""
+    streak = bounty.streak_count or 0
+    if streak >= 52:
+        return bounty.reward_amount * 20
+    if streak >= 12:
+        return bounty.reward_amount * 5
+    if streak >= 4:
+        return bounty.reward_amount * 2
+    return 0
+
+
 def _bounty_response(bounty):
     """Convert a Bounty ORM object to a response dict with current_reward."""
     return {
@@ -105,10 +117,14 @@ def _bounty_response(bounty):
         "description": bounty.description,
         "reward_amount": bounty.reward_amount,
         "age_band": bounty.age_band,
+        "category": bounty.category,
         "repeatable": bounty.repeatable,
         "decay_divisor": bounty.decay_divisor or 2,
         "reset_days": bounty.reset_days,
         "times_completed": bounty.times_completed or 0,
+        "streak_count": bounty.streak_count or 0,
+        "streak_best": bounty.streak_best or 0,
+        "streak_bonus": _compute_streak_bonus(bounty),
         "last_completed_at": bounty.last_completed_at,
         "current_reward": _compute_current_reward(bounty),
         "status": bounty.status,
@@ -127,8 +143,10 @@ def list_bounties(profile_id: int, pillar: str | None = None, db: Session = Depe
     for b in bounties:
         if b.repeatable and b.reset_days and b.last_completed_at and b.times_completed:
             from datetime import timedelta
-            if datetime.utcnow() - b.last_completed_at >= timedelta(days=b.reset_days):
+            elapsed = datetime.utcnow() - b.last_completed_at
+            if elapsed >= timedelta(days=b.reset_days):
                 b.times_completed = 0
+                b.streak_count = 0  # streak broken
                 b.last_completed_at = None
                 if b.status == 'paid':
                     b.status = 'available'
@@ -153,13 +171,19 @@ def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Sessio
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(bounty, field, value)
     if req.status == "paid" and bounty.repeatable:
-        # Repeatable: increment times_completed, reset to available
+        # Repeatable: increment times_completed, update streak, reset to available
         bounty.times_completed = (bounty.times_completed or 0) + 1
+        bounty.streak_count = (bounty.streak_count or 0) + 1
+        if bounty.streak_count > (bounty.streak_best or 0):
+            bounty.streak_best = bounty.streak_count
         bounty.last_completed_at = datetime.utcnow()
         bounty.status = "available"
         bounty.completed_at = None
     elif req.status == "complete":
         bounty.completed_at = datetime.utcnow()
+    # Allow manual reset of decay via times_completed = 0
+    if hasattr(req, 'times_completed') and req.times_completed is not None:
+        pass  # already set via setattr loop above
     db.commit()
     db.refresh(bounty)
     return _bounty_response(bounty)
@@ -172,6 +196,44 @@ def delete_bounty(profile_id: int, bounty_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Bounty not found")
     db.delete(bounty)
     db.commit()
+
+
+@router.get("/research-topics")
+def get_research_topics(profile_id: int, _: User = Depends(get_current_user)):
+    """Return the topic banks for research bounties."""
+    from research_topics import RESEARCH_TOPICS
+    return RESEARCH_TOPICS
+
+
+@router.get("/programs")
+def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    """Return program definitions with progress for this profile."""
+    from programs import PROGRAMS
+
+    all_bounties = db.query(Bounty).filter(Bounty.profile_id == profile_id, Bounty.category != None).all()
+
+    result = []
+    for prog in PROGRAMS:
+        # Match bounties by category
+        prog_bounties = [b for b in all_bounties if b.category in prog["categories"]]
+        # For marriage_prep, also filter by title keywords
+        if "filter_titles" in prog:
+            prog_bounties = [b for b in all_bounties if b.category in prog["categories"] and any(ft in b.title for ft in prog["filter_titles"])]
+            if not prog_bounties:
+                prog_bounties = [b for b in all_bounties if b.category in prog["categories"]]
+
+        total = len(prog_bounties)
+        completed = sum(1 for b in prog_bounties if b.status == 'paid' or (b.repeatable and (b.times_completed or 0) > 0))
+        result.append({
+            "key": prog["key"],
+            "title": prog["title"],
+            "icon": prog["icon"],
+            "description": prog["description"],
+            "total": total,
+            "completed": completed,
+            "bounties": [_bounty_response(b) for b in prog_bounties],
+        })
+    return result
 
 
 # --- Eligibility Check ---

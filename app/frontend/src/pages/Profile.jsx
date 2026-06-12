@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide, fetchPrograms } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import Economy from './Economy'
 
@@ -71,6 +71,9 @@ export default function Profile() {
   const [avatarSrc, setAvatarSrc] = useState(null) // data URL for crop modal
   const [avatarFile, setAvatarFile] = useState(null) // original File object
   const [guideContent, setGuideContent] = useState(null) // markdown text for pillar guide
+  const [pillarFilter, setPillarFilter] = useState('')
+  const [programs, setPrograms] = useState([])
+  const [activeProgram, setActiveProgram] = useState(null)
 
   useEffect(() => { fetchProfile(id).then(setProfile); loadCounts() }, [id])
 
@@ -290,9 +293,12 @@ export default function Profile() {
             <p style={s.meta}>{age !== null && <>Age {age} &middot; </>}Phase: <strong>{phase}</strong>{profile.date_of_birth && <> &middot; Born {profile.date_of_birth}</>}</p>
           </div>
         </div>
+
+        {/* Pillar filter + horizontal strip (mobile) / grid (desktop) */}
         <h2 style={s.sectionTitle}>Development Pillars</h2>
-        <div style={s.pillarGrid}>
-          {PILLARS.map(p => {
+        <input type="text" placeholder="🔍 Filter pillars..." value={pillarFilter} onChange={e => setPillarFilter(e.target.value)} className="pillar-filter" style={{ ...s.input, marginBottom: 12 }} />
+        <div className="pillar-grid-desktop">
+          {PILLARS.filter(p => !pillarFilter || p.label.toLowerCase().includes(pillarFilter.toLowerCase())).map(p => {
             const c = allCounts[p.key] || { total: 0, complete: 0 }
             const pct = c.total ? Math.round((c.complete / c.total) * 100) : 0
             return (
@@ -302,24 +308,39 @@ export default function Profile() {
                 <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2, marginTop: 8 }}>
                   <div style={{ width: `${pct}%`, height: 4, background: '#2ecc71', borderRadius: 2 }} />
                 </div>
-                <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{c.complete}/{c.total} complete</span>
+                <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{c.complete}/{c.total}</span>
               </button>
             )
           })}
-          <button onClick={() => setActivePillar('__economy__')} style={{ ...s.pillarCard, border: '2px solid #f0e6d0' }}>
-            <span style={{ fontSize: 28 }}>💵</span>
-            <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Bounty Board</span>
-            <span style={{ fontSize: 11, color: '#888', marginTop: 8 }}>Behavior &middot; Bounties &middot; Earnings</span>
-          </button>
         </div>
+
+        {/* Bounty Board + Programs section */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Programs & Economy</h2>
+        <div className="pillar-grid-desktop">
+          {(!pillarFilter || 'bounty board'.includes(pillarFilter.toLowerCase())) && (
+            <button onClick={() => setActivePillar('__economy__')} style={{ ...s.pillarCard, border: '2px solid #f0e6d0' }}>
+              <span style={{ fontSize: 28 }}>💵</span>
+              <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Bounty Board</span>
+              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Behavior &middot; Bounties &middot; Earnings</span>
+            </button>
+          )}
+          {(!pillarFilter || 'programs'.includes(pillarFilter.toLowerCase()) || 'military'.includes(pillarFilter.toLowerCase()) || 'pmcs'.includes(pillarFilter.toLowerCase()) || 'research'.includes(pillarFilter.toLowerCase()) || 'marriage'.includes(pillarFilter.toLowerCase()) || 'catholic'.includes(pillarFilter.toLowerCase())) && (
+            <button onClick={() => setActivePillar('__programs__')} style={{ ...s.pillarCard, border: '2px solid #d0e6f0' }}>
+              <span style={{ fontSize: 28 }}>📋</span>
+              <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Programs</span>
+              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Structured tracks</span>
+            </button>
+          )}
+        </div>
+
         <div style={s.coreMetric}>
           <p style={{ margin: 0, fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Core Metric</p>
           <p style={{ margin: '8px 0 0', fontSize: 18, fontStyle: 'italic' }}>"Is {profile.name.split(' ')[0]} becoming a wise, capable, kind, and independent person?"</p>
         </div>
 
-        {/* Roadmap */}
+        {/* Roadmap - accordion on mobile */}
         <h2 style={{ ...s.sectionTitle, marginTop: 40 }}>Roadmap</h2>
-        <div style={s.roadmap}>
+        <div className="roadmap-container" style={s.roadmap}>
           {['0-5','6-12','13-18','18-25','25-35'].map((band, i) => {
             const labels = { '0-5': 'Foundation', '6-12': 'Exploration', '13-18': 'Formation', '18-25': 'Launch', '25-35': 'Consolidation' }
             const isCurrentBand = age !== null && (
@@ -327,31 +348,93 @@ export default function Profile() {
               (band === '13-18' && age >= 13 && age <= 18) || (band === '18-25' && age >= 18 && age <= 25) ||
               (band === '25-35' && age >= 25 && age <= 35)
             )
-            // Count milestones complete per band across all pillars
-            const bandEntries = Object.values(allCounts).length ? null : null // we need raw entries
             return (
-              <div key={band} style={{ ...s.roadmapPhase, ...(isCurrentBand ? s.roadmapActive : {}) }}>
-                <div style={s.roadmapDot}>
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrentBand ? '#4a90d9' : i < (['0-5','6-12','13-18','18-25','25-35'].indexOf(band)) ? '#2ecc71' : '#ddd' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <details key={band} className="roadmap-phase" open={isCurrentBand} style={{ ...s.roadmapPhase, ...(isCurrentBand ? s.roadmapActive : {}) }}>
+                <summary style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', listStyle: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrentBand ? '#4a90d9' : '#ddd' }} />
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{labels[band]}</span>
-                    <span style={{ fontSize: 12, color: '#888' }}>Ages {band}</span>
+                    <span style={{ fontSize: 12, color: '#aaa', fontWeight: 400 }}>{band}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                    {PILLARS.map(p => {
-                      const pillarEntries = allRaw.filter(e => e.pillar === p.key && e.age_band === band && e.is_milestone)
-                      const done = pillarEntries.filter(e => e.status === 'complete' || e.status === 'mastered').length
-                      const total = pillarEntries.length
-                      if (!total) return null
-                      return <span key={p.key} style={{ fontSize: 11, padding: '1px 6px', borderRadius: 8, background: done === total ? '#e8f8f0' : '#f5f5f5', color: done === total ? '#27ae60' : '#888' }}>{p.icon} {done}/{total}</span>
-                    })}
-                  </div>
+                </summary>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, paddingLeft: 24 }}>
+                  {PILLARS.map(p => {
+                    const pillarEntries = allRaw.filter(e => e.pillar === p.key && e.age_band === band && e.is_milestone)
+                    const done = pillarEntries.filter(e => e.status === 'complete' || e.status === 'mastered').length
+                    const total = pillarEntries.length
+                    if (!total) return null
+                    return <span key={p.key} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: done === total ? '#e8f8f0' : '#f5f5f5', color: done === total ? '#27ae60' : '#888' }}>{p.icon} {done}/{total}</span>
+                  })}
                 </div>
-              </div>
+              </details>
             )
           })}
+        </div>
+      </div>
+    )
+  }
+
+  // Programs view
+  if (activePillar === '__programs__') {
+    if (!programs.length) fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d))
+    if (activeProgram) {
+      const prog = programs.find(p => p.key === activeProgram)
+      if (!prog) return <div style={s.container}><button onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back</button><p>Loading...</p></div>
+      return (
+        <div style={s.container}>
+          <button onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back to Programs</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
+            <span style={{ fontSize: 32 }}>{prog.icon}</span>
+            <div>
+              <h2 style={{ margin: 0 }}>{prog.title}</h2>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>{prog.completed}/{prog.total} tasks engaged</p>
+            </div>
+          </div>
+          <div style={{ width: '100%', height: 6, background: '#eee', borderRadius: 3, marginBottom: 20 }}>
+            <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 6, background: '#2ecc71', borderRadius: 3 }} />
+          </div>
+          {prog.bounties.map(b => (
+            <div key={b.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : '#ddd'}` }}>
+              <span style={{ fontSize: 16, color: b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : '#ddd' }}>
+                {b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '✓' : '○'}
+              </span>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontWeight: 500 }}>{b.title}</span>
+                {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 12 ? '#ffd700' : '#2ecc71' }}> 🔥{b.streak_count}</span> : ''}</span> : null}
+                {b.description && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666', lineHeight: 1.5 }}>{b.description}</p>}
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f5f5f5', color: '#888' }}>{b.tier}</span>
+                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{b.reward_amount ? `$${(b.current_reward / 100).toFixed(2)}` : '🏆'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+    return (
+      <div style={s.container}>
+        <button onClick={() => { setActivePillar(null); setPrograms([]) }} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
+          <span style={{ fontSize: 32 }}>📋</span>
+          <h2 style={{ margin: 0 }}>Programs</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
+          {programs.map(prog => (
+            <button key={prog.key} onClick={() => setActiveProgram(prog.key)} style={{ ...s.pillarCard, alignItems: 'flex-start', textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                <span style={{ fontSize: 24 }}>{prog.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>{prog.title}</span>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>{prog.completed}/{prog.total} engaged</p>
+                </div>
+              </div>
+              <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2, marginTop: 10 }}>
+                <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 4, background: '#2ecc71', borderRadius: 2 }} />
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: 11, color: '#888' }}>{prog.description}</p>
+            </button>
+          ))}
         </div>
       </div>
     )
@@ -399,16 +482,16 @@ export default function Profile() {
     const isExpanded = expandedMilestone === item.id
     return (
       <div key={item.id} style={{ marginBottom: 6, marginLeft: isChild ? 24 : 0 }}>
-        <div style={{ ...s.milestone, borderLeft: `3px solid ${STATUS_COLORS[item.status] || '#e0e0e0'}` }}>
-          <button onClick={() => handleStatusToggle(item)} style={s.statusBtn} title={`Status: ${STATUS_DISPLAY[item.status] || item.status} (click to advance)`}>
+        <div className="milestone-item" style={{ borderLeft: `3px solid ${STATUS_COLORS[item.status] || '#e0e0e0'}` }}>
+          <button onClick={() => handleStatusToggle(item)} style={{ ...s.statusBtn, minWidth: 28 }} title={`Status: ${STATUS_DISPLAY[item.status] || item.status} (click to advance)`}>
             <span style={{ color: STATUS_COLORS[item.status] || '#e0e0e0', fontSize: 18 }}>{STATUS_LABELS[item.status] || '○'}</span>
           </button>
-          <div style={{ flex: 1, cursor: isMilestone ? 'pointer' : 'default' }} onClick={() => isMilestone && toggleMilestoneExpand(item.id)}>
-            <span style={{ textDecoration: item.status === 'complete' || item.status === 'mastered' ? 'line-through' : 'none', color: item.status === 'mastered' ? '#1a7a4c' : item.status === 'complete' ? '#888' : '#1a1a1a' }}>{item.title}</span>
-            {item.content && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>{item.content}</p>}
+          <div style={{ flex: 1, cursor: isMilestone ? 'pointer' : 'default', minWidth: 0 }} onClick={() => isMilestone && toggleMilestoneExpand(item.id)}>
+            <span style={{ textDecoration: item.status === 'complete' || item.status === 'mastered' ? 'line-through' : 'none', color: item.status === 'mastered' ? '#1a7a4c' : item.status === 'complete' ? '#888' : '#1a1a1a', wordBreak: 'break-word' }}>{item.title}</span>
+            {item.content && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888', wordBreak: 'break-word' }}>{item.content}</p>}
             {isMilestone && <span style={{ fontSize: 10, color: '#bbb', marginLeft: 4 }}>{isExpanded ? '▾' : '▸'} details</span>}
           </div>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <div className="milestone-actions">
             <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 8, background: STATUS_COLORS[item.status] || '#e0e0e0', color: '#fff', whiteSpace: 'nowrap' }}>{STATUS_DISPLAY[item.status] || item.status}</span>
             {item.category && <span style={s.categoryBadge}>{item.category}</span>}
             {item.score != null && <span style={s.scoreBadge}>{item.score}/5</span>}
@@ -477,10 +560,10 @@ export default function Profile() {
     <div style={s.container}>
       <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 16px', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 32 }}>{currentPillar.icon}</span>
-          <h2 style={{ margin: 0 }}>{currentPillar.label}</h2>
+          <h2 style={{ margin: 0, fontSize: 20 }}>{currentPillar.label}</h2>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {pillarTab === 'milestones' && <button onClick={() => { setShowForm(!showForm); setFormType('milestone') }} style={s.addBtn}>{showForm ? 'Cancel' : '+ Milestone'}</button>}

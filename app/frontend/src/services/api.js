@@ -222,3 +222,15 @@ export async function fetchPillarGuide(pillar) {
   if (!res.ok) return null
   return res.json()
 }
+
+export async function fetchResearchTopics(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/research-topics`, { headers: headers() })
+  if (!res.ok) return {}
+  return res.json()
+}
+
+export async function fetchPrograms(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/programs`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}

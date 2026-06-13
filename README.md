@@ -8,6 +8,8 @@ Instead of a generic chore chart or a college fund spreadsheet, this is a full n
 
 ## Overview
 
+![All 14 Pillars](diagrams/pillars_all.png)
+
 ![Spiritual & Financial](diagrams/poster_spiritual_financial.png)
 
 ![Education & Character](diagrams/poster_education_character.png)
@@ -27,6 +29,16 @@ The framework extends to age 35 rather than stopping at 18 or 25 because:
 ## Family Economy
 
 ![Family Economy](diagrams/family_economy.png)
+
+![Bounty Tiers](diagrams/bounty_tiers.png)
+
+![Bounty Mechanics: Decay & Streak](diagrams/bounty_decay_streak.png)
+
+![Eligibility](diagrams/eligibility.png)
+
+## Programs
+
+![Programs Overview](diagrams/programs_overview.png)
 
 ## Financial Targets & Investment Education
 
@@ -204,8 +216,13 @@ life_plan/
 ├── diagrams/                        # PlantUML source + rendered PNGs
 │   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
 │   ├── brain_maturation.puml        # PFC maturation by sex
+│   ├── pillars_all.puml             # All 14 pillars overview
 │   ├── pillars_detail.puml          # Seven pillars progression
 │   ├── family_economy.puml          # Bounty/behavior system
+│   ├── bounty_tiers.puml            # Tier progression (Bronze → Ironforged)
+│   ├── bounty_decay_streak.puml     # Decay mechanics + streak bonuses
+│   ├── eligibility.puml             # Behavior-gated tier calculation
+│   ├── programs_overview.puml       # Structured program tracks
 │   ├── heritage_identity.puml       # Heritage domains
 │   └── financial_targets.puml       # Investment education timeline
 └── app/

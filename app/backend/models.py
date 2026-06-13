@@ -179,6 +179,9 @@ class Bounty(Base):
     tier = Column(Enum(BountyTier), nullable=False)
     title = Column(String(300), nullable=False)
     description = Column(Text, nullable=True)
+    requirements = Column(Text, nullable=True)  # checklist of what must be done
+    reference = Column(Text, nullable=True)  # study material, templates, standards
+    criteria = Column(Text, nullable=True)  # how 'done' is judged
     reward_amount = Column(Integer, default=0)  # cents (original base amount)
     age_band = Column(String(10), nullable=True)  # e.g. "0-5", "6-12"
     category = Column(String(30), nullable=True)  # saint, paradox, effect, or null for standard
@@ -194,6 +197,23 @@ class Bounty(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     profile = relationship("Profile", back_populates="bounties")
+    logs = relationship("BountyLog", back_populates="bounty", cascade="all, delete-orphan")
+
+
+class BountyLog(Base):
+    """Universal log entry for a bounty — notes, submissions, feedback, evidence."""
+
+    __tablename__ = "bounty_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bounty_id = Column(Integer, ForeignKey("bounties.id", ondelete="CASCADE"), nullable=False)
+    author = Column(String(50), nullable=False)  # 'child' or 'parent'
+    entry_type = Column(String(20), default="note")  # note, submission, feedback, evidence
+    content = Column(Text, nullable=False)
+    attachment = Column(String(500), nullable=True)  # filename in uploads/
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    bounty = relationship("Bounty", back_populates="logs")
 
 
 class WishlistItem(Base):
@@ -228,3 +248,20 @@ class EventAttachment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     entry = relationship("PillarEntry", back_populates="attachments")
+
+
+class Discernment(Base):
+    """A life-path choice the child is actively forming toward."""
+
+    __tablename__ = "discernments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
+    category = Column(String(50), nullable=False)  # career, vocation, education
+    title = Column(String(300), nullable=False)  # e.g. "Software Engineering", "Military - Army"
+    status = Column(String(30), default="exploring")  # exploring, committed, achieved, changed
+    notes = Column(Text, nullable=True)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    profile = relationship("Profile")

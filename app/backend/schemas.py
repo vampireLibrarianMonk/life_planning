@@ -180,6 +180,9 @@ class BountyCreate(BaseModel):
     tier: BountyTier
     title: str
     description: str | None = None
+    requirements: str | None = None
+    reference: str | None = None
+    criteria: str | None = None
     reward_amount: int = 0  # cents
     pillar: Pillar | None = None
     age_band: str | None = None
@@ -192,6 +195,9 @@ class BountyCreate(BaseModel):
 class BountyUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    requirements: str | None = None
+    reference: str | None = None
+    criteria: str | None = None
     reward_amount: int | None = None
     status: str | None = None
     pillar: Pillar | None = None
@@ -210,6 +216,9 @@ class BountyResponse(BaseModel):
     tier: BountyTier
     title: str
     description: str | None
+    requirements: str | None
+    reference: str | None
+    criteria: str | None
     reward_amount: int
     age_band: str | None
     category: str | None

@@ -1,0 +1,47 @@
+@startuml bounty_decay_streak
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 11
+
+title Bounty Mechanics: Decay & Streak
+
+rectangle "**Diminishing Returns (Decay)**" as decay #FFF5F0 {
+  (Completion 1: $5.00) as d1
+  (Completion 2: $2.50) as d2
+  (Completion 3: $1.25) as d3
+  (Completion 4: $0.62) as d4
+  (Completion 5: $0.31) as d5
+  d1 --> d2 : ÷2
+  d2 --> d3 : ÷2
+  d3 --> d4 : ÷2
+  d4 --> d5 : ÷2
+}
+
+rectangle "**Reset Period**" as reset #F0FFF0 {
+  (Decay active) as ra
+  (N days pass without completion) as rw
+  (Full value restored) as rf
+  ra --> rw
+  rw --> rf
+}
+
+rectangle "**Streak Bonus**" as streak #F0F0FF {
+  (4 weeks: 2× base bonus) as s4
+  (12 weeks: 5× base bonus) as s12
+  (52 weeks: 20× base bonus) as s52
+  (Miss a window: streak = 0) as s0
+  s4 --> s12
+  s12 --> s52
+  s52 -[dashed]-> s0 : miss
+}
+
+note bottom of decay
+  Configurable divisor (default ÷2)
+  Prevents gaming the same task
+end note
+
+note bottom of streak
+  Rewards sustained consistency
+  Firm rule: miss = reset to zero
+end note
+@enduml

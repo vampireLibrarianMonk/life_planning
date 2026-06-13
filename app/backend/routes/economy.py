@@ -115,6 +115,9 @@ def _bounty_response(bounty):
         "tier": bounty.tier,
         "title": bounty.title,
         "description": bounty.description,
+        "requirements": bounty.requirements,
+        "reference": bounty.reference,
+        "criteria": bounty.criteria,
         "reward_amount": bounty.reward_amount,
         "age_band": bounty.age_band,
         "category": bounty.category,
@@ -195,6 +198,45 @@ def delete_bounty(profile_id: int, bounty_id: int, db: Session = Depends(get_db)
     if not bounty:
         raise HTTPException(status_code=404, detail="Bounty not found")
     db.delete(bounty)
+    db.commit()
+
+
+# --- Bounty Logs ---
+
+from pydantic import BaseModel as _BM
+
+class _BountyLogCreate(_BM):
+    author: str = "parent"
+    entry_type: str = "note"  # note, submission, feedback, evidence
+    content: str
+
+
+@router.get("/bounties/{bounty_id}/logs")
+def list_bounty_logs(profile_id: int, bounty_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    from models import BountyLog
+    return db.query(BountyLog).filter(BountyLog.bounty_id == bounty_id).order_by(BountyLog.created_at.asc()).all()
+
+
+@router.post("/bounties/{bounty_id}/logs", status_code=201)
+def create_bounty_log(profile_id: int, bounty_id: int, req: _BountyLogCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+    from models import BountyLog
+    bounty = db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+    if not bounty:
+        raise HTTPException(status_code=404, detail="Bounty not found")
+    log = BountyLog(bounty_id=bounty_id, author=req.author, entry_type=req.entry_type, content=req.content)
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return log
+
+
+@router.delete("/bounties/{bounty_id}/logs/{log_id}", status_code=204)
+def delete_bounty_log(profile_id: int, bounty_id: int, log_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+    from models import BountyLog
+    log = db.query(BountyLog).filter(BountyLog.id == log_id, BountyLog.bounty_id == bounty_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    db.delete(log)
     db.commit()
 
 

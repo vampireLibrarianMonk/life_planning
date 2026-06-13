@@ -314,8 +314,8 @@ export default function Profile() {
           })}
         </div>
 
-        {/* Bounty Board + Programs section */}
-        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Programs & Economy</h2>
+        {/* Programs, Career & Economy */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Programs, Career & Economy</h2>
         <div className="pillar-grid-desktop">
           {(!pillarFilter || 'bounty board'.includes(pillarFilter.toLowerCase())) && (
             <button onClick={() => setActivePillar('__economy__')} style={{ ...s.pillarCard, border: '2px solid #f0e6d0' }}>
@@ -329,6 +329,13 @@ export default function Profile() {
               <span style={{ fontSize: 28 }}>📋</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Programs</span>
               <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Structured tracks</span>
+            </button>
+          )}
+          {(!pillarFilter || 'career'.includes(pillarFilter.toLowerCase())) && (
+            <button onClick={() => setActivePillar('education')} style={{ ...s.pillarCard, border: '2px solid #e0d0f0' }}>
+              <span style={{ fontSize: 28 }}>💼</span>
+              <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Career</span>
+              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Discernment &middot; Formation</span>
             </button>
           )}
         </div>

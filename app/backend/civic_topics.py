@@ -1,0 +1,42 @@
+"""Topic banks for Civic Literacy research bounties."""
+
+CIVIC_TOPICS = {
+    "power_transfer": [
+        "President of the United States",
+        "Governor of your state",
+        "Mayor of your city/town",
+        "County Sheriff",
+        "Commonwealth's/District Attorney",
+        "School Board Chair",
+        "State Attorney General",
+        "Federal Reserve Chair",
+        "Supreme Court Justice",
+        "Secretary of Defense",
+        "Local Police Chief",
+        "State Superintendent of Education",
+    ],
+    "office_profile": [
+        "County Board of Supervisors",
+        "City Council",
+        "School Board",
+        "Zoning/Planning Commission",
+        "State Legislature (your district)",
+        "Local Circuit Court Judge",
+        "County Treasurer",
+        "Inspector General",
+        "Congressional Committee Chair",
+        "Federal Agency Director",
+    ],
+    "debate": [
+        "Current local tax debate",
+        "Current school policy debate",
+        "Current zoning/land use debate",
+        "Current policing/public safety debate",
+        "Historical founding debate (your town/state)",
+        "Historical war powers debate",
+        "Historical civil rights debate (your state)",
+        "Current public debt/spending debate",
+        "Current election/voting rules debate",
+        "Historical church-state debate (your area)",
+    ],
+}

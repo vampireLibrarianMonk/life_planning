@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics } from '../services/api'
+import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog } from '../services/api'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
 const TRAIT_LABELS = { integrity: 'Integrity', honesty: 'Honesty', responsibility: 'Responsibility', respect: 'Respect', school_effort: 'School Effort', citizenship: 'Citizenship' }
@@ -26,6 +26,9 @@ export default function Economy({ profileId }) {
   const [claimingBounty, setClaimingBounty] = useState(null) // bounty being claimed (for topic picker)
   const [selectedTopic, setSelectedTopic] = useState('')
   const [customTopic, setCustomTopic] = useState('')
+  const [expandedLog, setExpandedLog] = useState(null) // bounty id with log open
+  const [bountyLogs, setBountyLogs] = useState([])
+  const [logForm, setLogForm] = useState({ content: '', entry_type: 'note', author: 'parent' })
 
   const load = () => {
     fetchEligibility(profileId).then(setEligibility)
@@ -115,6 +118,27 @@ export default function Economy({ profileId }) {
     await updateBounty(profileId, b.id, { times_completed: 0 })
     setEditingBounty(null)
     load()
+  }
+
+  const toggleBountyLog = async (b) => {
+    if (expandedLog === b.id) { setExpandedLog(null); return }
+    setExpandedLog(b.id)
+    const logs = await fetchBountyLogs(profileId, b.id)
+    setBountyLogs(Array.isArray(logs) ? logs : [])
+  }
+
+  const submitLog = async (bountyId) => {
+    if (!logForm.content.trim()) return
+    await createBountyLog(profileId, bountyId, { ...logForm, content: logForm.content.trim() })
+    setLogForm({ content: '', entry_type: 'note', author: 'parent' })
+    const logs = await fetchBountyLogs(profileId, bountyId)
+    setBountyLogs(Array.isArray(logs) ? logs : [])
+  }
+
+  const removeLog = async (bountyId, logId) => {
+    await deleteBountyLog(profileId, bountyId, logId)
+    const logs = await fetchBountyLogs(profileId, bountyId)
+    setBountyLogs(Array.isArray(logs) ? logs : [])
   }
 
   const handleWishSubmit = async (e) => {
@@ -327,7 +351,8 @@ export default function Economy({ profileId }) {
           {/* Scrollable tier list */}
           <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 8, padding: '4px 0' }}>
             {bounties.filter(b => b.tier === tier).map(b => (
-              <div key={b.id} style={st.bountyItem}>
+              <div key={b.id}>
+                <div style={st.bountyItem}>
                 {editingBounty === b.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -394,13 +419,52 @@ export default function Economy({ profileId }) {
                         return daysLeft > 0 ? ` · resets in ${daysLeft}d` : ' · reset!'
                       })() : ''}</span> : null}
                       {b.description && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{b.description}</p>}
+                      {(b.requirements || b.reference || b.criteria) && (
+                        <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {b.requirements && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#4a90d9', fontWeight: 600 }}>📋 Requirements</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#f8f9ff', padding: 8, borderRadius: 6 }}>{b.requirements}</pre></details>}
+                          {b.reference && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#27ae60', fontWeight: 600 }}>📖 Reference</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#f0fff4', padding: 8, borderRadius: 6 }}>{b.reference}</pre></details>}
+                          {b.criteria && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#e67e22', fontWeight: 600 }}>✓ Criteria</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#fffbf0', padding: 8, borderRadius: 6 }}>{b.criteria}</pre></details>}
+                        </div>
+                      )}
                     </div>
                     <span style={{ width: 40, textAlign: 'center', fontSize: 10, padding: '2px 4px', borderRadius: 8, background: b.age_band ? '#f0f4ff' : 'transparent', color: '#4a90d9' }}>{b.age_band || ''}</span>
                     <span style={{ width: 70, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#333' }}>${(b.current_reward / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 9, color: '#999', textDecoration: 'line-through', marginLeft: 3 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
+                    <button onClick={() => toggleBountyLog(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: expandedLog === b.id ? '#4a90d9' : '#aaa' }} title="Log">📝</button>
                     <button onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#aaa' }} title="Edit">✎</button>
                     <button onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>
                   </>
                 )}
+              </div>
+              {expandedLog === b.id && (
+                <div style={{ padding: '10px 12px', background: '#f9f9ff', borderTop: '1px solid #eee', borderRadius: '0 0 8px 8px', marginTop: -2 }}>
+                  <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 10 }}>
+                    {bountyLogs.length === 0 && <p style={{ fontSize: 12, color: '#999', margin: 0 }}>No log entries yet.</p>}
+                    {bountyLogs.map(log => (
+                      <div key={log.id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: log.author === 'child' ? '#e8f8f0' : '#f0f4ff', color: log.author === 'child' ? '#27ae60' : '#4a90d9', whiteSpace: 'nowrap' }}>{log.author}</span>
+                        <span style={{ fontSize: 10, padding: '2px 4px', borderRadius: 4, background: '#f5f5f5', color: '#888', whiteSpace: 'nowrap' }}>{log.entry_type}</span>
+                        <span style={{ flex: 1, fontSize: 12, color: '#333' }}>{log.content}</span>
+                        <span style={{ fontSize: 10, color: '#bbb', whiteSpace: 'nowrap' }}>{log.created_at ? new Date(log.created_at).toLocaleDateString() : ''}</span>
+                        <button onClick={() => removeLog(b.id, log.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 14 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <select value={logForm.entry_type} onChange={e => setLogForm({ ...logForm, entry_type: e.target.value })} style={{ ...st.input, maxWidth: 110, margin: 0, fontSize: 12 }}>
+                      <option value="note">Note</option>
+                      <option value="submission">Submission</option>
+                      <option value="feedback">Feedback</option>
+                      <option value="evidence">Evidence</option>
+                    </select>
+                    <select value={logForm.author} onChange={e => setLogForm({ ...logForm, author: e.target.value })} style={{ ...st.input, maxWidth: 90, margin: 0, fontSize: 12 }}>
+                      <option value="parent">Parent</option>
+                      <option value="child">Child</option>
+                    </select>
+                    <input value={logForm.content} onChange={e => setLogForm({ ...logForm, content: e.target.value })} placeholder="Add a log entry..." style={{ ...st.input, flex: 1, margin: 0, fontSize: 12 }} onKeyDown={e => { if (e.key === 'Enter') submitLog(b.id) }} />
+                    <button onClick={() => submitLog(b.id)} style={{ ...st.submitBtn, padding: '6px 12px', fontSize: 12 }}>Add</button>
+                  </div>
+                </div>
+              )}
               </div>
             ))}
           </div>

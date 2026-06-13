@@ -1,0 +1,45 @@
+@startuml eligibility
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 11
+
+title Bounty Eligibility: Behavior-Gated Tiers
+
+rectangle "**Behavior Incidents (30-day window)**" as inc #F8F8FF {
+  (Record positive demonstrations) as pos
+  (Record violations) as neg
+  pos -[hidden]- neg
+}
+
+rectangle "**Trait Scoring**" as traits #FFFFF0 {
+  (Integrity) as t1
+  (Honesty) as t2
+  (Responsibility) as t3
+  (Respect) as t4
+  (School Effort) as t5
+  (Citizenship) as t6
+}
+
+rectangle "**Tier Calculation**" as calc #FFF8F0 {
+  (ratio = positive / total per trait) as r
+  (overall = average of all ratios) as o
+  r --> o
+}
+
+rectangle "**Eligibility Result**" as result {
+  (< 50% → Bronze) as b #FDF0E0
+  (≥ 50% → Silver) as s #F0F0F0
+  (≥ 70% → Gold) as g #FFF8E0
+  (≥ 90% → Platinum) as p #E8F0FF
+}
+
+note bottom of result
+  Default: Bronze (no incidents = unproven)
+  Child must earn higher tiers through
+  recorded positive behavior
+end note
+
+inc --> traits
+traits --> calc
+calc --> result
+@enduml

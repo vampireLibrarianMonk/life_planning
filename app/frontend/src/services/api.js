@@ -234,3 +234,38 @@ export async function fetchPrograms(profileId) {
   if (!res.ok) return []
   return res.json()
 }
+
+export async function fetchBountyLogs(profileId, bountyId) {
+  const res = await fetch(`/api/profiles/${profileId}/bounties/${bountyId}/logs`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function createBountyLog(profileId, bountyId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/bounties/${bountyId}/logs`, { method: 'POST', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function deleteBountyLog(profileId, bountyId, logId) {
+  await fetch(`/api/profiles/${profileId}/bounties/${bountyId}/logs/${logId}`, { method: 'DELETE', headers: headers() })
+}
+
+export async function fetchDiscernments(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/discernments/`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function createDiscernment(profileId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/discernments/`, { method: 'POST', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function updateDiscernment(profileId, id, data) {
+  const res = await fetch(`/api/profiles/${profileId}/discernments/${id}`, { method: 'PATCH', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function deleteDiscernment(profileId, id) {
+  await fetch(`/api/profiles/${profileId}/discernments/${id}`, { method: 'DELETE', headers: headers() })
+}

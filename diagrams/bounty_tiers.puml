@@ -1,0 +1,36 @@
+@startuml bounty_tiers
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 11
+
+title Bounty Tier Progression
+
+rectangle "**Bronze**\n$0.25–$5\nEntry level\nHousehold help" as bronze #FDF0E0
+rectangle "**Silver**\n$5–$10\nProperty & organization\nProven competence" as silver #F0F0F0
+rectangle "**Gold**\n$10–$15\nSkilled projects\nTemplate design" as gold #FFF8E0
+rectangle "**Platinum**\n$15–$30\nTechnical mastery\nAdvanced skills" as platinum #E8F0FF
+rectangle "**Diamond**\n$25–$50\nExceptional effort\nDecision-level tasks" as diamond #E8FFFE
+rectangle "**Obsidian**\n$50+\nExtreme challenge\nEdge of capability" as obsidian #2D2D3D;text:white
+rectangle "**Legendary**\n$2,000\n4×4×14×48 Challenge\nHospital-grade" as legendary #FFF0F0
+rectangle "**Covenant**\n$15,000\nMarriage preparation\nLifelong vocation" as covenant #F5E8FF
+rectangle "**Ooh Shiny!**\nVehicle ($25K cap)\n10-year PMCS streak\nDecade of discipline" as shiny #FFE8F5
+rectangle "**Ironforged**\n$10,000\nMilitary prep complete\n5 phases of formation" as iron #E8E8EE
+
+bronze --> silver
+silver --> gold
+gold --> platinum
+platinum --> diamond
+diamond --> obsidian
+obsidian --> legendary
+legendary --> covenant
+covenant -[hidden]-> shiny
+covenant -[hidden]-> iron
+
+note right of legendary
+  Repeatable (÷2 decay, 365-day reset)
+end note
+
+note right of covenant
+  One-time. The system worked.
+end note
+@enduml

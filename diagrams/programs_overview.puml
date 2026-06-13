@@ -1,0 +1,67 @@
+@startuml programs_overview
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 11
+
+title Programs & Structured Tracks
+
+package "Programs" {
+  rectangle "🎖️ Military Preparation" as mil #F5F5F5 {
+    (Phase 1: Orientation) as p1
+    (Phase 2: Knowledge) as p2
+    (Phase 3: Standards) as p3
+    (Phase 4: Technical) as p4
+    (Phase 5: Decision) as p5
+    p1 --> p2
+    p2 --> p3
+    p3 --> p4
+    p4 --> p5
+  }
+
+  rectangle "⛪ Catholic Practices" as cath #F5F5FF {
+    (Weekly: Mass, Confession, Fast, Prayer) as cw
+    (Periodic: Rosary, Stations, Adoration) as cp
+    (Service: Altar, Mercy, Retreat) as cs
+    (Legendary: 4×4×14×48) as cl
+    cw --> cp
+    cp --> cs
+    cs --> cl
+  }
+
+  rectangle "📚 Research Bounties" as res #FFFFF5 {
+    (Design Templates) as rt
+    (Saint Fact Sheets) as rs
+    (Paradox Fact Sheets) as rp
+    (Effect Fact Sheets) as re
+    rt --> rs
+    rt --> rp
+    rt --> re
+  }
+
+  rectangle "💍 Marriage Preparation" as mar #FFF5FF {
+    (Pre-Cana: Catholic) as mc
+    (Secular Pathway: 7 requirements) as ms
+    mc -[hidden]- ms
+  }
+
+  rectangle "🚗 Fleet Maintenance" as fleet #F5FFF5 {
+    (Design PMCS Template) as ft
+    (Weekly Inspection) as fw
+    (10-Year Streak → Car) as fc
+    ft --> fw
+    fw --> fc
+  }
+}
+
+note bottom of mil
+  Ironforged: $10,000 completion
+end note
+
+note bottom of mar
+  Covenant: $15,000 each pathway
+end note
+
+note bottom of fleet
+  Ooh Shiny: Vehicle of choice ($25K cap)
+end note
+@enduml

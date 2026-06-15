@@ -1,43 +1,71 @@
 @startuml pillars_all
 !theme plain
-skinparam backgroundColor #FEFEFE
-skinparam defaultFontSize 10
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam defaultFontName "Segoe UI, Helvetica, Arial, sans-serif"
+skinparam titleFontSize 18
+skinparam titleFontStyle bold
 skinparam rectangle {
-  roundCorner 10
+  roundCorner 12
+  shadowing false
+  borderColor #CCCCCC
+}
+skinparam note {
+  backgroundColor #F8F9FA
+  borderColor #DEE2E6
 }
 
-title 14 Development Pillars (Ages 0–35)
+title Life Plan Tracker — 14 Development Pillars
 
-together {
-  rectangle "✝️\n**Spiritual**" as sp #F8F0FF
-  rectangle "💰\n**Financial**" as fi #FFF8E0
-  rectangle "🎓\n**Education\n& Career**" as ed #E8F8FF
-  rectangle "🛡️\n**Character**" as ch #F0FFF0
-  rectangle "🔧\n**Life Skills**" as ls #FFF5F0
-  rectangle "🌳\n**Heritage\n& Language**" as he #F5FFF5
-  rectangle "⚖️\n**Family\nEconomy**" as ec #FFFBF0
+legend top center
+  |= Phase |= Ages |= Focus |
+  | Foundation | 0–5 | Receive, observe, begin |
+  | Exploration | 6–12 | Ask, test, discover |
+  | Formation | 13–18 | Build conviction, test models |
+  | Launch | 18–25 | Independent application |
+  | Stewardship | 25–35 | Transmit, protect, build |
+end legend
+
+package "Core Formation" as core #FAFAFA {
+  rectangle "✝️  **Spiritual**\nFaith, prayer, worldview" as sp #F3EEFF
+  rectangle "🛡️  **Character**\nVirtue, discipline, courage" as ch #EAFFEA
+  rectangle "🧭  **Life Navigation**\nPerception, consequence,\nhorizons of influence" as dn #E8F0FF
 }
 
-together {
-  rectangle "🏔️\n**Resilience**" as re #F5F8FF
-  rectangle "🧭\n**Life\nNavigation**" as dn #F0F4FF
-  rectangle "🏛️\n**Civic &\nInstitutional**" as ci #F8F8FF
-  rectangle "🔬\n**Scientific\nMethod**" as sm #FFF8F8
-  rectangle "📜\n**Inheritance\n& Stewardship**" as is_ #FFFFF0
-  rectangle "⛪\n**Catholic\nFormation**" as cf #F8F0FF
-  rectangle "🌅\n**Secular\nSacred**" as ss #FFF5F0
+package "Practical Competence" as prac #FAFAFA {
+  rectangle "💰  **Financial**\nInvestment, ownership,\ngenerational wealth" as fi #FFF8E0
+  rectangle "🎓  **Education & Career**\nAptitude, specialization,\nmastery" as ed #E8F6FF
+  rectangle "🔧  **Life Skills**\nDomestic, mechanical,\nadmin, digital, legal" as ls #FFF5EE
+  rectangle "🏔️  **Resilience**\nPressure management,\nfailure modes, ADAPT" as re #F0F4FF
 }
 
-' Cross-references
-dn -[hidden]-> ci
-ci -[hidden]-> sm
-sm -[hidden]-> is_
-is_ -[hidden]-> cf
-cf -[hidden]-> ss
+package "Identity & Inheritance" as ident #FAFAFA {
+  rectangle "🌳  **Heritage & Language**\nAncestry, bilingual dev,\ncultural preservation" as he #F0FFF0
+  rectangle "📜  **Inheritance & Stewardship**\nReceive, audit, repair,\ntransmit" as is_ #FFFFF0
+  rectangle "⚖️  **Family Economy**\nBounties, tiers, behavior,\nearned responsibility" as ec #FFFBF0
+}
+
+package "Civic & Institutional" as civic #FAFAFA {
+  rectangle "🏛️  **Civic & Institutional**\nGovernance, ownership,\ncorruption literacy" as ci #F5F5FF
+  rectangle "🔬  **Scientific Method**\nReality testing, evidence,\nknowledge decay" as sm #FFF5F5
+}
+
+package "Formation & Vocation" as form #FAFAFA {
+  rectangle "⛪  **Catholic Formation**\nSacraments, domestic church,\nauthority literacy" as cf #F3EEFF
+  rectangle "🌅  **Secular Sacred**\nCivilizational literacy,\nreturn path preserved" as ss #FFF5EE
+}
+
+' Relationships (subtle)
+dn -[dotted]-> ci : systems
+dn -[dotted]-> is_ : generational
+sp -[dotted]-> cf : sacramental
+cf -[dotted]-> ss : bridge
+fi -[dotted]-> ec : economy
+ci -[dotted]-> sm : evidence
 
 note bottom
-  Each pillar tracks milestones across 5 age bands:
-  Foundation (0–5) → Exploration (6–12) → Formation (13–18) → Launch (18–25) → Stewardship (25–35)
-  Total: 451 milestones seeded from planning documents
+  **451 milestones** seeded from 16 planning documents
+  Each pillar: age-banded goals + notes + events + attachments
+  Status: Not Started → Introduced → In Progress → Practicing → Complete → Mastered
 end note
 @enduml

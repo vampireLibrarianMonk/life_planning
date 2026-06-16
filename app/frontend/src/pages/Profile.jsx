@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide, fetchPrograms } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
+import MiniMarkdown from '../components/MiniMarkdown'
 import Economy from './Economy'
 
 const PILLARS = [
@@ -27,8 +28,12 @@ const STATUS_CYCLE = { not_started: 'introduced', introduced: 'in_progress', in_
 const STATUS_DISPLAY = { not_started: 'Not Started', introduced: 'Introduced', in_progress: 'In Progress', practicing: 'Practicing', complete: 'Complete', mastered: 'Mastered', pending: 'Pending' }
 
 function renderInline(text) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
-  return parts.map((part, i) => part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part)
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>
+    return part
+  })
 }
 
 export default function Profile() {
@@ -74,6 +79,10 @@ export default function Profile() {
   const [pillarFilter, setPillarFilter] = useState('')
   const [programs, setPrograms] = useState([])
   const [activeProgram, setActiveProgram] = useState(null)
+  const [discernCats, setDiscernCats] = useState({})
+  const [discernEntries, setDiscernEntries] = useState([])
+  const [activeDiscern, setActiveDiscern] = useState(null)
+  const [discernForm, setDiscernForm] = useState({ title: '', reflection: '' })
 
   useEffect(() => { fetchProfile(id).then(setProfile); loadCounts() }, [id])
 
@@ -91,13 +100,15 @@ export default function Profile() {
     })
   }
 
+  const isSpecialView = (p) => !p || p.startsWith('__')
+
   const loadEntries = () => {
-    if (activePillar) fetchEntries(id, activePillar).then(data => setEntries(Array.isArray(data) ? data : []))
+    if (activePillar && !isSpecialView(activePillar)) fetchEntries(id, activePillar).then(data => setEntries(Array.isArray(data) ? data : []))
   }
 
   useEffect(() => { loadEntries() }, [id, activePillar])
   useEffect(() => {
-    if (activePillar && activePillar !== '__economy__') {
+    if (activePillar && !isSpecialView(activePillar)) {
       fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
       fetchPillarGuide(activePillar).then(d => setGuideContent(d && d.content ? d.content : null))
     } else {
@@ -294,8 +305,47 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Pillar filter + horizontal strip (mobile) / grid (desktop) */}
-        <h2 style={s.sectionTitle}>Development Pillars</h2>
+        {/* Roadmap — at-a-glance overview */}
+        <h2 style={s.sectionTitle}>Roadmap</h2>
+        <div className="roadmap-container" style={s.roadmap}>
+          {['0-5','6-12','13-18','18-25','25-35'].map((band, i) => {
+            const labels = { '0-5': 'Foundation', '6-12': 'Exploration', '13-18': 'Formation', '18-25': 'Launch', '25-35': 'Consolidation' }
+            const isCurrentBand = age !== null && (
+              (band === '0-5' && age <= 5) || (band === '6-12' && age >= 6 && age <= 12) ||
+              (band === '13-18' && age >= 13 && age <= 18) || (band === '18-25' && age >= 18 && age <= 25) ||
+              (band === '25-35' && age >= 25 && age <= 35)
+            )
+            return (
+              <details key={band} className="roadmap-phase" open={isCurrentBand} style={{ ...s.roadmapPhase, ...(isCurrentBand ? s.roadmapActive : {}) }}>
+                <summary style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', listStyle: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrentBand ? '#4a90d9' : '#ddd' }} />
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{labels[band]}</span>
+                    <span style={{ fontSize: 12, color: '#aaa', fontWeight: 400 }}>{band}</span>
+                  </div>
+                </summary>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, paddingLeft: 24 }}>
+                  {PILLARS.map(p => {
+                    const pillarEntries = allRaw.filter(e => e.pillar === p.key && e.age_band === band && e.is_milestone)
+                    const done = pillarEntries.filter(e => e.status === 'complete' || e.status === 'mastered').length
+                    const total = pillarEntries.length
+                    if (!total) return null
+                    return <span key={p.key} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: done === total ? '#e8f8f0' : '#f5f5f5', color: done === total ? '#27ae60' : '#888' }}>{p.icon} {done}/{total}</span>
+                  })}
+                </div>
+              </details>
+            )
+          })}
+        </div>
+
+        {/* Core Metric */}
+        <div style={{ ...s.coreMetric, marginTop: 20 }}>
+          <p style={{ margin: 0, fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Core Metric</p>
+          <p style={{ margin: '8px 0 0', fontSize: 18, fontStyle: 'italic' }}>"Is {profile.name.split(' ')[0]} becoming a wise, capable, kind, and independent person?"</p>
+        </div>
+
+        {/* Development Pillars */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Development Pillars</h2>
         <input type="text" placeholder="🔍 Filter pillars..." value={pillarFilter} onChange={e => setPillarFilter(e.target.value)} className="pillar-filter" style={{ ...s.input, marginBottom: 12 }} />
         <div className="pillar-grid-desktop">
           {PILLARS.filter(p => !pillarFilter || p.label.toLowerCase().includes(pillarFilter.toLowerCase())).map(p => {
@@ -340,42 +390,26 @@ export default function Profile() {
           )}
         </div>
 
-        <div style={s.coreMetric}>
-          <p style={{ margin: 0, fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Core Metric</p>
-          <p style={{ margin: '8px 0 0', fontSize: 18, fontStyle: 'italic' }}>"Is {profile.name.split(' ')[0]} becoming a wise, capable, kind, and independent person?"</p>
-        </div>
-
-        {/* Roadmap - accordion on mobile */}
-        <h2 style={{ ...s.sectionTitle, marginTop: 40 }}>Roadmap</h2>
-        <div className="roadmap-container" style={s.roadmap}>
-          {['0-5','6-12','13-18','18-25','25-35'].map((band, i) => {
-            const labels = { '0-5': 'Foundation', '6-12': 'Exploration', '13-18': 'Formation', '18-25': 'Launch', '25-35': 'Consolidation' }
-            const isCurrentBand = age !== null && (
-              (band === '0-5' && age <= 5) || (band === '6-12' && age >= 6 && age <= 12) ||
-              (band === '13-18' && age >= 13 && age <= 18) || (band === '18-25' && age >= 18 && age <= 25) ||
-              (band === '25-35' && age >= 25 && age <= 35)
-            )
-            return (
-              <details key={band} className="roadmap-phase" open={isCurrentBand} style={{ ...s.roadmapPhase, ...(isCurrentBand ? s.roadmapActive : {}) }}>
-                <summary style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', listStyle: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrentBand ? '#4a90d9' : '#ddd' }} />
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{labels[band]}</span>
-                    <span style={{ fontSize: 12, color: '#aaa', fontWeight: 400 }}>{band}</span>
-                  </div>
-                </summary>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, paddingLeft: 24 }}>
-                  {PILLARS.map(p => {
-                    const pillarEntries = allRaw.filter(e => e.pillar === p.key && e.age_band === band && e.is_milestone)
-                    const done = pillarEntries.filter(e => e.status === 'complete' || e.status === 'mastered').length
-                    const total = pillarEntries.length
-                    if (!total) return null
-                    return <span key={p.key} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: done === total ? '#e8f8f0' : '#f5f5f5', color: done === total ? '#27ae60' : '#888' }}>{p.icon} {done}/{total}</span>
-                  })}
-                </div>
-              </details>
-            )
-          })}
+        {/* Discernment */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Discernment & Reflections</h2>
+        <div className="pillar-grid-desktop">
+          {[
+            { key: 'health', icon: '🫀', label: 'Health' },
+            { key: 'math', icon: '📐', label: 'Math' },
+            { key: 'science', icon: '🔬', label: 'Science' },
+            { key: 'civics', icon: '🏛️', label: 'Civics' },
+            { key: 'relationships', icon: '🤝', label: 'Relationships' },
+            { key: 'faith', icon: '🕯️', label: 'Faith' },
+            { key: 'tradition', icon: '⚓', label: 'Tradition' },
+            { key: 'law', icon: '⚖️', label: 'Law' },
+            { key: 'network', icon: '🕸️', label: 'Network' },
+          ].filter(d => !pillarFilter || d.label.toLowerCase().includes(pillarFilter.toLowerCase()) || 'discernment'.includes(pillarFilter.toLowerCase())).map(d => (
+            <button key={d.key} onClick={() => { setActiveDiscern(d.key); setActivePillar('__discernment__') }} style={{ ...s.pillarCard, border: '2px solid #e8e0f0' }}>
+              <span style={{ fontSize: 28 }}>{d.icon}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>{d.label}</span>
+              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Discernment</span>
+            </button>
+          ))}
         </div>
       </div>
     )
@@ -392,28 +426,61 @@ export default function Profile() {
           <button onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back to Programs</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
             <span style={{ fontSize: 32 }}>{prog.icon}</span>
-            <div>
+            <div style={{ flex: 1 }}>
               <h2 style={{ margin: 0 }}>{prog.title}</h2>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>{prog.completed}/{prog.total} tasks engaged</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: '#2ecc71' }}>${(prog.total_reward / 100).toLocaleString()}{prog.has_repeatable ? <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}> +🔄</span> : ''}</span>
+              <p style={{ margin: '2px 0 0', fontSize: 10, color: '#999', textTransform: 'uppercase' }}>Total Rewardable</p>
             </div>
           </div>
           <div style={{ width: '100%', height: 6, background: '#eee', borderRadius: 3, marginBottom: 20 }}>
             <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 6, background: '#2ecc71', borderRadius: 3 }} />
           </div>
           {prog.bounties.map(b => (
-            <div key={b.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : '#ddd'}` }}>
-              <span style={{ fontSize: 16, color: b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : '#ddd' }}>
-                {b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '✓' : '○'}
-              </span>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontWeight: 500 }}>{b.title}</span>
-                {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 12 ? '#ffd700' : '#2ecc71' }}> 🔥{b.streak_count}</span> : ''}</span> : null}
-                {b.description && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666', lineHeight: 1.5 }}>{b.description}</p>}
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f5f5f5', color: '#888' }}>{b.tier}</span>
-                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{b.reward_amount ? `$${(b.current_reward / 100).toFixed(2)}` : '🏆'}</div>
-              </div>
+            <div key={b.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${b.status === 'retired' ? '#999' : b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : b.status === 'claimed' ? '#f5a623' : b.status === 'complete' ? '#27ae60' : '#ddd'}` }}>
+              {editingPBounty === b.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <select value={editPBForm.status} onChange={e => setEditPBForm({ ...editPBForm, status: e.target.value })} style={{ ...s.input, maxWidth: 110, margin: 0 }}>
+                      <option value="available">Available</option><option value="claimed">Claimed</option><option value="complete">Complete</option><option value="paid">Paid</option><option value="retired">Retired</option>
+                    </select>
+                    <select value={editPBForm.age_band} onChange={e => setEditPBForm({ ...editPBForm, age_band: e.target.value })} style={{ ...s.input, maxWidth: 100, margin: 0 }}>
+                      <option value="">Age band</option><option value="0-5">0–5</option><option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
+                    </select>
+                    <input value={editPBForm.reward_amount} onChange={e => setEditPBForm({ ...editPBForm, reward_amount: e.target.value })} type="number" step="0.25" min="0" placeholder="$" style={{ ...s.input, maxWidth: 80, margin: 0 }} />
+                  </div>
+                  <input value={editPBForm.title} onChange={e => setEditPBForm({ ...editPBForm, title: e.target.value })} style={{ ...s.input, margin: 0 }} />
+                  <textarea value={editPBForm.description} onChange={e => setEditPBForm({ ...editPBForm, description: e.target.value })} style={{ ...s.input, margin: 0, minHeight: 60, resize: 'vertical' }} />
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={async () => { await updateBounty(id, b.id, { title: editPBForm.title.trim(), description: editPBForm.description.trim() || null, reward_amount: Math.round((parseFloat(editPBForm.reward_amount) || 0) * 100), status: editPBForm.status, age_band: editPBForm.age_band || null }); setEditingPBounty(null); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) }} style={{ ...s.submitBtn, padding: '6px 14px', fontSize: 12 }}>Save</button>
+                    <button onClick={async () => { await updateBounty(id, b.id, { status: 'available', times_completed: 0, streak_count: 0 }); setEditingPBounty(null); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) }} style={{ padding: '6px 14px', fontSize: 12, background: '#fff3e0', border: '1px solid #f5a623', borderRadius: 6, cursor: 'pointer', color: '#b37400' }}>Reset</button>
+                    <button onClick={() => setEditingPBounty(null)} style={{ padding: '6px 14px', fontSize: 12, background: '#eee', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button onClick={async () => { if (b.status === 'retired') return; const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', cursor: b.status === 'retired' ? 'default' : 'pointer', padding: 2, fontSize: 16, opacity: b.status === 'retired' ? 0.4 : 1 }} title={b.status === 'retired' ? 'Retired' : `${b.status} — click to advance`}>
+                    <span style={{ color: b.status === 'retired' ? '#999' : b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
+                      {b.status === 'retired' ? '🔒' : b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
+                    </span>
+                  </button>
+                  <div style={{ flex: 1, opacity: b.status === 'retired' ? 0.5 : 1 }}>
+                    <span style={{ fontWeight: 500 }}>{b.title}</span>
+                    {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 12 ? '#ffd700' : '#2ecc71' }}> 🔥{b.streak_count}</span> : ''}</span> : null}
+                    {b.description && <MiniMarkdown text={b.description} maxHeight={120} />}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f5f5f5', color: '#888' }}>{b.tier}</span>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{b.reward_amount ? `$${(b.current_reward / 100).toFixed(2)}` : '🏆'}</div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button onClick={() => { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: b.status }) }} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: 12, cursor: 'pointer' }} title="Edit">✎</button>
+                      <button onClick={async () => { if (confirm('Delete this bounty?')) { await deleteBounty(id, b.id); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 16, cursor: 'pointer' }} title="Delete">&times;</button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -435,6 +502,7 @@ export default function Profile() {
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{prog.title}</span>
                   <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>{prog.completed}/{prog.total} engaged</p>
                 </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#2ecc71' }}>${(prog.total_reward / 100).toLocaleString()}{prog.has_repeatable ? <span style={{ fontSize: 10, color: '#999', fontWeight: 400 }}> +🔄</span> : ''}</span>
               </div>
               <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2, marginTop: 10 }}>
                 <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 4, background: '#2ecc71', borderRadius: 2 }} />
@@ -443,6 +511,58 @@ export default function Profile() {
             </button>
           ))}
         </div>
+      </div>
+    )
+  }
+
+  // Discernment view
+  if (activePillar === '__discernment__' && activeDiscern) {
+    const catMeta = { health: { icon: '🫀', title: 'Health', question: 'What is my body doing and what does it need?' }, math: { icon: '📐', title: 'Math', question: 'What mathematical patterns govern the decisions I\'m making?' }, science: { icon: '🔬', title: 'Science', question: 'How do I know what I think I know?' }, civics: { icon: '🏛️', title: 'Civics', question: 'What systems am I participating in?' }, relationships: { icon: '🤝', title: 'Relationships', question: 'Who am I becoming because of the people around me?' }, faith: { icon: '🕯️', title: 'Faith', question: 'What do I believe about what I cannot see?' }, tradition: { icon: '⚓', title: 'Tradition', question: 'What was built before me, why was it built, and what breaks if I tear it down?' }, law: { icon: '⚖️', title: 'Law', question: 'What rules bind me, who made them, and what is the difference between legal and just?' }, network: { icon: '🕸️', title: 'Network', question: 'What holds this group together, what happens if I dissent, and can I survive alone if I must?' } }
+    const meta = catMeta[activeDiscern] || {}
+    const loadDiscern = () => fetchDiscernmentEntries(id, activeDiscern).then(d => Array.isArray(d) && setDiscernEntries(d))
+    if (!discernEntries.length || (discernEntries[0] && discernEntries[0].category !== activeDiscern)) loadDiscern()
+
+    const handleSubmitDiscern = async (e) => {
+      e.preventDefault()
+      if (!discernForm.title.trim() || !discernForm.reflection.trim()) return
+      await createDiscernmentEntry(id, { category: activeDiscern, title: discernForm.title.trim(), reflection: discernForm.reflection.trim(), age_at_entry: age })
+      setDiscernForm({ title: '', reflection: '' })
+      loadDiscern()
+    }
+
+    return (
+      <div style={s.container}>
+        <button onClick={() => { setActivePillar(null); setActiveDiscern(null); setDiscernEntries([]) }} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 8px' }}>
+          <span style={{ fontSize: 32 }}>{meta.icon}</span>
+          <div>
+            <h2 style={{ margin: 0 }}>{meta.title}</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666', fontStyle: 'italic' }}>{meta.question}</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmitDiscern} style={{ ...s.form, marginTop: 20 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>New Reflection</label>
+          <input placeholder="Summary (e.g. 'What I understand about my body now')" value={discernForm.title} onChange={e => setDiscernForm({ ...discernForm, title: e.target.value })} style={s.input} />
+          <textarea placeholder="Write your reflection... What do you understand? What changed? What don't you know yet?" value={discernForm.reflection} onChange={e => setDiscernForm({ ...discernForm, reflection: e.target.value })} style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
+          <button type="submit" style={s.submitBtn}>Save Reflection</button>
+        </form>
+
+        {discernEntries.length === 0 && <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
+
+        {discernEntries.map(entry => (
+          <div key={entry.id} style={{ padding: '16px', background: '#fff', borderRadius: 10, marginBottom: 12, borderLeft: '3px solid #9b59b6' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.title}</span>
+                {entry.age_at_entry != null && <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>age {entry.age_at_entry}</span>}
+              </div>
+              <button onClick={async () => { if (confirm('Delete this reflection?')) { await deleteDiscernmentEntry(id, entry.id); loadDiscern() } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
+            </div>
+            <p style={{ margin: '8px 0 0', fontSize: 13, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.reflection}</p>
+            <span style={{ fontSize: 10, color: '#bbb' }}>{new Date(entry.created_at).toLocaleDateString()}</span>
+          </div>
+        ))}
       </div>
     )
   }
@@ -694,8 +814,9 @@ export default function Profile() {
                   </div>
                   <input value={editPBForm.title} onChange={e => setEditPBForm({ ...editPBForm, title: e.target.value })} style={{ ...s.input, margin: 0 }} />
                   <input value={editPBForm.description} onChange={e => setEditPBForm({ ...editPBForm, description: e.target.value })} placeholder="Description" style={{ ...s.input, margin: 0 }} />
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={() => saveEditPBounty(b)} style={{ ...s.submitBtn, padding: '6px 14px', fontSize: 12 }}>Save</button>
+                    <button onClick={async () => { await updateBounty(id, b.id, { status: 'available', times_completed: 0, streak_count: 0 }); setEditingPBounty(null); fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d)) }} style={{ padding: '6px 14px', fontSize: 12, background: '#fff3e0', border: '1px solid #f5a623', borderRadius: 6, cursor: 'pointer', color: '#b37400' }}>Reset</button>
                     <button onClick={() => setEditingPBounty(null)} style={{ padding: '6px 14px', fontSize: 12, background: '#eee', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
                   </div>
                 </div>

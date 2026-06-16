@@ -265,3 +265,20 @@ class Discernment(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     profile = relationship("Profile")
+
+
+class DiscernmentJournal(Base):
+    """A reflective entry tracking the child's evolving understanding of a fundamental domain."""
+
+    __tablename__ = "discernment_journal"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
+    category = Column(String(30), nullable=False)  # health, math, science, civics, relationships, faith
+    title = Column(String(300), nullable=False)  # brief summary
+    reflection = Column(Text, nullable=False)  # the child's written reflection
+    age_at_entry = Column(Integer, nullable=True)  # child's age when written
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    profile = relationship("Profile")

@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
 **Project:** Life Plan Tracker
-**Version:** 0.2.0
-**Generated:** 2026-06-10
+**Version:** 0.3.0
+**Generated:** 2026-06-15
 **License:** Private / Family Use
 
 ---
@@ -85,10 +85,10 @@
 
 | Component | Location | Sensitivity |
 |-----------|----------|-------------|
-| SQLite database | `app/backend/life_plan.db` | Contains child PII (name, DOB), behavior incidents, financial data, bounty history |
+| SQLite database | `app/backend/life_plan.db` | Contains child PII (name, DOB), behavior incidents, financial data, bounty history, discernment reflections |
 | Uploaded files | `app/backend/uploads/` | Event attachments (images, videos, documents) |
 | JWT secret | Environment variable or hardcoded default | Must be changed in production |
-| Planning documents | `docs/*.md` | 16 pillar guides + addenda, served filtered via API (admin only) |
+| Planning documents | `docs/*.md` | 17 pillar/discernment guides + addenda, served filtered via API (admin only) |
 
 ---
 

@@ -182,6 +182,26 @@ def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Sessio
         bounty.last_completed_at = datetime.utcnow()
         bounty.status = "available"
         bounty.completed_at = None
+    elif req.status == "paid" and not bounty.repeatable and bounty.category:
+        # Program completion bounty: close out all bounties in this category
+        bounty.completed_at = datetime.utcnow()
+        siblings = db.query(Bounty).filter(
+            Bounty.profile_id == profile_id,
+            Bounty.category == bounty.category,
+            Bounty.id != bounty.id,
+        ).all()
+        for sib in siblings:
+            sib.status = "retired"
+    elif req.status in ("available", "claimed", "complete") and bounty.category:
+        # If un-completing a program bounty, un-retire siblings
+        siblings = db.query(Bounty).filter(
+            Bounty.profile_id == profile_id,
+            Bounty.category == bounty.category,
+            Bounty.id != bounty.id,
+            Bounty.status == "retired",
+        ).all()
+        for sib in siblings:
+            sib.status = "available"
     elif req.status == "complete":
         bounty.completed_at = datetime.utcnow()
     # Allow manual reset of decay via times_completed = 0
@@ -266,6 +286,13 @@ def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depen
 
         total = len(prog_bounties)
         completed = sum(1 for b in prog_bounties if b.status == 'paid' or (b.repeatable and (b.times_completed or 0) > 0))
+        one_time_reward = sum(b.reward_amount for b in prog_bounties if not b.repeatable)
+        repeatable_base = sum(b.reward_amount for b in prog_bounties if b.repeatable)
+        total_reward = one_time_reward + repeatable_base
+        # If pick-one-pathway, show max single bounty reward, not sum
+        if prog.get("max_one_pathway") and prog_bounties:
+            total_reward = max(b.reward_amount for b in prog_bounties)
+            repeatable_base = 0
         result.append({
             "key": prog["key"],
             "title": prog["title"],
@@ -273,6 +300,8 @@ def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depen
             "description": prog["description"],
             "total": total,
             "completed": completed,
+            "total_reward": total_reward,
+            "has_repeatable": repeatable_base > 0,
             "bounties": [_bounty_response(b) for b in prog_bounties],
         })
     return result

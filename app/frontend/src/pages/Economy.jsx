@@ -1,14 +1,24 @@
 import { useEffect, useState } from 'react'
 import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog } from '../services/api'
+import MiniMarkdown from '../components/MiniMarkdown'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
 const TRAIT_LABELS = { integrity: 'Integrity', honesty: 'Honesty', responsibility: 'Responsibility', respect: 'Respect', school_effort: 'School Effort', citizenship: 'Citizenship' }
 const TIER_COLORS = { bronze: '#cd7f32', silver: '#a0a0a0', gold: '#ffd700', platinum: '#4a90d9', diamond: '#b9f2ff', obsidian: '#1a1a2e', legendary: '#ff4500', covenant: '#7b2d8b', ooh_shiny: '#ff69b4', ironforged: '#4a5568' }
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'obsidian', 'legendary', 'covenant', 'ooh_shiny', 'ironforged']
+const BEHAVIOR_GATED_TIERS = ['bronze', 'silver', 'gold', 'platinum']
 const BOUNTY_STATUS_CYCLE = { available: 'claimed', claimed: 'complete', complete: 'paid' }
-const BOUNTY_STATUSES = ['available', 'claimed', 'complete', 'paid']
+const BOUNTY_STATUSES = ['available', 'claimed', 'complete', 'paid', 'retired']
 
-export default function Economy({ profileId }) {
+function getVisibleTiers(eligibleTier, isAdmin) {
+  if (isAdmin) return TIER_ORDER
+  const eligIdx = BEHAVIOR_GATED_TIERS.indexOf(eligibleTier)
+  const gatedVisible = BEHAVIOR_GATED_TIERS.slice(0, eligIdx + 1)
+  const ungated = TIER_ORDER.filter(t => !BEHAVIOR_GATED_TIERS.includes(t))
+  return [...gatedVisible, ...ungated]
+}
+
+export default function Economy({ profileId, isAdmin = true }) {
   const [eligibility, setEligibility] = useState(null)
   const [incidents, setIncidents] = useState([])
   const [bounties, setBounties] = useState([])
@@ -64,6 +74,7 @@ export default function Economy({ profileId }) {
   }
 
   const cycleBountyStatus = async (b) => {
+    if (b.status === 'retired') return
     const next = BOUNTY_STATUS_CYCLE[b.status]
     if (!next) return
     // For research bounties being claimed, show topic picker
@@ -115,7 +126,7 @@ export default function Economy({ profileId }) {
   }
 
   const resetBountyDecay = async (b) => {
-    await updateBounty(profileId, b.id, { times_completed: 0 })
+    await updateBounty(profileId, b.id, { times_completed: 0, streak_count: 0 })
     setEditingBounty(null)
     load()
   }
@@ -204,16 +215,32 @@ export default function Economy({ profileId }) {
       <details style={{ marginBottom: 16, background: '#f8f9ff', border: '1px solid #e8e8f0', borderRadius: 10, padding: '0 16px' }}>
         <summary style={{ padding: '12px 0', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#666' }}>How Tiers Work</summary>
         <p style={{ margin: '0 0 8px', fontSize: 13, color: '#444', lineHeight: 1.6 }}>
-          Record positive (✓) and negative (✗) incidents for each trait. Your tier is determined by the ratio of positives to total incidents over the last 30 days:
+          Record positive (✓) and negative (✗) incidents for each trait. Your <strong>eligibility tier</strong> is determined by the ratio of positives to total incidents over the last 30 days. Higher tiers unlock visibility to more advanced bounties:
         </p>
         <table style={{ ...st.table, marginBottom: 12 }}>
           <tbody>
-            <tr><td style={st.td}>💎 Platinum (90%+)</td><td style={st.td}>Can propose projects, negotiate rates</td></tr>
-            <tr><td style={st.td}>🥇 Gold (70–89%)</td><td style={st.td}>Larger projects requiring skill</td></tr>
-            <tr><td style={st.td}>🥈 Silver (50–69%)</td><td style={st.td}>Property and organization tasks</td></tr>
-            <tr><td style={st.td}>🥉 Bronze (&lt;50%)</td><td style={st.td}>Household help at entry level</td></tr>
+            <tr><td style={st.td}>🥉 <strong>Bronze</strong> (&lt;50%)</td><td style={st.td}>Household help, entry-level tasks. Default starting tier — earn your way up.</td></tr>
+            <tr><td style={st.td}>🥈 <strong>Silver</strong> (50–69%)</td><td style={st.td}>Property care, organization, research bounties, repeatable tasks.</td></tr>
+            <tr><td style={st.td}>🥇 <strong>Gold</strong> (70–89%)</td><td style={st.td}>Skilled projects, template design, service tasks, teaching others.</td></tr>
+            <tr><td style={st.td}>💎 <strong>Platinum</strong> (90%+)</td><td style={st.td}>Technical mastery, propose your own projects, negotiate rates, leadership tasks.</td></tr>
           </tbody>
         </table>
+        <p style={{ margin: '0 0 8px', fontSize: 12, color: '#666', lineHeight: 1.5 }}>
+          <strong>Higher tiers (unlocked by sustained performance, not just percentage):</strong>
+        </p>
+        <table style={{ ...st.table, marginBottom: 12 }}>
+          <tbody>
+            <tr><td style={st.td}>💠 <strong>Diamond</strong></td><td style={st.td}>Requires: Platinum eligibility for 90+ consecutive days AND at least one Gold-tier program bounty completed.</td></tr>
+            <tr><td style={st.td}>⬛ <strong>Obsidian</strong></td><td style={st.td}>Requires: Diamond unlocked AND 6+ months at Platinum AND demonstrated real-world financial commitment (spending own money on a task).</td></tr>
+            <tr><td style={st.td}>🔥 <strong>Legendary</strong></td><td style={st.td}>Requires: Obsidian unlocked AND completion of a physical/spiritual endurance trial approved by parent. No shortcuts.</td></tr>
+            <tr><td style={st.td}>💜 <strong>Covenant</strong></td><td style={st.td}>Requires: Age 18+ AND full completion of either Marriage Prep program (Catholic or Secular). Life-altering, once-in-a-lifetime.</td></tr>
+            <tr><td style={st.td}>✨ <strong>Ooh Shiny!</strong></td><td style={st.td}>Requires: 7-year unbroken PMCS streak (364 consecutive weeks with buffer rules). Decade-scale discipline earns a vehicle.</td></tr>
+            <tr><td style={st.td}>⚙️ <strong>Ironforged</strong></td><td style={st.td}>Requires: All 5 phases of Military Preparation program complete. Every knowledge test passed, every inspection passed, decision brief delivered.</td></tr>
+          </tbody>
+        </table>
+        <p style={{ margin: 0, fontSize: 11, color: '#999', fontStyle: 'italic' }}>
+          Bronze–Platinum are behavior-gated (30-day incident ratio). Diamond and above are earned through program completion, sustained streaks, and life milestones — not just good behavior scores.
+        </p>
       </details>
 
       {/* Earnings Summary */}
@@ -337,7 +364,7 @@ export default function Economy({ profileId }) {
         </div>
       )}
 
-      {TIER_ORDER.filter(tier => bounties.some(b => b.tier === tier)).map(tier => (
+      {getVisibleTiers(eligibility?.eligible_tier || 'bronze', isAdmin).filter(tier => bounties.some(b => b.tier === tier)).map(tier => (
         <div key={tier} style={{ marginBottom: 24 }}>
           <h4 style={{ margin: '0 0 8px', color: TIER_COLORS[tier], textTransform: 'capitalize', fontSize: 14 }}>{tier} Tier <span style={{ fontSize: 11, color: '#999', fontWeight: 400 }}>({bounties.filter(b => b.tier === tier).length})</span></h4>
           {/* Column headers */}
@@ -418,7 +445,7 @@ export default function Economy({ profileId }) {
                         const daysLeft = Math.max(0, b.reset_days - daysElapsed)
                         return daysLeft > 0 ? ` · resets in ${daysLeft}d` : ' · reset!'
                       })() : ''}</span> : null}
-                      {b.description && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{b.description}</p>}
+                      {b.description && <MiniMarkdown text={b.description} maxHeight={120} />}
                       {(b.requirements || b.reference || b.criteria) && (
                         <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {b.requirements && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#4a90d9', fontWeight: 600 }}>📋 Requirements</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#f8f9ff', padding: 8, borderRadius: 6 }}>{b.requirements}</pre></details>}

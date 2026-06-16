@@ -235,6 +235,28 @@ export async function fetchPrograms(profileId) {
   return res.json()
 }
 
+export async function fetchDiscernmentCategories(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/discernment/categories`, { headers: headers() })
+  if (!res.ok) return {}
+  return res.json()
+}
+
+export async function fetchDiscernmentEntries(profileId, category = null) {
+  const params = category ? `?category=${category}` : ''
+  const res = await fetch(`/api/profiles/${profileId}/discernment/${params}`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function createDiscernmentEntry(profileId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/discernment/`, { method: 'POST', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function deleteDiscernmentEntry(profileId, entryId) {
+  await fetch(`/api/profiles/${profileId}/discernment/${entryId}`, { method: 'DELETE', headers: headers() })
+}
+
 export async function fetchBountyLogs(profileId, bountyId) {
   const res = await fetch(`/api/profiles/${profileId}/bounties/${bountyId}/logs`, { headers: headers() })
   if (!res.ok) return []

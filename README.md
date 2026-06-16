@@ -1,10 +1,10 @@
 # Life Plan Tracker
 
-A lifetime development tracking system for children (ages 0–35). It tracks six pillars of development (Spiritual, Financial, Education & Career, Character, Life Skills, Heritage & Identity), a family economy with behavior-gated bounties, a wishlist, and pre-loaded milestones drawn from a structured set of planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
+A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 8 structured programs, 9 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 493+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
 
-Additionally, the system includes an Environmental Resilience framework and a Dimensional Thinking, Perception & Life Navigation pillar — the latter providing the navigational philosophy (dimensions as degrees of freedom, navigational forces operating within them, horizons of perception, radius of influence) that underpins the entire system.
+The dashboard answers one question: **"Is this child becoming a wise, capable, kind, and independent person?"**
 
-Instead of a generic chore chart or a college fund spreadsheet, this is a full navigation system. You define milestones, track character development, manage an earned-income economy, and maintain a living record that the child inherits as a map — not just money.
+Instead of a generic chore chart or a college fund spreadsheet, this is a full navigation system. You define milestones, track character development, manage an earned-income economy with programs worth up to $48K in total rewards, maintain discernment journals that deepen over time, and build a living record that the child inherits as a map — not just money.
 
 ## Overview
 
@@ -106,7 +106,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 451 milestones across all 14 pillars from the planning documents
+3. The system automatically seeds 493 milestones across all 14 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -114,11 +114,11 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 After selecting a profile, you see:
 
 - **Profile header** with name, current age, and developmental phase (Foundation/Exploration/Formation/Launch/Consolidation/Stewardship)
-- **14 pillar cards** with progress bars showing completion percentage
-- **🧭 Life Navigation** pillar for dimensional thinking and perception development
-- **🏛️ Civic & Institutional** pillar for governance, markets, and institutional literacy
-- **💵 Bounty Board** card for the family economy system
-- **Roadmap** showing per-phase progress across all pillars with the current phase highlighted
+- **Roadmap** showing per-phase progress across all pillars with the current phase highlighted (accordion — tap to expand any phase)
+- **Core Metric** — the one question the whole system answers
+- **14 pillar cards** with progress bars showing completion percentage (filterable)
+- **Programs & Economy** — Bounty Board + Programs card (8 structured tracks)
+- **Discernment & Reflections** — 9 category cards (Health, Math, Science, Civics, Relationships, Faith, Tradition, Law, Network)
 
 ### Working with Pillars
 
@@ -167,6 +167,41 @@ The 💵 Bounty Board has four sections:
 
 **🎁 Wishlist** — The child adds items they want to save toward. Each shows a progress bar based on total earnings vs. item cost. Status: 💭 Saving → 👍 Approved → ✓ Purchased.
 
+### Programs
+
+8 structured bounty tracks, each with phased progression and a completion reward:
+
+| Program | Phases | Completion Reward |
+|---------|--------|-------------------|
+| 🎖️ Military Preparation | 5 (Orientation → Decision) | $10,000 (Ironforged) |
+| ⛪ Catholic Practices | Weekly/Seasonal/Service | $2,000 (Legendary: 4×4×14×48) |
+| 📚 Research Bounties | Template Design + Fact Sheets | Repeatable |
+| 💒 Marriage Prep (Catholic) | 4 (Discernment → Sacrament) | $15,000 (Covenant) |
+| 💍 Marriage Prep (Secular) | 4 (Self-Assessment → Commitment) | $15,000 (Covenant) |
+| 🚗 Earn Your Car | 4 (Literacy → Licensure) | Vehicle ($25K cap, Ooh Shiny) |
+| 💪 Physical Fitness | Assessments + Milestones | $500 (Platinum) |
+| 🏙️ 311 Civic Service | 4 (Awareness → Leadership) | $500 (Diamond) |
+
+Programs close out upon completion — all bounties retire when the capstone is paid.
+
+### Discernment & Reflections
+
+9 journal categories for the child's evolving understanding of fundamental domains:
+
+| Category | Question |
+|----------|----------|
+| 🫀 Health | What is my body doing and what does it need? |
+| 📐 Math | What mathematical patterns govern my decisions? |
+| 🔬 Science | How do I know what I think I know? |
+| 🏛️ Civics | What systems am I participating in? |
+| 🤝 Relationships | Who am I becoming because of the people around me? |
+| 🕯️ Faith | What do I believe about what I cannot see? |
+| ⚓ Tradition | What was built before me and what breaks if I tear it down? |
+| ⚖️ Law | What rules bind me and what is the difference between legal and just? |
+| 🕸️ Network | What holds this group together and can I survive alone if I must? |
+
+Reflections stack over time. The child revisits the same questions with deeper understanding at each age.
+
 ### User Roles
 
 | Role | Who | Can Do |
@@ -212,6 +247,7 @@ life_plan/
 │   ├── 14a_recidivism_forgiveness_forgetting_addendum.md
 │   ├── 15_financial_development_investment_literacy.md
 │   ├── 16_life_skills_practical_competence.md
+│   ├── 17_discernment.md
 │   └── IMPLEMENTATION_NOTES.md
 ├── diagrams/                        # PlantUML source + rendered PNGs
 │   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
@@ -232,7 +268,9 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 451 milestones from docs
+    │   ├── seed_data.py             # 493 milestones from docs
+    │   ├── research_topics.py       # Topic banks for saint/paradox/effect
+    │   ├── programs.py              # Program definitions (8 structured tracks)
     │   ├── requirements.txt
     │   ├── uploads/                 # User-uploaded event attachments (auto-created)
     │   └── routes/
@@ -241,7 +279,8 @@ life_plan/
     │       ├── pillars.py           # Pillar entry CRUD
     │       ├── economy.py           # Behavior, bounties (repeatable + decay), wishlist, earnings
     │       ├── events.py            # Event attachments (upload, list, delete, serve)
-    │       └── docs.py              # Pillar guide content (filtered markdown from docs/)
+    │       ├── docs.py              # Pillar guide content (filtered markdown from docs/)
+    │       └── discernment.py       # Discernment journal CRUD (9 categories)
     └── frontend/
         ├── index.html
         ├── package.json

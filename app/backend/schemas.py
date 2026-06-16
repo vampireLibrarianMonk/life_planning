@@ -207,6 +207,7 @@ class BountyUpdate(BaseModel):
     decay_divisor: int | None = None
     reset_days: int | None = None
     times_completed: int | None = None
+    streak_count: int | None = None
 
 
 class BountyResponse(BaseModel):

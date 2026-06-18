@@ -18,7 +18,7 @@ function getVisibleTiers(eligibleTier, isAdmin) {
   return [...gatedVisible, ...ungated]
 }
 
-export default function Economy({ profileId, isAdmin = true }) {
+export default function Economy({ profileId, isAdmin = true, wishlistOnly = false }) {
   const [eligibility, setEligibility] = useState(null)
   const [incidents, setIncidents] = useState([])
   const [bounties, setBounties] = useState([])
@@ -177,6 +177,60 @@ export default function Economy({ profileId, isAdmin = true }) {
   const handleDeleteWish = async (id) => {
     if (!confirm('Remove from wishlist?')) return
     await deleteWishlistItem(profileId, id); load()
+  }
+
+  if (wishlistOnly) {
+    return (
+      <div>
+        {showWishForm && (
+          <form onSubmit={handleWishSubmit} style={st.form}>
+            <input placeholder="What do you want?" value={wishForm.title} onChange={e => setWishForm({ ...wishForm, title: e.target.value })} style={st.input} autoFocus />
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <input placeholder="$ cost" type="number" step="0.01" min="0" value={wishForm.cost_cents} onChange={e => setWishForm({ ...wishForm, cost_cents: e.target.value })} style={{ ...st.input, maxWidth: 100 }} />
+              <input placeholder="Link/URL (optional)" value={wishForm.url} onChange={e => setWishForm({ ...wishForm, url: e.target.value })} style={{ ...st.input, flex: 1 }} />
+              <select value={wishForm.priority} onChange={e => setWishForm({ ...wishForm, priority: parseInt(e.target.value) })} style={{ ...st.input, maxWidth: 120 }}>
+                <option value={1}>Low priority</option>
+                <option value={2}>Medium</option>
+                <option value={3}>High priority</option>
+              </select>
+            </div>
+            <input placeholder="Why do you want it? (optional)" value={wishForm.description} onChange={e => setWishForm({ ...wishForm, description: e.target.value })} style={st.input} />
+            <button type="submit" style={{ ...st.submitBtn, background: '#8e44ad' }}>Add to Wishlist</button>
+          </form>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button onClick={() => setShowWishForm(!showWishForm)} style={{ ...st.btn, background: '#8e44ad' }}>{showWishForm ? 'Cancel' : '+ Add Item'}</button>
+        </div>
+        {wishlist.length === 0 && !showWishForm && <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No wishlist items yet. What are you saving toward?</p>}
+        {wishlist.map(item => {
+          const earned = earnings ? earnings.total_earned_cents : 0
+          const pct = item.cost_cents > 0 ? Math.min(100, Math.round((earned / item.cost_cents) * 100)) : 0
+          const priorityLabel = { 1: '⭐', 2: '⭐⭐', 3: '⭐⭐⭐' }[item.priority] || ''
+          return (
+            <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#2ecc71' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
+              <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
+                <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
+              </button>
+              <div style={{ flex: 1 }}>
+                <span style={{ textDecoration: item.status === 'purchased' ? 'line-through' : 'none' }}>{item.title}</span>
+                <span style={{ fontSize: 11, marginLeft: 6 }}>{priorityLabel}</span>
+                {item.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{item.description}</p>}
+                {item.cost_cents > 0 && item.status === 'saving' && (
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2 }}>
+                      <div style={{ width: `${pct}%`, height: 4, background: '#8e44ad', borderRadius: 2 }} />
+                    </div>
+                    <span style={{ fontSize: 10, color: '#888' }}>{pct}% of ${(item.cost_cents / 100).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+              {item.cost_cents > 0 && <span style={{ fontWeight: 600, fontSize: 14 }}>${(item.cost_cents / 100).toFixed(2)}</span>}
+              <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>
+            </div>
+          )
+        })}
+      </div>
+    )
   }
 
   return (

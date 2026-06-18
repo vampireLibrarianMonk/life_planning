@@ -64,7 +64,7 @@ fi -[dotted]-> ec : economy
 ci -[dotted]-> sm : evidence
 
 note bottom
-  **451 milestones** seeded from 16 planning documents
+  **493 milestones** seeded from 17 planning documents
   Each pillar: age-banded goals + notes + events + attachments
   Status: Not Started → Introduced → In Progress → Practicing → Complete → Mastered
 end note

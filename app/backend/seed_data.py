@@ -6,8 +6,6 @@ MILESTONES = {
         {"age_band": "0-5", "title": "Family prayers", "category": "Foundation"},
         {"age_band": "0-5", "title": "Church attendance", "category": "Foundation"},
         {"age_band": "0-5", "title": "Bible stories", "category": "Foundation"},
-        {"age_band": "0-5", "title": "Learn gratitude", "category": "Foundation"},
-        {"age_band": "0-5", "title": "Learn forgiveness", "category": "Foundation"},
         # Age 6-12: Exploration
         {"age_band": "6-12", "title": "Read children's Bible", "category": "Exploration"},
         {"age_band": "6-12", "title": "Memorize key verses", "category": "Exploration"},

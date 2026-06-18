@@ -364,6 +364,18 @@ export default function Profile() {
           })}
         </div>
 
+        {/* Ask and you shall receive — Wishlist */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Ask and You Shall Receive</h2>
+        <div className="pillar-grid-desktop">
+          {(!pillarFilter || 'wishlist'.includes(pillarFilter.toLowerCase()) || 'ask'.includes(pillarFilter.toLowerCase())) && (
+            <button onClick={() => setActivePillar('__wishlist__')} style={{ ...s.pillarCard, border: '2px solid #e0f0d0' }}>
+              <span style={{ fontSize: 28 }}>🎁</span>
+              <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Wishlist</span>
+              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Save toward what you want</span>
+            </button>
+          )}
+        </div>
+
         {/* Programs, Career & Economy */}
         <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Programs, Career & Economy</h2>
         <div className="pillar-grid-desktop">
@@ -563,6 +575,21 @@ export default function Profile() {
             <span style={{ fontSize: 10, color: '#bbb' }}>{new Date(entry.created_at).toLocaleDateString()}</span>
           </div>
         ))}
+      </div>
+    )
+  }
+
+  // Wishlist standalone view
+  if (activePillar === '__wishlist__') {
+    return (
+      <div style={s.container}>
+        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
+          <span style={{ fontSize: 32 }}>🎁</span>
+          <h2 style={{ margin: 0 }}>Ask and You Shall Receive</h2>
+        </div>
+        <p style={{ fontSize: 14, color: '#666', marginBottom: 20, fontStyle: 'italic' }}>What do you want to save toward? Add it here. Watch your earnings grow toward it.</p>
+        <Economy profileId={id} wishlistOnly={true} />
       </div>
     )
   }

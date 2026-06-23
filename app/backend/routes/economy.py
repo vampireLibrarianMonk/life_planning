@@ -108,6 +108,7 @@ def _compute_streak_bonus(bounty):
 
 def _bounty_response(bounty):
     """Convert a Bounty ORM object to a response dict with current_reward."""
+    import json
     return {
         "id": bounty.id,
         "profile_id": bounty.profile_id,
@@ -130,6 +131,7 @@ def _bounty_response(bounty):
         "streak_bonus": _compute_streak_bonus(bounty),
         "last_completed_at": bounty.last_completed_at,
         "current_reward": _compute_current_reward(bounty),
+        "prerequisites": json.loads(bounty.prerequisites) if bounty.prerequisites else [],
         "status": bounty.status,
         "completed_at": bounty.completed_at,
         "created_at": bounty.created_at,
@@ -141,7 +143,7 @@ def list_bounties(profile_id: int, pillar: str | None = None, db: Session = Depe
     q = db.query(Bounty).filter(Bounty.profile_id == profile_id)
     if pillar:
         q = q.filter(Bounty.pillar == pillar)
-    bounties = q.order_by(Bounty.created_at.desc()).all()
+    bounties = q.order_by(Bounty.reward_amount.desc()).all()
     # Check for reset on repeatable bounties
     for b in bounties:
         if b.repeatable and b.reset_days and b.last_completed_at and b.times_completed:
@@ -168,9 +170,20 @@ def create_bounty(profile_id: int, req: BountyCreate, db: Session = Depends(get_
 
 @router.patch("/bounties/{bounty_id}", response_model=BountyResponse)
 def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+    import json
     bounty = db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
     if not bounty:
         raise HTTPException(status_code=404, detail="Bounty not found")
+    # Check prerequisites before allowing claim/advance (skip for admin resets)
+    if req.status in ("claimed", "complete", "paid") and bounty.prerequisites:
+        prereq_ids = json.loads(bounty.prerequisites)
+        if prereq_ids:
+            unmet = db.query(Bounty).filter(Bounty.id.in_(prereq_ids), Bounty.profile_id == profile_id).filter(
+                ~((Bounty.status == "paid") | ((Bounty.repeatable == 1) & (Bounty.times_completed > 0)))
+            ).all()
+            if unmet:
+                names = [b.title for b in unmet]
+                raise HTTPException(status_code=400, detail=f"Prerequisites not met: {', '.join(names)}")
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(bounty, field, value)
     if req.status == "paid" and bounty.repeatable:
@@ -192,8 +205,8 @@ def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Sessio
         ).all()
         for sib in siblings:
             sib.status = "retired"
-    elif req.status in ("available", "claimed", "complete") and bounty.category:
-        # If un-completing a program bounty, un-retire siblings
+    elif req.status in ("available", "claimed", "complete") and bounty.category and not bounty.repeatable:
+        # If un-completing a program completion bounty, un-retire siblings
         siblings = db.query(Bounty).filter(
             Bounty.profile_id == profile_id,
             Bounty.category == bounty.category,
@@ -284,6 +297,12 @@ def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depen
             if not prog_bounties:
                 prog_bounties = [b for b in all_bounties if b.category in prog["categories"]]
 
+        TIER_SORT = ['bronze','silver','gold','platinum','diamond','obsidian','legendary','covenant','ooh_shiny','ironforged']
+        prog_bounties.sort(key=lambda b: (TIER_SORT.index(b.tier.value if hasattr(b.tier, 'value') else b.tier) if (b.tier.value if hasattr(b.tier, 'value') else b.tier) in TIER_SORT else 99, -b.reward_amount))
+
+        from program_phases import PROGRAM_PHASES
+        phases = PROGRAM_PHASES.get(prog["key"], {})
+
         total = len(prog_bounties)
         completed = sum(1 for b in prog_bounties if b.status == 'paid' or (b.repeatable and (b.times_completed or 0) > 0))
         one_time_reward = sum(b.reward_amount for b in prog_bounties if not b.repeatable)
@@ -302,6 +321,7 @@ def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depen
             "completed": completed,
             "total_reward": total_reward,
             "has_repeatable": repeatable_base > 0,
+            "phases": phases,
             "bounties": [_bounty_response(b) for b in prog_bounties],
         })
     return result

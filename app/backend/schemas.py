@@ -232,6 +232,7 @@ class BountyResponse(BaseModel):
     streak_bonus: int  # computed: bonus earned at current streak milestone
     last_completed_at: datetime | None
     current_reward: int  # computed: what it's worth right now
+    prerequisites: list[int]  # bounty IDs that must be paid first
     status: str
     completed_at: datetime | None
     created_at: datetime

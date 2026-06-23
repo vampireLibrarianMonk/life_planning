@@ -16,13 +16,6 @@ PROGRAMS = [
         "categories": ["catholic"],
     },
     {
-        "key": "research",
-        "title": "Research Bounties",
-        "icon": "📚",
-        "description": "Saint, paradox, and effect fact sheets. Template design + topic-based research.",
-        "categories": ["saint", "paradox", "effect"],
-    },
-    {
         "key": "marriage_catholic",
         "title": "Marriage Prep (Catholic)",
         "icon": "💒",

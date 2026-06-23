@@ -75,6 +75,18 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
 
   const cycleBountyStatus = async (b) => {
     if (b.status === 'retired') return
+    // Check prerequisites client-side
+    if (b.prerequisites && b.prerequisites.length > 0) {
+      const unmet = b.prerequisites.filter(pid => {
+        const prereq = bounties.find(x => x.id === pid)
+        return prereq && prereq.status !== 'paid' && !(prereq.repeatable && prereq.times_completed > 0)
+      })
+      if (unmet.length > 0) {
+        const names = unmet.map(pid => { const p = bounties.find(x => x.id === pid); return p ? p.title : `#${pid}` })
+        alert(`Prerequisites not met:\n\n${names.join('\n')}`)
+        return
+      }
+    }
     const next = BOUNTY_STATUS_CYCLE[b.status]
     if (!next) return
     // For research bounties being claimed, show topic picker

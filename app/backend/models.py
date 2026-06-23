@@ -192,6 +192,7 @@ class Bounty(Base):
     streak_count = Column(Integer, default=0)  # consecutive on-time completions
     streak_best = Column(Integer, default=0)  # all-time best streak
     last_completed_at = Column(DateTime, nullable=True)  # for reset timer
+    prerequisites = Column(Text, nullable=True)  # JSON list of bounty IDs that must be paid first
     status = Column(String(20), default="available")  # available, claimed, complete, paid
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

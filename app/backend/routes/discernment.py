@@ -10,7 +10,7 @@ from models import DiscernmentJournal, User
 
 router = APIRouter(prefix="/api/profiles/{profile_id}/discernment", tags=["discernment"])
 
-CATEGORIES = ["health", "math", "science", "civics", "relationships", "faith", "tradition", "law", "network"]
+CATEGORIES = ["health", "math", "science", "civics", "relationships", "faith", "tradition", "law", "network", "calling"]
 
 CATEGORY_META = {
     "health": {"icon": "🫀", "title": "Health", "question": "What is my body doing and what does it need?"},
@@ -22,6 +22,7 @@ CATEGORY_META = {
     "tradition": {"icon": "⚓", "title": "Tradition", "question": "What was built before me, why was it built, and what breaks if I tear it down?"},
     "law": {"icon": "⚖️", "title": "Law", "question": "What rules bind me, who made them, and what is the difference between legal and just?"},
     "network": {"icon": "🕸️", "title": "Network", "question": "What holds this group together, what happens if I dissent, and can I survive alone if I must?"},
+    "calling": {"icon": "📣", "title": "Calling", "question": "What is pulling me toward this path, who benefits from my decision, and what does the full picture look like?"},
 }
 
 

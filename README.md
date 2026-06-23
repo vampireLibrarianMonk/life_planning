@@ -1,6 +1,6 @@
 # Life Plan Tracker
 
-A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 8 structured programs, 9 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 493+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
+A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 7 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 493+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
 
 The dashboard answers one question: **"Is this child becoming a wise, capable, kind, and independent person?"**
 
@@ -117,7 +117,7 @@ After selecting a profile, you see:
 - **Roadmap** showing per-phase progress across all pillars with the current phase highlighted (accordion — tap to expand any phase)
 - **Core Metric** — the one question the whole system answers
 - **14 pillar cards** with progress bars showing completion percentage (filterable)
-- **Programs & Economy** — Bounty Board + Programs card (8 structured tracks)
+- **Programs & Economy** — Bounty Board + Programs card (7 structured tracks)
 - **Discernment & Reflections** — 9 category cards (Health, Math, Science, Civics, Relationships, Faith, Tradition, Law, Network)
 
 ### Working with Pillars
@@ -169,20 +169,19 @@ The 💵 Bounty Board has four sections:
 
 ### Programs
 
-8 structured bounty tracks, each with phased progression and a completion reward:
+7 structured bounty tracks, each with phased progression and a completion reward:
 
 | Program | Phases | Completion Reward |
 |---------|--------|-------------------|
-| 🎖️ Military Preparation | 5 (Orientation → Decision) | $10,000 (Ironforged) |
+| 🎖️ Military Preparation | 5 (Orientation → Decision) | $2,000 (Ironforged) |
 | ⛪ Catholic Practices | Weekly/Seasonal/Service | $2,000 (Legendary: 4×4×14×48) |
-| 📚 Research Bounties | Template Design + Fact Sheets | Repeatable |
-| 💒 Marriage Prep (Catholic) | 4 (Discernment → Sacrament) | $15,000 (Covenant) |
-| 💍 Marriage Prep (Secular) | 4 (Self-Assessment → Commitment) | $15,000 (Covenant) |
+| 💒 Marriage Prep (Catholic) | 4 (Discernment → Sacrament) | $10,000 (Covenant) |
+| 💍 Marriage Prep (Secular) | 4 (Self-Assessment → Commitment) | $10,000 (Covenant) |
 | 🚗 Earn Your Car | 4 (Literacy → Licensure) | Vehicle ($25K cap, Ooh Shiny) |
 | 💪 Physical Fitness | Assessments + Milestones | $500 (Platinum) |
 | 🏙️ 311 Civic Service | 4 (Awareness → Leadership) | $500 (Diamond) |
 
-Programs close out upon completion — all bounties retire when the capstone is paid.
+Programs close out upon completion — all bounties retire when the capstone is paid. Bounties within programs support prerequisites (bounties that must be completed before others unlock).
 
 ### Discernment & Reflections
 
@@ -199,8 +198,9 @@ Programs close out upon completion — all bounties retire when the capstone is 
 | ⚓ Tradition | What was built before me and what breaks if I tear it down? |
 | ⚖️ Law | What rules bind me and what is the difference between legal and just? |
 | 🕸️ Network | What holds this group together and can I survive alone if I must? |
+| 📣 Calling | What is pulling me toward this path and what does the full picture look like? |
 
-Reflections stack over time. The child revisits the same questions with deeper understanding at each age.
+Each category has a linked **Earn While You Learn** bounty. The child claims a category-specific prompt, writes and saves a thoughtful reflection, then advances the bounty from claimed to complete to paid. Reflections stack over time, so the child revisits the same questions with deeper understanding at each age.
 
 ### User Roles
 
@@ -270,7 +270,8 @@ life_plan/
     │   ├── database.py              # DB connection
     │   ├── seed_data.py             # 493 milestones from docs
     │   ├── research_topics.py       # Topic banks for saint/paradox/effect
-    │   ├── programs.py              # Program definitions (8 structured tracks)
+    │   ├── programs.py              # Program definitions (7 structured tracks)
+    │   ├── program_phases.py        # Phase labels per program tier
     │   ├── requirements.txt
     │   ├── uploads/                 # User-uploaded event attachments (auto-created)
     │   └── routes/

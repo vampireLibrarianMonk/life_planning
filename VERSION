@@ -1,0 +1,52 @@
+0.4.0
+
+# Life Plan Tracker Version Ledger
+
+## VERSION File Requirements
+
+- The first line MUST contain only the current application version in Semantic Versioning format: `MAJOR.MINOR.PATCH`.
+- The first line is the canonical, pullable application version and may be read with `head -n 1 VERSION`.
+- Version numbers MUST follow Semantic Versioning intent:
+  - `MAJOR` changes for incompatible data model, API, or deployment changes.
+  - `MINOR` changes for backward-compatible features, new pillars, new program tracks, or substantial workflow additions.
+  - `PATCH` changes for backward-compatible fixes, documentation corrections, dependency metadata updates, and small refinements.
+- The SBOM MUST describe dependencies and runtime inventory only; it SHOULD NOT be treated as the canonical application version source.
+- Each release ledger entry SHOULD include an ISO 8601 date-time group with timezone, a short commit hash, and a concise summary of the change.
+- Commit summaries SHOULD be grouped newest-to-oldest only when documenting releases; this historical import preserves repository commit order from oldest-to-newest.
+- If Git tags are introduced later, the first line of this file SHOULD match the latest release tag without a leading `v` prefix.
+
+## Current Semantic Version Decision
+
+**Current version:** `0.4.0`
+
+**Basis:** The previously tracked application version in `SBOM.md` was `0.3.0`. The current repository state adds backward-compatible product capabilities rather than an incompatible API or deployment rewrite, so the appropriate bump is a **minor** release: `0.3.0` → `0.4.0`.
+
+**Release summary:**
+
+- Adds a tenth discernment category, `calling`, across backend metadata and frontend profile views.
+- Links discernment categories to clearer "Earn While You Learn" reflection bounties.
+- Adds bounty prerequisite support so program tasks can depend on prior paid or completed bounty work.
+- Adds program phase labels and tier-based program bounty ordering.
+- Refines structured program scope from 8 to 7 tracks and moves research-style work into topic-linked bounty flows.
+- Expands research topics with a `sin` topic bank.
+- Updates README and SBOM metadata to reflect the current feature set and dependency inventory.
+
+**SemVer classification:** `MINOR` because these changes add features and workflow structure while preserving the existing application line. If a future release introduces incompatible database migrations, removes API fields, or changes deployment/runtime assumptions, that release SHOULD be evaluated as a `MAJOR` bump.
+
+## Commit History Summary
+
+| Date-Time Group | Commit | Summary |
+|---|---:|---|
+| 2026-06-03T22:43:18-04:00 | `7e83a32` | Initial project scaffolding for the Life Plan Tracker application. |
+| 2026-06-03T22:53:05-04:00 | `08744d3` | Refined the lifetime development framework and supporting diagrams. |
+| 2026-06-03T22:54:58-04:00 | `9377fc7` | Updated README with setup and run instructions. |
+| 2026-06-04T22:21:50-04:00 | `be4ca03` | Added the dimensional thinking and life navigation pillar. |
+| 2026-06-05T22:22:52-04:00 | `92ca03d` | Added event attachments and expanded milestone detail handling. |
+| 2026-06-06T23:03:28-04:00 | `6968faf` | Added avatar upload and cropping functionality. |
+| 2026-06-10T00:03:29-04:00 | `1ffe125` | Added the civic and institutional navigation pillar. |
+| 2026-06-11T09:50:23-04:00 | `da0a2c3` | Implemented new pillars and addenda for lifetime development tracking. |
+| 2026-06-11T23:04:45-04:00 | `05810d2` | Added structured bounty program definitions and research topic banks. |
+| 2026-06-12T23:24:47-04:00 | `b1a0be6` | Added civic literacy bounties and power-transfer tracking. |
+| 2026-06-14T23:03:35-04:00 | `d68e113` | Updated PlantUML diagram coverage for the 14 development pillars. |
+| 2026-06-15T23:13:23-04:00 | `82ceb87` | Added discernment journals and reflections across fundamental domains. |
+| 2026-06-17T23:20:07-04:00 | `43e81de` | Added wishlist support and updated program diagrams. |

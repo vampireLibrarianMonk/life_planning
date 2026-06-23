@@ -47,4 +47,13 @@ RESEARCH_TOPICS = {
         "Corruption Effect",
         "Silence Effect",
     ],
+    "sin": [
+        "Pride (Superbia) — opposed by Humility",
+        "Greed (Avaritia) — opposed by Generosity",
+        "Lust (Luxuria) — opposed by Chastity",
+        "Envy (Invidia) — opposed by Kindness",
+        "Gluttony (Gula) — opposed by Temperance",
+        "Wrath (Ira) — opposed by Patience",
+        "Sloth (Acedia) — opposed by Diligence",
+    ],
 }

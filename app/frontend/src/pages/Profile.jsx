@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import Economy from './Economy'
@@ -79,6 +79,7 @@ export default function Profile() {
   const [pillarFilter, setPillarFilter] = useState('')
   const [programs, setPrograms] = useState([])
   const [activeProgram, setActiveProgram] = useState(null)
+  const [researchTopics, setResearchTopics] = useState({})
   const [discernCats, setDiscernCats] = useState({})
   const [discernEntries, setDiscernEntries] = useState([])
   const [activeDiscern, setActiveDiscern] = useState(null)
@@ -111,10 +112,13 @@ export default function Profile() {
     if (activePillar && !isSpecialView(activePillar)) {
       fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
       fetchPillarGuide(activePillar).then(d => setGuideContent(d && d.content ? d.content : null))
+    } else if (activePillar === '__discernment__') {
+      fetchBounties(id).then(d => Array.isArray(d) && setPillarBounties(d))
+      setGuideContent(null)
     } else {
       setGuideContent(null)
     }
-  }, [id, activePillar, pillarTab])
+  }, [id, activePillar, activeDiscern, pillarTab])
 
   const handleAddEntry = async (e) => {
     e.preventDefault()
@@ -415,6 +419,7 @@ export default function Profile() {
             { key: 'tradition', icon: '⚓', label: 'Tradition' },
             { key: 'law', icon: '⚖️', label: 'Law' },
             { key: 'network', icon: '🕸️', label: 'Network' },
+            { key: 'calling', icon: '📣', label: 'Calling' },
           ].filter(d => !pillarFilter || d.label.toLowerCase().includes(pillarFilter.toLowerCase()) || 'discernment'.includes(pillarFilter.toLowerCase())).map(d => (
             <button key={d.key} onClick={() => { setActiveDiscern(d.key); setActivePillar('__discernment__') }} style={{ ...s.pillarCard, border: '2px solid #e8e0f0' }}>
               <span style={{ fontSize: 28 }}>{d.icon}</span>
@@ -429,7 +434,7 @@ export default function Profile() {
 
   // Programs view
   if (activePillar === '__programs__') {
-    if (!programs.length) fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d))
+    if (!programs.length) { fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)); fetchResearchTopics(id).then(setResearchTopics) }
     if (activeProgram) {
       const prog = programs.find(p => p.key === activeProgram)
       if (!prog) return <div style={s.container}><button onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back</button><p>Loading...</p></div>
@@ -450,8 +455,15 @@ export default function Profile() {
           <div style={{ width: '100%', height: 6, background: '#eee', borderRadius: 3, marginBottom: 20 }}>
             <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 6, background: '#2ecc71', borderRadius: 3 }} />
           </div>
-          {prog.bounties.map(b => (
-            <div key={b.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${b.status === 'retired' ? '#999' : b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : b.status === 'claimed' ? '#f5a623' : b.status === 'complete' ? '#27ae60' : '#ddd'}` }}>
+          {(() => {
+            let lastTier = null
+            return prog.bounties.map(b => {
+              const showPhaseHeader = b.tier !== lastTier && prog.phases && prog.phases[b.tier]
+              lastTier = b.tier
+              return (
+                <div key={b.id}>
+                  {showPhaseHeader && <h4 style={{ margin: '16px 0 8px', fontSize: 13, color: '#4a90d9', fontWeight: 600, borderBottom: '1px solid #e8e8e8', paddingBottom: 4 }}>{prog.phases[b.tier]}</h4>}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${b.status === 'retired' ? '#999' : b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : b.status === 'claimed' ? '#f5a623' : b.status === 'complete' ? '#27ae60' : '#ddd'}` }}>
               {editingPBounty === b.id ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -465,21 +477,37 @@ export default function Profile() {
                   </div>
                   <input value={editPBForm.title} onChange={e => setEditPBForm({ ...editPBForm, title: e.target.value })} style={{ ...s.input, margin: 0 }} />
                   <textarea value={editPBForm.description} onChange={e => setEditPBForm({ ...editPBForm, description: e.target.value })} style={{ ...s.input, margin: 0, minHeight: 60, resize: 'vertical' }} />
+                  {b.category && researchTopics[b.category] && (() => {
+                    const completedTopics = prog.bounties.filter(x => x.category === b.category && x.description && x.description.startsWith('Topic:')).map(x => x.description.replace('Topic: ', '').replace(' [OWN DISCOVERY]', ''))
+                    const available = researchTopics[b.category].filter(t => !completedTopics.includes(t))
+                    return (
+                      <div style={{ background: '#f9f9ff', padding: '8px 12px', borderRadius: 8, border: '1px solid #e8e8f0' }}>
+                        <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>Select topic ({b.category}):</label>
+                        <select value="" onChange={e => { if (e.target.value) setEditPBForm({ ...editPBForm, description: `Topic: ${e.target.value}` }) }} style={{ ...s.input, margin: '6px 0 0' }}>
+                          <option value="">— Pick a topic —</option>
+                          {available.map(t => <option key={t} value={t}>{t}</option>)}
+                          {completedTopics.length > 0 && <option disabled>── Completed ──</option>}
+                          {completedTopics.map(t => <option key={t} disabled>{t} ✓</option>)}
+                        </select>
+                      </div>
+                    )
+                  })()}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={async () => { await updateBounty(id, b.id, { title: editPBForm.title.trim(), description: editPBForm.description.trim() || null, reward_amount: Math.round((parseFloat(editPBForm.reward_amount) || 0) * 100), status: editPBForm.status, age_band: editPBForm.age_band || null }); setEditingPBounty(null); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) }} style={{ ...s.submitBtn, padding: '6px 14px', fontSize: 12 }}>Save</button>
-                    <button onClick={async () => { await updateBounty(id, b.id, { status: 'available', times_completed: 0, streak_count: 0 }); setEditingPBounty(null); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) }} style={{ padding: '6px 14px', fontSize: 12, background: '#fff3e0', border: '1px solid #f5a623', borderRadius: 6, cursor: 'pointer', color: '#b37400' }}>Reset</button>
+                    <button onClick={async () => { await updateBounty(id, b.id, { status: 'available', times_completed: 0, streak_count: 0, description: b.category ? null : undefined }); setEditingPBounty(null); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) }} style={{ padding: '6px 14px', fontSize: 12, background: '#fff3e0', border: '1px solid #f5a623', borderRadius: 6, cursor: 'pointer', color: '#b37400' }}>Reset</button>
                     <button onClick={() => setEditingPBounty(null)} style={{ padding: '6px 14px', fontSize: 12, background: '#eee', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <button onClick={async () => { if (b.status === 'retired') return; const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', cursor: b.status === 'retired' ? 'default' : 'pointer', padding: 2, fontSize: 16, opacity: b.status === 'retired' ? 0.4 : 1 }} title={b.status === 'retired' ? 'Retired' : `${b.status} — click to advance`}>
+                  <button onClick={async () => { if (b.status === 'retired') return; if (b.category && researchTopics[b.category] && b.status === 'available') { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: 'claimed' }); return; } const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', cursor: b.status === 'retired' ? 'default' : 'pointer', padding: 2, fontSize: 16, opacity: b.status === 'retired' ? 0.4 : 1 }} title={b.status === 'retired' ? 'Retired' : `${b.status} — click to advance`}>
                     <span style={{ color: b.status === 'retired' ? '#999' : b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
                       {b.status === 'retired' ? '🔒' : b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
                     </span>
                   </button>
                   <div style={{ flex: 1, opacity: b.status === 'retired' ? 0.5 : 1 }}>
                     <span style={{ fontWeight: 500 }}>{b.title}</span>
+                    {b.age_band && <span style={{ fontSize: 10, marginLeft: 6, padding: '1px 5px', borderRadius: 6, background: '#f0f4ff', color: '#4a90d9' }}>{b.age_band}</span>}
                     {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 12 ? '#ffd700' : '#2ecc71' }}> 🔥{b.streak_count}</span> : ''}</span> : null}
                     {b.description && <MiniMarkdown text={b.description} maxHeight={120} />}
                   </div>
@@ -494,7 +522,10 @@ export default function Profile() {
                 </>
               )}
             </div>
-          ))}
+          </div>
+              )
+            })
+          })()}
         </div>
       )
     }
@@ -529,10 +560,17 @@ export default function Profile() {
 
   // Discernment view
   if (activePillar === '__discernment__' && activeDiscern) {
-    const catMeta = { health: { icon: '🫀', title: 'Health', question: 'What is my body doing and what does it need?' }, math: { icon: '📐', title: 'Math', question: 'What mathematical patterns govern the decisions I\'m making?' }, science: { icon: '🔬', title: 'Science', question: 'How do I know what I think I know?' }, civics: { icon: '🏛️', title: 'Civics', question: 'What systems am I participating in?' }, relationships: { icon: '🤝', title: 'Relationships', question: 'Who am I becoming because of the people around me?' }, faith: { icon: '🕯️', title: 'Faith', question: 'What do I believe about what I cannot see?' }, tradition: { icon: '⚓', title: 'Tradition', question: 'What was built before me, why was it built, and what breaks if I tear it down?' }, law: { icon: '⚖️', title: 'Law', question: 'What rules bind me, who made them, and what is the difference between legal and just?' }, network: { icon: '🕸️', title: 'Network', question: 'What holds this group together, what happens if I dissent, and can I survive alone if I must?' } }
+    const catMeta = { health: { icon: '🫀', title: 'Health', question: 'What is my body doing and what does it need?' }, math: { icon: '📐', title: 'Math', question: 'What mathematical patterns govern the decisions I\'m making?' }, science: { icon: '🔬', title: 'Science', question: 'How do I know what I think I know?' }, civics: { icon: '🏛️', title: 'Civics', question: 'What systems am I participating in?' }, relationships: { icon: '🤝', title: 'Relationships', question: 'Who am I becoming because of the people around me?' }, faith: { icon: '🕯️', title: 'Faith', question: 'What do I believe about what I cannot see?' }, tradition: { icon: '⚓', title: 'Tradition', question: 'What was built before me, why was it built, and what breaks if I tear it down?' }, law: { icon: '⚖️', title: 'Law', question: 'What rules bind me, who made them, and what is the difference between legal and just?' }, network: { icon: '🕸️', title: 'Network', question: 'What holds this group together, what happens if I dissent, and can I survive alone if I must?' }, calling: { icon: '📣', title: 'Calling', question: 'What is pulling me toward this path, who benefits from my decision, and what does the full picture look like?' } }
     const meta = catMeta[activeDiscern] || {}
     const loadDiscern = () => fetchDiscernmentEntries(id, activeDiscern).then(d => Array.isArray(d) && setDiscernEntries(d))
     if (!discernEntries.length || (discernEntries[0] && discernEntries[0].category !== activeDiscern)) loadDiscern()
+
+    const discernBounties = pillarBounties.filter(b => b.category === activeDiscern)
+    const cleanBountyTitle = (title = '') => title.replace(/^[a-z ]+\s+(reflection|assessment):\s*/i, '').trim()
+    const titleCase = (value = '') => value ? value.charAt(0).toUpperCase() + value.slice(1) : value
+    const statusLabel = { available: 'Available — click to claim', claimed: 'Claimed — click when finished', complete: 'Complete — click when paid', paid: 'Paid' }
+    const statusIcon = { available: '○', claimed: '◐', complete: '●', paid: '✓' }
+    const resetLabel = (b) => b.reset_days ? `resets every ${b.reset_days} days` : 'no automatic reset'
 
     const handleSubmitDiscern = async (e) => {
       e.preventDefault()
@@ -552,6 +590,40 @@ export default function Profile() {
             <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666', fontStyle: 'italic' }}>{meta.question}</p>
           </div>
         </div>
+
+        {/* Civic symbol literacy image */}
+        {activeDiscern === 'civics' && (
+          <div style={{ marginTop: 16, textAlign: 'center', padding: 16, background: '#f8f8ff', border: '1px solid #e0e0f0', borderRadius: 10 }}>
+            <img src="/reference_images/true-power.jpg" alt="Political cartoon: a crowd unknowingly supports the plank a politician stands on over a cliff. Caption: THE PEOPLE DON'T KNOW THEIR TRUE POWER." style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8 }} />
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: '#555', lineHeight: 1.5 }}>
+              <strong>The Central Question:</strong> Who is supporting whom? What happens if the crowd disperses? What systems of power depend not on command from above, but on participation, attention, money, labor, or consent from below?
+            </p>
+          </div>
+        )}
+
+        {/* Linked bounties */}
+        {discernBounties.length > 0 && (
+          <div style={{ marginTop: 16, padding: '12px 16px', background: '#f8faf5', border: '1px solid #e0e8d8', borderRadius: 10 }}>
+            <h4 style={{ margin: '0 0 4px', fontSize: 14, color: '#3d5a2a' }}>💰 Earn While You Learn</h4>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: '#66745d', lineHeight: 1.5 }}>Complete a thoughtful {meta.title || activeDiscern} reflection, save what you learned below, then advance the bounty status as the work moves from claimed to complete to paid.</p>
+            {discernBounties.map(b => (
+              <div key={b.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid #e6eedf' }}>
+                <button onClick={async () => { const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchBounties(id).then(d => Array.isArray(d) && setPillarBounties(d)) } }} style={{ width: 34, height: 34, borderRadius: 17, border: '1px solid #d9e8cf', background: '#fff', cursor: b.status === 'paid' ? 'default' : 'pointer', fontSize: 16 }} title={statusLabel[b.status] || b.status}>
+                  <span style={{ color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#bbb' }}>{statusIcon[b.status] || '○'}</span>
+                </button>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#6b7c5f', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{meta.title || titleCase(b.category)} reflection bounty</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#263320', marginTop: 2 }}>{titleCase(cleanBountyTitle(b.title))}</div>
+                  <div style={{ fontSize: 11, color: '#7b8772', marginTop: 4 }}>{statusLabel[b.status] || b.status}{b.repeatable ? ` · repeatable, completed ${b.times_completed || 0} time${(b.times_completed || 0) === 1 ? '' : 's'} · ${resetLabel(b)}` : ''}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#2ecc71' }}>${(b.current_reward / 100).toFixed(2)}</div>
+                  <div style={{ fontSize: 10, color: '#8a9683' }}>current reward</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <form onSubmit={handleSubmitDiscern} style={{ ...s.form, marginTop: 20 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>New Reflection</label>
@@ -728,6 +800,30 @@ export default function Profile() {
         <summary style={s.aboutSummary}>About this Pillar</summary>
         <p style={s.aboutText}>{currentPillar.about}</p>
       </details>
+
+      {activePillar === 'civic' && (
+        <div style={s.learningCard}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <img
+              src="/reference_images/true-power.jpg"
+              alt="Black-and-white political cartoon showing a politician speaking at a lectern on the end of a plank hanging over a cliff, while a crowd standing on the other end of the plank unknowingly keeps him from falling. Caption: The people don't know their true power."
+              style={s.learningImage}
+            />
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <p style={s.learningEyebrow}>Civic symbol literacy</p>
+              <h3 style={s.learningTitle}>Who is really holding the plank?</h3>
+              <p style={s.learningText}>This cartoon teaches a civic lesson: visible authority often depends on hidden support from ordinary people. Money, attention, obedience, work, votes, silence, and participation can all hold a system in place.</p>
+              <p style={s.learningText}>Before you decide that someone is powerless, ask what they are supporting. Before you decide that someone is powerful, ask who is holding them up.</p>
+              <ul style={s.learningList}>
+                <li>What is the crowd doing without realizing it?</li>
+                <li>What would change if enough people stepped off the plank?</li>
+                <li>Where do you see this pattern in school, media, markets, or government?</li>
+              </ul>
+              <p style={s.learningSource}>Source note: commonly circulated as “The People Don’t Know Their True Power”; original artist not clearly verified.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {guideContent && (
         <details style={{ ...s.aboutDropdown, marginTop: 8 }}>
@@ -940,6 +1036,13 @@ const s = {
   aboutDropdown: { marginBottom: 16, background: '#f8f9ff', border: '1px solid #e8e8f0', borderRadius: 10, padding: '0 16px' },
   aboutSummary: { padding: '12px 0', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#666', listStyle: 'none' },
   aboutText: { margin: '0 0 12px', fontSize: 13, lineHeight: 1.6, color: '#444' },
+  learningCard: { marginBottom: 16, padding: 16, background: '#f7fbff', border: '1px solid #dcecff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
+  learningImage: { width: 260, maxWidth: '100%', borderRadius: 10, border: '1px solid #d8e4f0', background: '#fff' },
+  learningEyebrow: { margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#4a90d9', textTransform: 'uppercase', letterSpacing: 0.5 },
+  learningTitle: { margin: '0 0 8px', fontSize: 18, color: '#1f344a' },
+  learningText: { margin: '0 0 8px', fontSize: 13, lineHeight: 1.6, color: '#34495e' },
+  learningList: { margin: '8px 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.6, color: '#34495e' },
+  learningSource: { margin: '10px 0 0', fontSize: 10, color: '#7f8c8d', fontStyle: 'italic' },
   tabRow: { display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #e8e8e8' },
   tab: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', borderBottom: '2px solid transparent', marginBottom: -2 },
   tabActive: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#4a90d9', fontWeight: 600, borderBottom: '2px solid #4a90d9', marginBottom: -2 },

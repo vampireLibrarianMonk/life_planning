@@ -1,9 +1,7 @@
 # Software Bill of Materials (SBOM)
 
 **Project:** Life Plan Tracker
-**Version:** 0.3.0
-**Generated:** 2026-06-15
-**License:** Private / Family Use
+**Generated:** 2026-06-22
 
 ---
 

@@ -52,4 +52,11 @@ PROGRAM_PHASES = {
         "legendary": "Endurance Trial",
         "covenant": "Vocation",
     },
+    "formation_study": {
+        "bronze": "Concrete Circles & Life Sections",
+        "silver": "Family, Kin & Local Belonging",
+        "gold": "Institutions, Nation & Civic Responsibility",
+        "platinum": "Civilization, Humanity & Highest Horizon",
+        "diamond": "Synthesis & Teaching Others",
+    },
 }

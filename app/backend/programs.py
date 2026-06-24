@@ -16,6 +16,13 @@ PROGRAMS = [
         "categories": ["catholic"],
     },
     {
+        "key": "formation_study",
+        "title": "Formation Study",
+        "icon": "🧠",
+        "description": "Cross-cutting fact sheets and visual-map bounties: Life Cards, Breadth of Belonging, books, institutions, moral patterns.",
+        "categories": ["formation_study", "breadth_of_belonging", "life_cards"],
+    },
+    {
         "key": "marriage_catholic",
         "title": "Marriage Prep (Catholic)",
         "icon": "💒",

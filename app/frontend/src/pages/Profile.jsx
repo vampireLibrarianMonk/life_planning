@@ -22,6 +22,61 @@ const PILLARS = [
   { key: 'secular_sacred_formation', label: 'Secular Sacred', icon: '🌅', placeholder: "e.g. 'Studied origin accounts across cultures'", about: "Secular Sacred Formation & Civilizational Literacy preserves proper formation even when belief is uncertain, rejected, or recovering. It teaches the human realities that religion has always addressed — origin, death, sacrifice, moral repair, ritual, authority, belonging — in language accessible to the atheist, agnostic, or wounded. The child can question, doubt, leave, and still remain capable of serious formation. The door home must remain visible. A child may become atheist and still come home." },
 ]
 
+const LIFE_CHART_SECTIONS = [
+  { number: 1, title: 'Before Conception', question: 'What world was prepared before I arrived?', examples: ['Ancestors', 'Family choices', 'Language & culture', 'Wealth or debt', 'Wars, migration, institutions'] },
+  { number: 2, title: 'Conception to Birth', question: 'What did others give before I could give anything back?', examples: ['Dependent life', 'Protection', 'Care from others', 'Worth before achievement'] },
+  { number: 3, title: 'Childhood & Formation', question: 'What kind of person am I becoming?', examples: ['Body', 'Mind', 'Faith / meaning', 'Character', 'Skills and responsibility'] },
+  { number: 4, title: 'Adulthood & Responsibility', question: 'What responsibilities become mine?', examples: ['Work and vocation', 'Family', 'Stewardship', 'Service', 'Civic duty'] },
+  { number: 5, title: 'Death', question: 'What should be repaired, preserved, or entrusted before death?', examples: ['Mortality', 'Reconciliation', 'Estate and records', 'Memory', 'Spiritual questions'] },
+  { number: 6, title: 'After Death / Legacy', question: 'What will others inherit because I lived?', examples: ['Spiritual horizon', 'Children and students', 'Institutions', 'Traditions', 'Harm repaired or transmitted'] },
+]
+
+const BELONGING_VARIANTS = {
+  religious: {
+    label: 'Religious',
+    image: '/reference_images/expanding_breadth_religious.png',
+    alt: 'Expanding Breadth of Belonging religious chart showing responsibility widening from Person through Family, Kin, Parish, Local Community, Nation, Church, Humanity, and God.',
+    summary: 'Person → Family → Kin / Tribe → Parish → Local Community → Nation → Church → Humanity → God',
+    rings: [
+      ['Person', 'My own life, conscience, choices.'],
+      ['Family', 'Those entrusted directly to me.'],
+      ['Kin / Tribe', 'Extended bonds, ancestry, mutual support.'],
+      ['Parish', 'Worship and local spiritual community.'],
+      ['Local Community', 'Neighbors, schools, local service, and civic life.'],
+      ['Nation', 'Shared law, history, duty, and protection.'],
+      ['Church', 'The wider body of belief and tradition.'],
+      ['Humanity', 'Care for all people.'],
+      ['God', 'The highest horizon of meaning, order, and accountability.'],
+    ],
+  },
+  secular: {
+    label: 'Secular',
+    image: '/reference_images/expanding_breadth_secular.png',
+    alt: 'Expanding Breadth of Belonging secular chart showing responsibility widening from Person through Family, Kin, Local Community, Civic Community, Nation, Civilization, Humanity, and Truth or Meaning.',
+    summary: 'Person → Family → Kin / Tribe → Local Community → Civic Community → Nation → Civilization → Humanity → Truth / Meaning',
+    rings: [
+      ['Person', 'My own life, conscience, choices.'],
+      ['Family', 'Those entrusted directly to me.'],
+      ['Kin / Tribe', 'Extended bonds, ancestry, mutual support.'],
+      ['Local Community', 'Neighbors, schools, and local belonging.'],
+      ['Civic Community', 'Service, institutions, and shared responsibility.'],
+      ['Nation', 'Shared law, history, duty, and protection.'],
+      ['Civilization', 'Inherited knowledge, culture, and institutions.'],
+      ['Humanity', 'Care for all people.'],
+      ['Truth / Meaning', 'The highest horizon of reality, meaning, and accountability.'],
+    ],
+  },
+}
+
+const BELONGING_BOUNTY_TEMPLATE = [
+  'Explain what this circle means in simple words.',
+  'Name what you receive from this circle: care, language, law, worship, history, opportunity, or belonging.',
+  'Name what you owe to this circle: honesty, respect, service, gratitude, repair, participation, or stewardship.',
+  'Identify what can corrupt this circle: selfishness, tribalism, neglect, abuse, corruption, arrogance, or blind obedience.',
+  'Give one real example and one family discussion question.',
+  'End with a one-sentence lesson.',
+]
+
 const STATUS_COLORS = { not_started: '#e0e0e0', introduced: '#a0d2db', in_progress: '#f5a623', practicing: '#c39bd3', complete: '#2ecc71', mastered: '#1a7a4c', pending: '#e0e0e0' }
 const STATUS_LABELS = { not_started: '○', introduced: '◔', in_progress: '◑', practicing: '◕', complete: '●', mastered: '★', pending: '○' }
 const STATUS_CYCLE = { not_started: 'introduced', introduced: 'in_progress', in_progress: 'practicing', practicing: 'complete', complete: 'mastered', mastered: 'not_started', pending: 'in_progress' }
@@ -84,6 +139,7 @@ export default function Profile() {
   const [discernEntries, setDiscernEntries] = useState([])
   const [activeDiscern, setActiveDiscern] = useState(null)
   const [discernForm, setDiscernForm] = useState({ title: '', reflection: '' })
+  const [belongingVariant, setBelongingVariant] = useState('religious')
 
   useEffect(() => { fetchProfile(id).then(setProfile); loadCounts() }, [id])
 
@@ -348,6 +404,25 @@ export default function Profile() {
           <p style={{ margin: '8px 0 0', fontSize: 18, fontStyle: 'italic' }}>"Is {profile.name.split(' ')[0]} becoming a wise, capable, kind, and independent person?"</p>
         </div>
 
+        {/* Life Maps — dashboard-level visual cards, not pillars */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Life Maps</h2>
+        <div className="pillar-grid-desktop">
+          {(!pillarFilter || 'life chart legacy timeline map'.includes(pillarFilter.toLowerCase())) && (
+            <button onClick={() => setActivePillar('__life_maps__')} style={{ ...s.pillarCard, border: '2px solid #d9e7ff' }}>
+              <span style={{ fontSize: 28 }}>🕰️</span>
+              <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Life Chart Card</span>
+              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Before conception → legacy</span>
+            </button>
+          )}
+          {(!pillarFilter || 'belonging breadth responsibility circles bounty'.includes(pillarFilter.toLowerCase())) && (
+            <button onClick={() => setActivePillar('__life_maps__')} style={{ ...s.pillarCard, border: '2px solid #e4d8f5' }}>
+              <span style={{ fontSize: 28 }}>◎</span>
+              <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Breadth of Belonging</span>
+              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Responsibility widens outward</span>
+            </button>
+          )}
+        </div>
+
         {/* Development Pillars */}
         <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Development Pillars</h2>
         <input type="text" placeholder="🔍 Filter pillars..." value={pillarFilter} onChange={e => setPillarFilter(e.target.value)} className="pillar-filter" style={{ ...s.input, marginBottom: 12 }} />
@@ -428,6 +503,91 @@ export default function Profile() {
             </button>
           ))}
         </div>
+      </div>
+    )
+  }
+
+  // Life Maps view — visual dashboard cards, not development pillars
+  if (activePillar === '__life_maps__') {
+    const belonging = BELONGING_VARIANTS[belongingVariant]
+    return (
+      <div style={s.container}>
+        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
+          <span style={{ fontSize: 32 }}>🧭</span>
+          <div>
+            <h2 style={{ margin: 0 }}>Life Maps</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>Visual formation cards that frame the whole life and expanding responsibility.</p>
+          </div>
+        </div>
+
+        <section style={s.mapHeroCard}>
+          <div style={s.mapHeaderRow}>
+            <div>
+              <p style={s.learningEyebrow}>life_chart_card · visual_dashboard_card</p>
+              <h3 style={s.learningTitle}>Life Chart Card</h3>
+              <p style={s.learningText}>You came from a story that started before you. You are living your part of the story now. One day, others will inherit what you helped build, repair, protect, or damage.</p>
+            </div>
+            <span style={s.mapBadge}>Life overview</span>
+          </div>
+          <img
+            src="/reference_images/life_chart_card.png"
+            alt="Life Chart Card poster showing before conception, conception to birth, childhood and formation, adulthood and responsibility, death, and after death or legacy."
+            style={s.mapImage}
+          />
+          <div style={s.mapGrid}>
+            {LIFE_CHART_SECTIONS.map(section => (
+              <div key={section.title} style={s.mapMiniCard}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={s.mapNumber}>{section.number}</span>
+                  <strong style={{ fontSize: 13 }}>{section.title}</strong>
+                </div>
+                <p style={{ margin: '0 0 8px', fontSize: 12, color: '#4d5b6b', fontStyle: 'italic', lineHeight: 1.5 }}>{section.question}</p>
+                <p style={{ margin: 0, fontSize: 11, color: '#7a8795', lineHeight: 1.5 }}>{section.examples.join(' · ')}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={{ ...s.mapHeroCard, background: '#fbf8ff', borderColor: '#eadfff' }}>
+          <div style={s.mapHeaderRow}>
+            <div>
+              <p style={{ ...s.learningEyebrow, color: '#7a4ed4' }}>breadth_of_belonging · visual_board + bounty_series</p>
+              <h3 style={s.learningTitle}>Expanding Breadth of Belonging</h3>
+              <p style={s.learningText}>As our vision expands beyond the self, our responsibilities and sense of belonging widen.</p>
+            </div>
+            <span style={{ ...s.mapBadge, background: '#f1eaff', color: '#6c3fc4' }}>Formation bounties</span>
+          </div>
+
+          <div style={s.variantRow}>
+            {Object.entries(BELONGING_VARIANTS).map(([key, variant]) => (
+              <button key={key} onClick={() => setBelongingVariant(key)} style={belongingVariant === key ? s.variantActive : s.variantBtn}>{variant.label}</button>
+            ))}
+          </div>
+
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#555', fontWeight: 600 }}>{belonging.summary}</p>
+          <img src={belonging.image} alt={belonging.alt} style={s.mapImage} />
+
+          <div style={s.mapGrid}>
+            {belonging.rings.map(([ring, meaning], idx) => (
+              <div key={ring} style={s.mapMiniCard}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ ...s.mapNumber, background: '#efe7ff', color: '#6c3fc4' }}>{idx + 1}</span>
+                  <strong style={{ fontSize: 13 }}>{ring}</strong>
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: '#4d5b6b', lineHeight: 1.5 }}>{meaning}</p>
+              </div>
+            ))}
+          </div>
+
+          <details style={{ ...s.aboutDropdown, margin: '16px 0 0', background: '#fff', borderColor: '#eadfff' }}>
+            <summary style={s.aboutSummary}>💰 Bounty Series Template</summary>
+            <p style={{ margin: '0 0 8px', fontSize: 13, color: '#555', lineHeight: 1.6 }}>For each ring, create a fact sheet or family discussion entry. The bounty is complete when the child can explain both belonging and responsibility for that circle.</p>
+            <ul style={{ margin: '0 0 12px', paddingLeft: 18, fontSize: 13, color: '#444', lineHeight: 1.7 }}>
+              {BELONGING_BOUNTY_TEMPLATE.map(item => <li key={item}>{item}</li>)}
+            </ul>
+          </details>
+        </section>
       </div>
     )
   }
@@ -1043,6 +1203,16 @@ const s = {
   learningText: { margin: '0 0 8px', fontSize: 13, lineHeight: 1.6, color: '#34495e' },
   learningList: { margin: '8px 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.6, color: '#34495e' },
   learningSource: { margin: '10px 0 0', fontSize: 10, color: '#7f8c8d', fontStyle: 'italic' },
+  mapHeroCard: { marginBottom: 20, padding: 18, background: '#f7fbff', border: '1px solid #dcecff', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
+  mapHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 12 },
+  mapBadge: { fontSize: 11, padding: '4px 10px', borderRadius: 999, background: '#e8f2ff', color: '#3f6fa8', fontWeight: 700, whiteSpace: 'nowrap' },
+  mapImage: { width: '100%', maxHeight: 520, objectFit: 'contain', background: '#fff', border: '1px solid #d8e4f0', borderRadius: 12, marginBottom: 14 },
+  mapGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 },
+  mapMiniCard: { padding: 12, background: '#fff', border: '1px solid #edf1f5', borderRadius: 10 },
+  mapNumber: { width: 24, height: 24, borderRadius: '50%', background: '#e8f2ff', color: '#3f6fa8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 },
+  variantRow: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
+  variantBtn: { padding: '8px 14px', background: '#fff', border: '1px solid #ddd', borderRadius: 999, cursor: 'pointer', fontSize: 13, color: '#666', fontWeight: 600 },
+  variantActive: { padding: '8px 14px', background: '#6c3fc4', border: '1px solid #6c3fc4', borderRadius: 999, cursor: 'pointer', fontSize: 13, color: '#fff', fontWeight: 700 },
   tabRow: { display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #e8e8e8' },
   tab: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', borderBottom: '2px solid transparent', marginBottom: -2 },
   tabActive: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#4a90d9', fontWeight: 600, borderBottom: '2px solid #4a90d9', marginBottom: -2 },

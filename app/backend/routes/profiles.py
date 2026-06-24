@@ -8,14 +8,36 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin, require_admin_or_child
 from database import get_db
-from models import PillarEntry, Profile, ProfileAccess, User
+from models import Bounty, BountyTier, Pillar, PillarEntry, Profile, ProfileAccess, User
 from schemas import ProfileAccessCreate, ProfileCreate, ProfileResponse
-from seed_data import MILESTONES
+from seed_data import BOUNTIES, MILESTONES
 
 UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 router = APIRouter(prefix="/api/profiles", tags=["profiles"])
+
+
+def _seed_bounties(db: Session, profile_id: int) -> int:
+    """Add default seeded bounties that do not already exist for a profile."""
+    existing = {
+        (b.category, b.title)
+        for b in db.query(Bounty).filter(Bounty.profile_id == profile_id).all()
+    }
+    added = 0
+    for bounty in BOUNTIES:
+        key = (bounty.get("category"), bounty["title"])
+        if key in existing:
+            continue
+        data = bounty.copy()
+        if data.get("tier"):
+            data["tier"] = BountyTier(data["tier"])
+        if data.get("pillar"):
+            data["pillar"] = Pillar(data["pillar"])
+        db.add(Bounty(profile_id=profile_id, **data))
+        existing.add(key)
+        added += 1
+    return added
 
 
 def _get_accessible_profiles(user: User, db: Session) -> list[Profile]:
@@ -62,6 +84,8 @@ def create_profile(
             )
             db.add(entry)
 
+    _seed_bounties(db, profile.id)
+
     db.commit()
     db.refresh(profile)
     return profile
@@ -101,8 +125,14 @@ def reseed_milestones(
                 ))
                 added += 1
 
+    bounties_added = _seed_bounties(db, profile_id)
+
     db.commit()
-    return {"detail": f"Added {added} new milestones", "added": added}
+    return {
+        "detail": f"Added {added} new milestones and {bounties_added} new bounties",
+        "added": added,
+        "bounties_added": bounties_added,
+    }
 
 
 @router.get("/{profile_id}", response_model=ProfileResponse)

@@ -24,6 +24,55 @@ The child cannot complete the template by summarizing. They must **analyze**.
 
 ## Bounty Families
 
+### Life Cards & Belonging Maps
+
+Visual-map bounties that help the child understand where their life sits in time and where their responsibilities sit in relation to others.
+
+**Life Chart Card Reflection**
+
+The Life Chart Card itself is a dashboard-level visual map. Optional Formation Study bounties can ask the child to write or discuss one section at a time.
+
+Template fields:
+- Life section: Before Conception, Conception to Birth, Childhood & Formation, Adulthood & Responsibility, Death, or After Death / Legacy
+- What this section means in plain language
+- What I received, am receiving, or will be responsible for
+- One family story, historical example, or practical responsibility connected to this section
+- One question I should ask my parents, grandparents, mentors, priest/pastor, teacher, or future self
+- One-sentence lesson
+
+**Expanding Breadth of Belonging Fact Sheet**
+
+Each ring of the Breadth of Belonging chart can become a bounty.
+
+Religious ring sequence:
+
+```text
+Person → Family → Kin / Tribe → Parish → Local Community → Nation → Church → Humanity → God
+```
+
+Secular ring sequence:
+
+```text
+Person → Family → Kin / Tribe → Local Community → Civic Community → Nation → Civilization → Humanity → Truth / Meaning
+```
+
+Template fields:
+- Ring name and variant used (religious or secular)
+- What this circle means
+- What I receive from it
+- What I owe to it
+- What can corrupt it
+- What happens if it is neglected
+- One real example
+- One family discussion question
+- One-sentence lesson
+
+**Recommended bounty category:** `breadth_of_belonging`  
+**Recommended program:** Formation Study  
+**Reference doc:** `docs/19_life_cards_life_maps.md`
+
+---
+
 ### Civic Service Placements
 
 Experiential bounties where the child works within or shadows a civic or labor institution.
@@ -187,12 +236,25 @@ Tracking fields:
 These bounties live under the **Formation Study** program in the Programs & Economy section. They do not create new pillars. They use the existing bounty infrastructure (tiers, repeatable/one-time, decay, streaks) and cross-link to relevant pillars through milestone tagging.
 
 **Suggested tier assignments:**
+- Life Chart Card Reflections: Bronze+ (accessible as family discussion; can deepen with age)
+- Breadth of Belonging Rings: Bronze through Platinum+ (early rings are concrete; later rings require institutional and moral synthesis)
 - Civic Service Placements: Gold+ (requires demonstrated responsibility)
 - Book Studies: Silver+ (requires reading ability and analytical writing)
 - Video Breakdowns: Silver+ (requires critical thinking)
 - Moral Pattern Fact Sheets: Bronze+ (accessible at entry level, repeatable)
 - Institutional Case Studies: Gold+ (requires contextual knowledge)
 - Caregiving Simulations: Silver+ (requires physical responsibility)
+
+**Seeded Life Cards / Belonging reward schedule:**
+
+| Bounty family item | Tier | Base reward | Decay / reset |
+|---|---:|---:|---|
+| Life Chart section reflection | Bronze | $1.50 | halves; resets after 14 days |
+| Person / Family ring | Bronze | $1.00 | halves; resets after 14 days |
+| Kin / Parish / Local Community ring | Silver | $2.00 | halves; resets after 21 days |
+| Civic / Nation / Church ring | Gold | $3.00 | thirds; resets after 30 days |
+| Civilization / Humanity / God / Truth-Meaning ring | Platinum | $5.00 | thirds; resets after 45 days |
+| Whole-map teaching synthesis | Diamond | $8.00 | quarters; resets after 90 days |
 
 ---
 
@@ -202,5 +264,6 @@ This program complements but does not replace:
 - **Research Bounties** (saint/paradox/effect fact sheets) — those are narrower templates
 - **311 Civic Service** — that is municipal engagement; this includes broader institutional literacy
 - **Catholic Practices** — the deadly sins sheets connect but are not devotional practice
+- **Life Maps dashboard cards** — those are visual overviews; Formation Study bounties turn selected map sections and belonging rings into concrete learning tasks
 
 Formation Study Bounties are the "liberal arts laboratory" of the system — cross-cutting, analytical, and designed to produce a person who can read institutions, narratives, and moral patterns without being captured by any of them.

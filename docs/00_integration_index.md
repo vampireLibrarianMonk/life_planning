@@ -19,7 +19,9 @@ docs/
 ├── 12_inheritance_burden_stewardship.md
 ├── 13_catholic_sacramental_formation_domestic_church.md
 ├── 14_secular_sacred_formation_civilizational_literacy.md
-└── 14a_recidivism_forgiveness_forgetting_addendum.md
+├── 14a_recidivism_forgiveness_forgetting_addendum.md
+├── 18_formation_study_bounties.md
+└── 19_life_cards_life_maps.md
 ```
 
 ## Recommended New Pillars
@@ -124,6 +126,18 @@ Purpose:
 
 Teach that forgiveness, forgetting, and recidivism are related but distinct. Forgiveness does not mean amnesia. Remembering harm does not mean refusing mercy. Repeated harm requires pattern recognition and protection.
 
+### Life Cards & Life Maps
+
+Place in:
+
+```text
+docs/19_life_cards_life_maps.md
+```
+
+Purpose:
+
+Provide dashboard-level formation maps that frame the whole life arc and the widening circles of responsibility. The Life Chart Card shows where a life sits in time; the Expanding Breadth of Belonging chart shows where responsibilities sit in relation to others. The Breadth of Belonging ring work belongs under the Formation Study bounty program.
+
 ## Suggested Data Model Enhancements
 
 The current application can support these as ordinary pillar milestones and notes. Future enhancements may include structured records.
@@ -142,6 +156,8 @@ InheritanceLedgerEntry
 GenerationalBalanceSheetEntry
 SacramentRecord
 FormationEvent
+LifeCardReflection
+BelongingRingFactSheet
 TransmissionAuditNote
 SafetyAuthorityNote
 MoralRepairRecord

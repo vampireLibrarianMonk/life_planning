@@ -430,6 +430,124 @@ A society can use legal forms to protect unjust conduct. A criminal system can u
 
 ---
 
+## Social Need & Social Justice
+
+Beyond law and institutional mechanics, a mature citizen must understand that society has *needs* — and that justice requires more than individual virtue.
+
+Catholic Social Teaching names this clearly:
+
+> "The demands of the common good... include social justice." — *Catechism of the Catholic Church*, §1928
+
+The Church distinguishes between charity (giving from surplus) and justice (restructuring conditions so the need is met). Both matter. Neither replaces the other.
+
+### Core Concepts
+
+**Social Need** — A condition where human dignity requires something that is absent: housing, education, safety, medical care, honest work, community, belonging, the opportunity to contribute. A social need is not a wish. It is a gap between what dignity requires and what the system provides.
+
+> "Society ensures social justice when it provides the conditions that allow associations or individuals to obtain what is their due, according to their nature and their vocation." — *CCC* §1928
+
+**Social Justice** — The virtue that disposes persons and communities to pursue the common good, ensuring each person receives what is due to them by nature of their dignity.
+
+> "Society ensures social justice by respecting the dignity of the human person, whose defense and promotion have been entrusted to us by the Creator." — *CCC* §1929
+
+> "Respect for the human person proceeds by way of respect for the principle that 'everyone should look upon his neighbor (without any exception) as another self, above all bearing in mind his life and the means necessary for living it with dignity.'" — *CCC* §1931
+
+### Supporting Principles (CCC §§1939–1942)
+
+- **Solidarity** — We are responsible for one another. The comfortable may not ignore the destitute (§1940).
+- **Subsidiarity** — Problems should be solved at the most local level capable of solving them. Higher authority intervenes only when lower levels cannot (§1883).
+- **Common Good** — Conditions that allow persons and groups to reach their fulfillment (§1906).
+
+### What This Is Not
+
+This is **not** political activism as identity.
+
+The child does not learn to wear a cause as a personality. They learn to see a concrete deficit and act on it.
+
+This is **not** theoretical social commentary.
+
+The child does not write about what *someone else* should do, or what *society* ought to become in the abstract.
+
+The deliverable is: **What did you find missing? What did you actually do?**
+
+### The Fact Sheet Model
+
+The child identifies one concrete social need in their observable world — neighborhood, parish, school, town — and produces a progressive fact sheet:
+
+1. **What is the need?** (Describe what is missing or broken — with evidence, not opinion)
+2. **Who is affected?** (Name real people or populations you observed, not abstract categories)
+3. **What does the Church teach about this?** (Cite CCC or CST principle)
+4. **What did you do?** (Concrete action taken — not proposed, not planned, *done*)
+5. **What happened?** (Outcome — even if small, partial, or failed)
+6. **What did you learn?** (Reflection on the gap between intention and reality)
+
+The fact sheet is **repeatable with decay** — the child must find *different* needs each time. The reward diminishes to prevent farming easy observations. The reset period is long enough to require genuine new discovery.
+
+### Guardrails
+
+- Do not reward theoretical proposals. The child must have *acted*.
+- Do not reward virtue signaling. The action must address a real deficit, not perform concern.
+- Do not require the child to solve the problem. Require them to *engage* it concretely.
+- Do not politicize. A social need can be found across any political frame — homelessness, food insecurity, isolation of the elderly, educational gaps, unsafe conditions. The child picks what they observe, not what a party platform dictates.
+- Scale to age: a 7-year-old helping an elderly neighbor carry groceries after noticing she struggles is as valid as a 17-year-old organizing a parish food drive.
+
+### Cross-Reference
+
+- **Document 13** (Catholic Sacramental Formation) — "Catholic Social Teaching learned" milestone (age 13–18)
+- **Document 07** (Spiritual Warfare) — Solidarity, subsidiarity, common good as defense against ideological capture
+- **Discernment: Civics** — "What systems am I participating in?" becomes "What is this system failing to provide?"
+
+---
+
+## Jury Duty & Controversial Case Review
+
+A mature citizen must be able to review controversial cases without becoming a pundit, partisan actor, mob member, or automatic defender/destroyer of institutions.
+
+This civic extension places the child in the role of a careful juror reviewing a controversial case from the past. Examples may include self-defense cases, wrongful convictions, police use-of-force cases, civil rights cases, corruption trials, organized crime trials, press-freedom cases, public disorder cases, major appellate reversals, or any case where public narrative and courtroom record diverged.
+
+The exercise asks:
+
+- What was charged or claimed?
+- What did the law require?
+- What was the burden of proof?
+- What evidence was admitted?
+- What evidence was excluded or unavailable?
+- What did each side argue?
+- What did the jury or court decide?
+- What did the public think happened?
+- What did the courtroom record actually show?
+- What moral and institutional questions remain?
+
+The goal is not emotional detachment. The goal is disciplined fairness: the child learns to care deeply while still separating confirmed fact, allegation, admitted evidence, excluded evidence, official finding, public narrative, speculation, and personal reaction.
+
+### Bounty Placement
+
+In the app, this belongs under:
+
+```text
+Development Pillars
+└── Civic, Economic & Institutional Navigation
+    └── Civic Literacy Bounties
+        └── Jury Duty & Controversial Case Review
+
+Programs & Bounties
+└── Formation Study
+└── Summer Capstone Projects
+```
+
+The full version is a 4–8 week summer capstone requiring court-record source logging, legal-standard review, evidence charting, public narrative comparison, final reflection, and family presentation.
+
+### Guardrails
+
+- Do not teach mob judgment.
+- Do not teach automatic institutional distrust.
+- Do not teach automatic institutional trust.
+- Do not teach partisan identity.
+- Do not reward the "right opinion"; reward disciplined process.
+- Do not confuse a legal verdict with the final answer to every moral, cultural, or institutional question.
+
+---
+
 ## Institutional Stewardship
 
 The mature participant learns that healthy societies depend upon institutions.
@@ -499,6 +617,7 @@ The child should learn: **open wrongdoing is not automatically lawful, moral, or
 - Power of time: compound interest, skill development, institutional growth
 - Civic symbol literacy: first political cartoon — "What is this saying about power?"
 - Rules exist for reasons — cheating harms trust
+- Evidence versus rumor: simple case stories reviewed before judgment
 - Groups can pressure people to do wrong
 - Gifts can create obligation — the favor trap introduced
 - "Don't tell" pressure is a warning sign
@@ -510,6 +629,7 @@ The child should learn: **open wrongdoing is not automatically lawful, moral, or
 - Economic participation: shareholders, dividends, capital allocation
 - Ownership vs. employment: working for vs. owning productive assets
 - Civic symbol literacy: analyzes propaganda, ads, memes, speeches for power structures
+- Controversial case review: charges, evidence, verdict, and public narrative separated
 - "Who benefits if the crowd keeps moving?"
 - Institutional awareness: which institutions shape daily life beyond government?
 - Distributed influence: a crowd's participation sustains authority
@@ -528,6 +648,7 @@ The child should learn: **open wrongdoing is not automatically lawful, moral, or
 - Institutional criticism → stewardship: "how do I fix it?" not just "this is broken"
 - Can articulate how influence flows through any system they participate in
 - Civic symbol literacy: detects narrative framing in news, corporate messaging, political speech
+- Burden of proof and jury instructions understood as safeguards against mob judgment
 - Workplace ethics and conflicts of interest
 - Political-machine and patronage concepts understood
 - Recognizes how fraud and predatory opportunities are marketed
@@ -549,6 +670,7 @@ The child should learn: **open wrongdoing is not automatically lawful, moral, or
 - Supports accountability without mob behavior
 - Recognizes captured systems
 - Maintains evidence standards
+- Teaches fair-process case review to others without partisan reflex or shallow certainty
 - Refuses cynicism
 - Protects the vulnerable
 - Leaves cleaner institutions than were inherited
@@ -616,6 +738,7 @@ The child should become neither paranoid nor naïve — but clear-eyed, morally 
 - **Document 11a** (Lost Knowledge) — Institutional resistance and arrogance create space for both charlatans and actual corruption
 - **Document 12** (Inheritance & Stewardship) — Some families inherit criminal patterns, silence, compromised wealth, or civic damage
 - **Document 14a** (Recidivism/Forgiveness) — Repeated corruption is a pattern, not an isolated mistake. Memory protects the vulnerable
+- **Document 18** (Formation Study Bounties) — Jury Duty & Controversial Case Review turns civic evidence discipline into repeatable bounties and summer capstones
 - **Financial Pillar** — Teaches stewardship of resources; this pillar teaches how those resources participate in collective systems (and how money flow reveals corruption)
 - **Heritage Pillar** — Teaches inherited institutions and traditions; this pillar teaches how to maintain or build new ones
 - **Character Pillar** — Teaches ethical use of influence; this pillar teaches the mechanisms through which influence flows

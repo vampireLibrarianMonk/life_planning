@@ -59,4 +59,17 @@ PROGRAM_PHASES = {
         "platinum": "Civilization, Humanity & Highest Horizon",
         "diamond": "Synthesis & Teaching Others",
     },
+    "summer_capstone": {
+        "bronze": "Early Fairness Practice",
+        "silver": "Structured Source Finding",
+        "gold": "Evidence & Public Narrative Review",
+        "platinum": "Legal Standards & Full Record Review",
+        "diamond": "Capstone Presentation & Teaching",
+    },
+    "jury_case_review": {
+        "bronze": "Foundation: Fairness & Evidence",
+        "gold": "Analysis: Cases, Sources & Narrative",
+        "platinum": "Advanced: Legal Standards & Institutional Trust",
+        "diamond": "Capstone: Full Packet, Teaching & Named Cases",
+    },
 }

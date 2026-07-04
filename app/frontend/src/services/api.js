@@ -19,6 +19,14 @@ export async function createProfile(name, dateOfBirth) {
   return res.json()
 }
 
+export async function reseedProfile(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/reseed`, {
+    method: 'POST',
+    headers: headers(),
+  })
+  return res.json()
+}
+
 export async function fetchProfile(id) {
   const res = await fetch(`/api/profiles/${id}`, { headers: headers() })
   return res.json()

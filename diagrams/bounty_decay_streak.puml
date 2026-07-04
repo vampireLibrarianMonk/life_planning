@@ -25,10 +25,10 @@ rectangle "**Reset Period**" as reset #F0FFF0 {
   rw --> rf
 }
 
-rectangle "**Streak Bonus**" as streak #F0F0FF {
-  (4 weeks: 2× base bonus) as s4
-  (12 weeks: 5× base bonus) as s12
-  (52 weeks: 20× base bonus) as s52
+rectangle "**Streak Bonus (Applied to Payout)**" as streak #F0F0FF {
+  (4 consecutive: +2× base added) as s4
+  (12 consecutive: +5× base added) as s12
+  (52 consecutive: +20× base added) as s52
   (Miss a window: streak = 0) as s0
   s4 --> s12
   s12 --> s52
@@ -41,6 +41,7 @@ note bottom of decay
 end note
 
 note bottom of streak
+  Bonus is added to the decayed payout
   Rewards sustained consistency
   Firm rule: miss = reset to zero
 end note

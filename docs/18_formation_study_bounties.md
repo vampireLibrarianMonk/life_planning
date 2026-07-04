@@ -95,6 +95,83 @@ Template fields:
 
 ---
 
+### Jury Duty & Controversial Case Review
+
+Repeatable civic-literacy bounties where the child reviews a controversial court case as if serving as a careful juror. This is not a punditry exercise and not a way to teach the child which public opinion to hold. It teaches fair process when law, evidence, media, politics, public emotion, and moral judgment collide.
+
+**Recommended placement:** Civic pillar → Civic Literacy Bounties → Jury Duty & Controversial Case Review. Large versions also appear under **Summer Capstone Projects**.
+
+**Internal category:** `jury_case_review`  
+**Suggested bounty type:** `civic_literacy`  
+**Special classification:** `summer_capstone` for the 4–8 week version  
+**Repeat rule:** repeatable, including repeat review of the same case at an older maturity level  
+**Decay rule:** no decay; in the current seeded bounty model this is represented by `repeatable = 1`, `decay_divisor = 1`, and `reset_days = None`
+
+Core questions:
+- What was charged or claimed?
+- What did the law require?
+- What evidence was admitted?
+- What evidence was excluded or unavailable?
+- What did each side argue?
+- What did the jury or court decide?
+- What did the public think happened?
+- What did the courtroom record actually show?
+- What moral and institutional questions remain?
+
+Required evidence-discipline categories:
+- Confirmed fact
+- Allegation
+- Admitted evidence
+- Excluded evidence
+- Official finding
+- Public narrative
+- Speculation
+- Personal reaction
+
+Source reliability levels:
+1. Direct court record — docket, filing, order, transcript, jury instructions, exhibit, verdict form
+2. Official legal record — appellate opinion, sentencing memo, court press release, prosecutor/defense filing
+3. Verified primary material — full official trial video, hearing audio, admitted bodycam, official public records
+4. Serious secondary source — legal analysis, long-form journalism with documents, law review, court-focused reporting
+5. Public narrative / commentary — news clips, edited videos, podcasts, social media, memes, political framing
+
+Short seeded bounty statements:
+- **Fairness Story:** Read a simple case story and identify what evidence matters.
+- **Controversial Case Fact Sheet:** Identify charges, evidence, verdict, and civic lesson.
+- **Public Narrative vs. Court Record:** Compare public claims to what the courtroom record showed.
+- **Source Reliability Log:** Rank sources and identify what records are missing.
+- **Legal Standard & Jury Instructions:** Translate the relevant standard into plain language.
+- **Summer Capstone:** Produce a full packet and family presentation after 4–8 weeks of research.
+
+Full summer capstone outputs:
+1. Case summary
+2. Case timeline
+3. Charges or claims sheet
+4. Burden of proof explanation
+5. Legal elements sheet
+6. Evidence chart
+7. Witness credibility notes
+8. Source reliability log
+9. Full video / transcript availability report
+10. Public narrative versus courtroom record comparison
+11. Juror conclusion
+12. Moral questions remaining
+13. Institutional questions remaining
+14. Family presentation
+15. Final reflection
+
+Guardrails:
+- Do not teach mob judgment.
+- Do not teach automatic distrust of institutions.
+- Do not teach automatic trust in institutions.
+- Do not teach partisan identity.
+- Do not reward agreement with the parent; reward disciplined process.
+- Do not flatten legal and moral questions. A verdict answers a legal question but may not settle every moral or institutional concern.
+
+**Parent discussion prompts:** What did you think before reviewing the case? What changed after reviewing the record? What evidence mattered most? Did the public narrative match the courtroom record? Why does burden of proof matter? What would happen if crowds decided guilt instead of courts? What would happen if courts became immune from criticism? What remains unknown?
+
+---
+
 ### Book Study Fact Sheets
 
 Structured reading bounties for books that illuminate systems, community, power, or moral reasoning.
@@ -239,6 +316,7 @@ These bounties live under the **Formation Study** program in the Programs & Econ
 - Life Chart Card Reflections: Bronze+ (accessible as family discussion; can deepen with age)
 - Breadth of Belonging Rings: Bronze through Platinum+ (early rings are concrete; later rings require institutional and moral synthesis)
 - Civic Service Placements: Gold+ (requires demonstrated responsibility)
+- Jury Duty & Controversial Case Review: Bronze through Diamond (early fairness stories through full summer capstone)
 - Book Studies: Silver+ (requires reading ability and analytical writing)
 - Video Breakdowns: Silver+ (requires critical thinking)
 - Moral Pattern Fact Sheets: Bronze+ (accessible at entry level, repeatable)
@@ -255,6 +333,13 @@ These bounties live under the **Formation Study** program in the Programs & Econ
 | Civic / Nation / Church ring | Gold | $3.00 | thirds; resets after 30 days |
 | Civilization / Humanity / God / Truth-Meaning ring | Platinum | $5.00 | thirds; resets after 45 days |
 | Whole-map teaching synthesis | Diamond | $8.00 | quarters; resets after 90 days |
+| Jury fairness story | Bronze | $10.00 | no decay; repeatable |
+| Controversial case fact sheet | Gold | $50.00 | no decay; repeatable |
+| Public narrative vs. court record | Gold | $60.00 | no decay; repeatable |
+| Source reliability log | Platinum | $75.00 | no decay; repeatable |
+| Legal standard / jury instructions | Platinum | $100.00 | no decay; repeatable |
+| Jury Duty summer capstone | Diamond | $500.00 | no decay; repeatable |
+| Teach a family case discussion | Diamond | $150.00 | no decay; repeatable |
 
 ---
 
@@ -265,5 +350,6 @@ This program complements but does not replace:
 - **311 Civic Service** — that is municipal engagement; this includes broader institutional literacy
 - **Catholic Practices** — the deadly sins sheets connect but are not devotional practice
 - **Life Maps dashboard cards** — those are visual overviews; Formation Study bounties turn selected map sections and belonging rings into concrete learning tasks
+- **Civic, Economic & Institutional Navigation** — jury case review teaches court records, burden of proof, public narrative discipline, and institutional accountability without mob behavior
 
 Formation Study Bounties are the "liberal arts laboratory" of the system — cross-cutting, analytical, and designed to produce a person who can read institutions, narratives, and moral patterns without being captured by any of them.

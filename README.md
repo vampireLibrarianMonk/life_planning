@@ -1,6 +1,6 @@
 # Life Plan Tracker
 
-A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 7 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 493+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
+A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 9 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 531+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
 
 The dashboard answers one question: **"Is this child becoming a wise, capable, kind, and independent person?"**
 
@@ -106,7 +106,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 493 milestones across all 14 pillars from the planning documents
+3. The system automatically seeds 531 milestones and 95 bounties across all 14 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -117,14 +117,14 @@ After selecting a profile, you see:
 - **Roadmap** showing per-phase progress across all pillars with the current phase highlighted (accordion — tap to expand any phase)
 - **Core Metric** — the one question the whole system answers
 - **14 pillar cards** with progress bars showing completion percentage (filterable)
-- **Programs & Economy** — Bounty Board + Programs card (7 structured tracks)
-- **Discernment & Reflections** — 9 category cards (Health, Math, Science, Civics, Relationships, Faith, Tradition, Law, Network)
+- **Programs & Economy** — Bounty Board + Programs card (9 structured tracks)
+- **Discernment & Reflections** — 10 category cards (Health, Math, Science, Civics, Relationships, Faith, Tradition, Law, Network, Calling)
 
 ### Working with Pillars
 
 Click any pillar card to see:
 
-- **Milestones grouped by age band** (0–5, 6–12, 13–18, 18–25, 25–35)
+- **Milestones grouped by age band** (0–2, 2–3, 3–5, 6–12, 13–18, 18–25, 25–35)
 - **Status toggle** on each milestone (click to advance): ○ Not Started → ◔ Introduced → ◑ In Progress → ◕ Practicing → ● Complete → ★ Mastered
 - **✎ Edit button** to modify title or add notes to any milestone
 - **📎 Attachments button** to view images, videos, or documents attached to an entry
@@ -167,25 +167,34 @@ The 💵 Bounty Board has four sections:
 
 **🎁 Wishlist** — The child adds items they want to save toward. Each shows a progress bar based on total earnings vs. item cost. Status: 💭 Saving → 👍 Approved → ✓ Purchased.
 
+**Seeded Civic Fact Sheet Bounties** — Pre-loaded bounties under the Civic & Institutional pillar that progress from observation through structural action:
+
+- **Social Need Fact Sheet** (Bronze → Silver → Gold) — The child identifies a concrete social need in their observable world and documents what they actually did about it. Cites CCC §1928–§1942 (social justice, solidarity, subsidiarity, common good). Repeatable with decay (÷2–÷3) to prevent farming the same observation.
+- **Social Justice Fact Sheet** (Platinum → Diamond) — The child identifies a structural injustice, distinguishes charity (symptom relief) from justice (changing the condition), and engages the responsible institution or decision-maker. Requires sustained action and measurable outcomes — not proposals.
+
+Both enforce the same rule: **what you did, not what you could do.**
+
 ### Programs
 
-7 structured bounty tracks, each with phased progression and a completion reward:
+9 structured bounty tracks, each with phased progression and a completion reward:
 
 | Program | Phases | Completion Reward |
 |---------|--------|-------------------|
 | 🎖️ Military Preparation | 5 (Orientation → Decision) | $2,000 (Ironforged) |
 | ⛪ Catholic Practices | Weekly/Seasonal/Service | $2,000 (Legendary: 4×4×14×48) |
+| 🧠 Formation Study | Life Cards/Belonging/Books/Institutions | Per-bounty |
 | 💒 Marriage Prep (Catholic) | 4 (Discernment → Sacrament) | $10,000 (Covenant) |
 | 💍 Marriage Prep (Secular) | 4 (Self-Assessment → Commitment) | $10,000 (Covenant) |
 | 🚗 Earn Your Car | 4 (Literacy → Licensure) | Vehicle ($25K cap, Ooh Shiny) |
 | 💪 Physical Fitness | Assessments + Milestones | $500 (Platinum) |
 | 🏙️ 311 Civic Service | 4 (Awareness → Leadership) | $500 (Diamond) |
+| ⚖️ Jury Duty & Case Review | 4 (Fairness → Teaching) | Per-bounty |
 
 Programs close out upon completion — all bounties retire when the capstone is paid. Bounties within programs support prerequisites (bounties that must be completed before others unlock).
 
 ### Discernment & Reflections
 
-9 journal categories for the child's evolving understanding of fundamental domains:
+10 journal categories for the child's evolving understanding of fundamental domains:
 
 | Category | Question |
 |----------|----------|
@@ -239,6 +248,7 @@ life_plan/
 │   ├── 08_power_of_language.md
 │   ├── 09_dimensional_navigation.md
 │   ├── 10_civic_institutional_navigation.md
+│   ├── 10a_civic_unresolved_deaths_institutional_trust.md
 │   ├── 11_scientific_method_reality_testing.md
 │   ├── 11a_lost_knowledge_corruption_institutional_blindness.md
 │   ├── 12_inheritance_burden_stewardship.md
@@ -248,6 +258,11 @@ life_plan/
 │   ├── 15_financial_development_investment_literacy.md
 │   ├── 16_life_skills_practical_competence.md
 │   ├── 17_discernment.md
+│   ├── 18_formation_study_bounties.md
+│   ├── 19_life_cards_life_maps.md
+│   ├── 20_systems_collapse_maintenance_civilization.md
+│   ├── 21_grievance_reform_institutional_recidivism.md
+│   ├── 22_early_childhood_development_assessment.md
 │   └── IMPLEMENTATION_NOTES.md
 ├── diagrams/                        # PlantUML source + rendered PNGs
 │   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
@@ -268,20 +283,21 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 493 milestones from docs
+    │   ├── seed_data.py             # 531 milestones + 95 seeded bounties
     │   ├── research_topics.py       # Topic banks for saint/paradox/effect
-    │   ├── programs.py              # Program definitions (7 structured tracks)
+    │   ├── programs.py              # Program definitions (9 structured tracks)
     │   ├── program_phases.py        # Phase labels per program tier
     │   ├── requirements.txt
     │   ├── uploads/                 # User-uploaded event attachments (auto-created)
     │   └── routes/
     │       ├── users.py             # Auth + user management
-    │       ├── profiles.py          # Profile CRUD + milestone seeding
+    │       ├── profiles.py          # Profile CRUD + milestone seeding + backup
     │       ├── pillars.py           # Pillar entry CRUD
     │       ├── economy.py           # Behavior, bounties (repeatable + decay), wishlist, earnings
     │       ├── events.py            # Event attachments (upload, list, delete, serve)
     │       ├── docs.py              # Pillar guide content (filtered markdown from docs/)
-    │       └── discernment.py       # Discernment journal CRUD (9 categories)
+    │       ├── discernment.py       # Discernment journal CRUD (10 categories)
+    │       └── discernments.py      # Life-path discernments (career, vocation, education)
     └── frontend/
         ├── index.html
         ├── package.json
@@ -289,6 +305,9 @@ life_plan/
         └── src/
             ├── App.jsx
             ├── main.jsx
+            ├── components/
+            │   ├── AvatarCrop.jsx       # Circular avatar crop modal
+            │   └── MiniMarkdown.jsx     # Lightweight markdown renderer
             ├── services/
             │   ├── auth.js
             │   └── api.js

@@ -374,7 +374,9 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
             </select>
             <select value={bountyForm.age_band} onChange={e => setBountyForm({ ...bountyForm, age_band: e.target.value })} style={{ ...st.input, maxWidth: 110 }}>
               <option value="">Age band</option>
-              <option value="0-5">0–5</option>
+              <option value="0-2">0–2</option>
+              <option value="2-3">2–3</option>
+              <option value="3-5">3–5</option>
               <option value="6-12">6–12</option>
               <option value="13-18">13–18</option>
               <option value="18-25">18–25</option>
@@ -385,6 +387,10 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
               <option value="saint">Saint</option>
               <option value="paradox">Paradox</option>
               <option value="effect">Effect</option>
+              <option value="sin">Deadly Sin</option>
+              <option value="jury_case_review">Jury Case Review</option>
+              <option value="formation_study">Formation Study</option>
+              <option value="summer_capstone">Summer Capstone</option>
             </select>
             <input placeholder="Task title" value={bountyForm.title} onChange={e => setBountyForm({ ...bountyForm, title: e.target.value })} style={{ ...st.input, flex: 1 }} />
             <input placeholder="$ amount" type="number" step="0.25" min="0" value={bountyForm.reward_amount} onChange={e => setBountyForm({ ...bountyForm, reward_amount: e.target.value })} style={{ ...st.input, maxWidth: 100 }} />
@@ -457,7 +463,9 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                       </select>
                       <select value={editBountyForm.age_band} onChange={e => setEditBountyForm({ ...editBountyForm, age_band: e.target.value })} style={{ ...st.input, maxWidth: 100, margin: 0 }}>
                         <option value="">Age band</option>
-                        <option value="0-5">0–5</option>
+                        <option value="0-2">0–2</option>
+              <option value="2-3">2–3</option>
+              <option value="3-5">3–5</option>
                         <option value="6-12">6–12</option>
                         <option value="13-18">13–18</option>
                         <option value="18-25">18–25</option>

@@ -95,13 +95,15 @@ def _compute_current_reward(bounty):
 
 
 def _compute_streak_bonus(bounty):
-    """Calculate streak bonus. 4=2x, 12=5x, 52=20x base reward."""
+    """Calculate streak bonus (additional reward on next completion). 4=2x, 12=5x, 52=20x base reward."""
     streak = bounty.streak_count or 0
-    if streak >= 52:
+    # The bonus applies on the NEXT completion (current streak + 1)
+    next_streak = streak + 1
+    if next_streak >= 52:
         return bounty.reward_amount * 20
-    if streak >= 12:
+    if next_streak >= 12:
         return bounty.reward_amount * 5
-    if streak >= 4:
+    if next_streak >= 4:
         return bounty.reward_amount * 2
     return 0
 
@@ -383,19 +385,51 @@ def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = 
 
 @router.get("/earnings")
 def earnings_summary(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    """Summary of earned money from completed bounties."""
+    """Summary of earned money from completed bounties.
+
+    For repeatable bounties (which reset to 'available' after payout), earnings are
+    reconstructed from times_completed and the decay series.  Streak bonuses (2× at 4,
+    5× at 12, 20× at 52) are applied as additional payouts on the Nth completion.
+    """
     bounties = db.query(Bounty).filter(Bounty.profile_id == profile_id).all()
-    completed = [b for b in bounties if b.status in ("complete", "paid")]
-    total_cents = sum(b.reward_amount for b in completed)
-    paid = sum(b.reward_amount for b in bounties if b.status == "paid")
-    unpaid = total_cents - paid
+
+    total_cents = 0
+    paid_cents = 0
+    pending_cents = 0
+    completed_count = 0
+
+    for b in bounties:
+        if b.repeatable and (b.times_completed or 0) > 0:
+            # Reconstruct what was earned across all completions (including decay)
+            divisor = b.decay_divisor or 2
+            for i in range(b.times_completed):
+                base = max(1, b.reward_amount // (divisor ** i))
+                # Streak bonus: +2× base at streak 4, +5× at 12, +20× at 52
+                streak_at = i + 1  # streaks count from 1
+                if streak_at >= 52:
+                    base += b.reward_amount * 20
+                elif streak_at >= 12:
+                    base += b.reward_amount * 5
+                elif streak_at >= 4:
+                    base += b.reward_amount * 2
+                total_cents += base
+            paid_cents += total_cents  # repeatable bounties are paid immediately
+            completed_count += b.times_completed
+        elif b.status == "paid":
+            total_cents += b.reward_amount
+            paid_cents += b.reward_amount
+            completed_count += 1
+        elif b.status == "complete":
+            total_cents += b.reward_amount
+            pending_cents += b.reward_amount
+            completed_count += 1
 
     return {
         "total_earned_cents": total_cents,
         "total_earned": f"${total_cents / 100:.2f}",
-        "paid_out": f"${paid / 100:.2f}",
-        "pending_payout": f"${unpaid / 100:.2f}",
-        "bounties_completed": len(completed),
+        "paid_out": f"${paid_cents / 100:.2f}",
+        "pending_payout": f"${pending_cents / 100:.2f}",
+        "bounties_completed": completed_count,
         "bounties_available": len([b for b in bounties if b.status == "available"]),
     }
 

@@ -138,6 +138,20 @@ Purpose:
 
 Provide dashboard-level formation maps that frame the whole life arc and the widening circles of responsibility. The Life Chart Card shows where a life sits in time; the Expanding Breadth of Belonging chart shows where responsibilities sit in relation to others. The Breadth of Belonging ring work belongs under the Formation Study bounty program.
 
+### Jury Duty & Controversial Case Review
+
+Attach to:
+
+```text
+civic_economic_navigation
+formation_study
+summer_capstone
+```
+
+Purpose:
+
+Create repeatable civic-literacy bounties where the child reviews controversial court cases with juror discipline: charges, burden of proof, admitted evidence, excluded evidence, public narrative, courtroom record, verdict, moral questions, institutional questions, and family presentation. This should be seeded as no-decay repeatable bounties under `jury_case_review`, with the full 4–8 week version also surfaced through Summer Capstone Projects.
+
 ## Suggested Data Model Enhancements
 
 The current application can support these as ordinary pillar milestones and notes. Future enhancements may include structured records.
@@ -158,6 +172,9 @@ SacramentRecord
 FormationEvent
 LifeCardReflection
 BelongingRingFactSheet
+JuryCaseReview
+CaseSourceLog
+TrialVideoCompletenessNote
 TransmissionAuditNote
 SafetyAuthorityNote
 MoralRepairRecord

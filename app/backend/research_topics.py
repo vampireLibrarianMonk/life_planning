@@ -1,4 +1,4 @@
-"""Topic banks for research bounties (saint, paradox, effect)."""
+"""Topic banks for research bounties and structured formation bounties."""
 
 RESEARCH_TOPICS = {
     "saint": [
@@ -55,5 +55,19 @@ RESEARCH_TOPICS = {
         "Gluttony (Gula) — opposed by Temperance",
         "Wrath (Ira) — opposed by Patience",
         "Sloth (Acedia) — opposed by Diligence",
+    ],
+    "jury_case_review": [
+        "Basic case fairness story",
+        "Self-defense case review",
+        "Wrongful conviction case review",
+        "Police use-of-force case review",
+        "Civil rights case review",
+        "Corruption trial review",
+        "Organized crime trial review",
+        "Press-freedom case review",
+        "Public disorder or riot case review",
+        "High-profile murder trial review",
+        "Major appellate reversal review",
+        "Media narrative versus court record review",
     ],
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, reseedProfile, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import Economy from './Economy'
@@ -108,6 +108,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(null) // entry id being edited
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
+  const [editStatus, setEditStatus] = useState('')
   const [showEventForm, setShowEventForm] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
   const [eventContent, setEventContent] = useState('')
@@ -184,7 +185,7 @@ export default function Profile() {
       title: formTitle.trim(),
       content: formContent.trim() || null,
       age_band: formAgeBand || null,
-      category: formAgeBand ? ({'0-5':'Foundation','6-12':'Exploration','13-18':'Formation','18-25':'Launch','25-35':'Stewardship'}[formAgeBand] || null) : null,
+      category: formAgeBand ? ({'0-2':'Foundation','2-3':'Foundation','3-5':'Foundation','6-12':'Exploration','13-18':'Formation','18-25':'Launch','25-35':'Stewardship'}[formAgeBand] || null) : null,
       entry_type: 'milestone',
       is_milestone: 1,
     })
@@ -206,14 +207,15 @@ export default function Profile() {
     setEditing(entry.id)
     setEditTitle(entry.title)
     setEditContent(entry.content || '')
+    setEditStatus(entry.status)
   }
 
-  const cancelEdit = () => { setEditing(null); setEditTitle(''); setEditContent('') }
+  const cancelEdit = () => { setEditing(null); setEditTitle(''); setEditContent(''); setEditStatus('') }
 
   const saveEdit = async (entryId) => {
     if (!editTitle.trim()) return
-    await updateEntry(id, entryId, { title: editTitle.trim(), content: editContent.trim() || null })
-    cancelEdit(); loadEntries()
+    await updateEntry(id, entryId, { title: editTitle.trim(), content: editContent.trim() || null, status: editStatus })
+    cancelEdit(); loadEntries(); loadCounts()
   }
 
   const handleAddEvent = async (e) => {
@@ -225,7 +227,7 @@ export default function Profile() {
       title: eventTitle.trim(),
       content: eventContent.trim() || null,
       age_band: eventAgeBand || null,
-      category: eventAgeBand ? ({'0-5':'Foundation','6-12':'Exploration','13-18':'Formation','18-25':'Launch','25-35':'Stewardship'}[eventAgeBand] || null) : null,
+      category: eventAgeBand ? ({'0-2':'Foundation','2-3':'Foundation','3-5':'Foundation','6-12':'Exploration','13-18':'Formation','18-25':'Launch','25-35':'Stewardship'}[eventAgeBand] || null) : null,
       is_milestone: 0,
     })
     // Upload files if any
@@ -287,6 +289,17 @@ export default function Profile() {
     setShowPillarBountyForm(false)
     setPBountyForm({ tier: 'bronze', title: '', description: '', reward_amount: '', age_band: '' })
     fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
+  }
+
+  const handleReseedProfile = async () => {
+    const result = await reseedProfile(id)
+    loadEntries()
+    loadCounts()
+    fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d))
+    if (activePillar && !isSpecialView(activePillar)) {
+      fetchBounties(id, activePillar).then(d => Array.isArray(d) && setPillarBounties(d))
+    }
+    if (result?.detail) alert(result.detail)
   }
 
   const cyclePillarBountyStatus = async (b) => {
@@ -370,6 +383,7 @@ export default function Profile() {
         <div className="roadmap-container" style={s.roadmap}>
           {['0-5','6-12','13-18','18-25','25-35'].map((band, i) => {
             const labels = { '0-5': 'Foundation', '6-12': 'Exploration', '13-18': 'Formation', '18-25': 'Launch', '25-35': 'Consolidation' }
+            const bandGroups = { '0-5': ['0-2','2-3','3-5'], '6-12': ['6-12'], '13-18': ['13-18'], '18-25': ['18-25'], '25-35': ['25-35'] }
             const isCurrentBand = age !== null && (
               (band === '0-5' && age <= 5) || (band === '6-12' && age >= 6 && age <= 12) ||
               (band === '13-18' && age >= 13 && age <= 18) || (band === '18-25' && age >= 18 && age <= 25) ||
@@ -386,7 +400,7 @@ export default function Profile() {
                 </summary>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, paddingLeft: 24 }}>
                   {PILLARS.map(p => {
-                    const pillarEntries = allRaw.filter(e => e.pillar === p.key && e.age_band === band && e.is_milestone)
+                    const pillarEntries = allRaw.filter(e => e.pillar === p.key && bandGroups[band].includes(e.age_band) && e.is_milestone)
                     const done = pillarEntries.filter(e => e.status === 'complete' || e.status === 'mastered').length
                     const total = pillarEntries.length
                     if (!total) return null
@@ -408,14 +422,14 @@ export default function Profile() {
         <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Life Maps</h2>
         <div className="pillar-grid-desktop">
           {(!pillarFilter || 'life chart legacy timeline map'.includes(pillarFilter.toLowerCase())) && (
-            <button onClick={() => setActivePillar('__life_maps__')} style={{ ...s.pillarCard, border: '2px solid #d9e7ff' }}>
+            <button onClick={() => setActivePillar('__life_chart__')} style={{ ...s.pillarCard, border: '2px solid #d9e7ff' }}>
               <span style={{ fontSize: 28 }}>🕰️</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Life Chart Card</span>
               <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Before conception → legacy</span>
             </button>
           )}
           {(!pillarFilter || 'belonging breadth responsibility circles bounty'.includes(pillarFilter.toLowerCase())) && (
-            <button onClick={() => setActivePillar('__life_maps__')} style={{ ...s.pillarCard, border: '2px solid #e4d8f5' }}>
+            <button onClick={() => setActivePillar('__belonging__')} style={{ ...s.pillarCard, border: '2px solid #e4d8f5' }}>
               <span style={{ fontSize: 28 }}>◎</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Breadth of Belonging</span>
               <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Responsibility widens outward</span>
@@ -508,16 +522,15 @@ export default function Profile() {
   }
 
   // Life Maps view — visual dashboard cards, not development pillars
-  if (activePillar === '__life_maps__') {
-    const belonging = BELONGING_VARIANTS[belongingVariant]
+  if (activePillar === '__life_chart__') {
     return (
       <div style={s.container}>
         <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
-          <span style={{ fontSize: 32 }}>🧭</span>
+          <span style={{ fontSize: 32 }}>🕰️</span>
           <div>
-            <h2 style={{ margin: 0 }}>Life Maps</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>Visual formation cards that frame the whole life and expanding responsibility.</p>
+            <h2 style={{ margin: 0 }}>Life Chart Card</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>You came from a story that started before you. You are living your part now. One day, others will inherit what you helped build, repair, protect, or damage.</p>
           </div>
         </div>
 
@@ -548,6 +561,22 @@ export default function Profile() {
             ))}
           </div>
         </section>
+      </div>
+    )
+  }
+
+  if (activePillar === '__belonging__') {
+    const belonging = BELONGING_VARIANTS[belongingVariant]
+    return (
+      <div style={s.container}>
+        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
+          <span style={{ fontSize: 32 }}>◎</span>
+          <div>
+            <h2 style={{ margin: 0 }}>Expanding Breadth of Belonging</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>As our vision expands beyond the self, our responsibilities and sense of belonging widen.</p>
+          </div>
+        </div>
 
         <section style={{ ...s.mapHeroCard, background: '#fbf8ff', borderColor: '#eadfff' }}>
           <div style={s.mapHeaderRow}>
@@ -631,7 +660,7 @@ export default function Profile() {
                       <option value="available">Available</option><option value="claimed">Claimed</option><option value="complete">Complete</option><option value="paid">Paid</option><option value="retired">Retired</option>
                     </select>
                     <select value={editPBForm.age_band} onChange={e => setEditPBForm({ ...editPBForm, age_band: e.target.value })} style={{ ...s.input, maxWidth: 100, margin: 0 }}>
-                      <option value="">Age band</option><option value="0-5">0–5</option><option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
+                      <option value="">Age band</option><option value="0-2">0–2</option><option value="2-3">2–3</option><option value="3-5">3–5</option><option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
                     </select>
                     <input value={editPBForm.reward_amount} onChange={e => setEditPBForm({ ...editPBForm, reward_amount: e.target.value })} type="number" step="0.25" min="0" placeholder="$" style={{ ...s.input, maxWidth: 80, margin: 0 }} />
                   </div>
@@ -847,7 +876,7 @@ export default function Profile() {
 
   const grouped = {}
   milestones.forEach(m => { const band = m.age_band || 'Other'; if (!grouped[band]) grouped[band] = []; grouped[band].push(m) })
-  const bandOrder = ['0-5', '6-12', '13-18', '18-25', '25-35', 'Other']
+  const bandOrder = ['0-2', '2-3', '3-5', '6-12', '13-18', '18-25', '25-35', 'Other']
 
   const renderItem = (item, showDelete = true, isChild = false) => {
     if (editing === item.id) {
@@ -855,6 +884,14 @@ export default function Profile() {
         <div key={item.id} style={{ ...s.milestone, flexDirection: 'column', alignItems: 'stretch', borderLeft: `3px solid ${STATUS_COLORS[item.status]}` }}>
           <input value={editTitle} onChange={e => setEditTitle(e.target.value)} style={s.input} />
           <textarea value={editContent} onChange={e => setEditContent(e.target.value)} placeholder="Notes/observations..." style={{ ...s.input, minHeight: 50, resize: 'vertical', marginTop: 8 }} />
+          <select value={editStatus} onChange={e => setEditStatus(e.target.value)} style={{ ...s.input, marginTop: 8, maxWidth: 180 }}>
+            <option value="not_started">Not Started</option>
+            <option value="introduced">Introduced</option>
+            <option value="in_progress">In Progress</option>
+            <option value="practicing">Practicing</option>
+            <option value="complete">Complete</option>
+            <option value="mastered">Mastered</option>
+          </select>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button onClick={() => saveEdit(item.id)} style={s.submitBtn}>Save</button>
             <button onClick={cancelEdit} style={s.cancelBtn}>Cancel</button>
@@ -1049,7 +1086,8 @@ export default function Profile() {
 
       {pillarTab === 'bounties' && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
+            <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#6c7a89' }} title="Add any newly seeded milestones and bounties to this existing profile">Sync Seeded Bounties</button>
             <button onClick={() => setShowPillarBountyForm(!showPillarBountyForm)} style={s.addBtn}>{showPillarBountyForm ? 'Cancel' : '+ New Bounty'}</button>
           </div>
           {showPillarBountyForm && (
@@ -1060,10 +1098,13 @@ export default function Profile() {
                   <option value="silver">Silver</option>
                   <option value="gold">Gold</option>
                   <option value="platinum">Platinum</option>
+                  <option value="diamond">Diamond</option>
                 </select>
                 <select value={pBountyForm.age_band} onChange={e => setPBountyForm({ ...pBountyForm, age_band: e.target.value })} style={{ ...s.input, maxWidth: 110 }}>
                   <option value="">Age band</option>
-                  <option value="0-5">0–5</option>
+                  <option value="0-2">0–2</option>
+                  <option value="2-3">2–3</option>
+                  <option value="3-5">3–5</option>
                   <option value="6-12">6–12</option>
                   <option value="13-18">13–18</option>
                   <option value="18-25">18–25</option>
@@ -1088,10 +1129,10 @@ export default function Profile() {
                       <option value="available">Available</option><option value="claimed">Claimed</option><option value="complete">Complete</option><option value="paid">Paid</option>
                     </select>
                     <select value={editPBForm.tier} onChange={e => setEditPBForm({ ...editPBForm, tier: e.target.value })} style={{ ...s.input, maxWidth: 110, margin: 0 }}>
-                      <option value="bronze">Bronze</option><option value="silver">Silver</option><option value="gold">Gold</option><option value="platinum">Platinum</option>
+                      <option value="bronze">Bronze</option><option value="silver">Silver</option><option value="gold">Gold</option><option value="platinum">Platinum</option><option value="diamond">Diamond</option>
                     </select>
                     <select value={editPBForm.age_band} onChange={e => setEditPBForm({ ...editPBForm, age_band: e.target.value })} style={{ ...s.input, maxWidth: 100, margin: 0 }}>
-                      <option value="">Age band</option><option value="0-5">0–5</option><option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
+                      <option value="">Age band</option><option value="0-2">0–2</option><option value="2-3">2–3</option><option value="3-5">3–5</option><option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
                     </select>
                     <input value={editPBForm.reward_amount} onChange={e => setEditPBForm({ ...editPBForm, reward_amount: e.target.value })} type="number" step="0.25" min="0" placeholder="$" style={{ ...s.input, maxWidth: 80, margin: 0 }} />
                   </div>
@@ -1115,7 +1156,7 @@ export default function Profile() {
                     {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄 ×{b.times_completed}</span> : null}
                     {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{b.description}</p>}
                   </div>
-                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#888','gold':'#b8860b','platinum':'#4a90d9'}[b.tier] }}>{b.tier}</span>
+                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff','diamond':'#effcff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#888','gold':'#b8860b','platinum':'#4a90d9','diamond':'#0088aa'}[b.tier] }}>{b.tier}</span>
                   {b.age_band && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f0f4ff', color: '#4a90d9' }}>{b.age_band}</span>}
                   <span style={{ fontWeight: 600, fontSize: 14 }}>${((b.current_reward ?? b.reward_amount) / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 10, color: '#999', textDecoration: 'line-through', marginLeft: 4 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
                   <button onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#aaa' }} title="Edit">✎</button>
@@ -1137,7 +1178,9 @@ export default function Profile() {
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <select value={formAgeBand} onChange={e => setFormAgeBand(e.target.value)} style={{ ...s.input, maxWidth: 140 }}>
               <option value="">Age band...</option>
-              <option value="0-5">0–5</option>
+              <option value="0-2">0–2</option>
+              <option value="2-3">2–3</option>
+              <option value="3-5">3–5</option>
               <option value="6-12">6–12</option>
               <option value="13-18">13–18</option>
               <option value="18-25">18–25</option>

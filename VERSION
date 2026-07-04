@@ -1,4 +1,4 @@
-0.4.0
+0.5.0
 
 # Life Plan Tracker Version Ledger
 
@@ -17,36 +17,44 @@
 
 ## Current Semantic Version Decision
 
-**Current version:** `0.4.0`
+**Current version:** `0.5.0`
 
-**Basis:** The previously tracked application version in `SBOM.md` was `0.3.0`. The current repository state adds backward-compatible product capabilities rather than an incompatible API or deployment rewrite, so the appropriate bump is a **minor** release: `0.3.0` → `0.4.0`.
+**Basis:** The previously tracked version was `0.4.0`. The current release adds substantial backward-compatible features:
 
-**Release summary:**
+- All 9 programs fully seeded with bounties (was 2 of 9 populated)
+- Bounty count: 18 → 95
+- 3 new bounty tracks from planning documents (systems_maintenance, civic_literacy, unresolved_case_review)
+- 10 "Earn While You Learn" discernment bounties
+- Social Need & Social Justice fact sheet bounties with CCC citations
+- Streak bonuses now applied to actual earnings (was informational only)
+- Readonly role enforcement at API level
+- Database backup endpoint
+- `discernments.py` route mounted (was dead code)
+- Life Chart and Breadth of Belonging split into separate views
+- 2 new planning documents (docs 20, 21) integrated
+- `later_inclusion/` folder cleared — all content integrated
+- PlantUML diagrams updated (programs, pillars, tiers, decay/streak)
+- README fully synchronized with application state
 
-- Adds a tenth discernment category, `calling`, across backend metadata and frontend profile views.
-- Links discernment categories to clearer "Earn While You Learn" reflection bounties.
-- Adds bounty prerequisite support so program tasks can depend on prior paid or completed bounty work.
-- Adds program phase labels and tier-based program bounty ordering.
-- Refines structured program scope from 8 to 7 tracks and moves research-style work into topic-linked bounty flows.
-- Expands research topics with a `sin` topic bank.
-- Updates README and SBOM metadata to reflect the current feature set and dependency inventory.
-
-**SemVer classification:** `MINOR` because these changes add features and workflow structure while preserving the existing application line. If a future release introduces incompatible database migrations, removes API fields, or changes deployment/runtime assumptions, that release SHOULD be evaluated as a `MAJOR` bump.
+**SemVer classification:** `MINOR` — these changes add features and content while preserving the existing data model, API contract, and deployment model. No migrations required; existing databases work unchanged via the reseed mechanism.
 
 ## Commit History Summary
 
 | Date-Time Group | Commit | Summary |
 |---|---:|---|
-| 2026-06-03T22:43:18-04:00 | `7e83a32` | Initial project scaffolding for the Life Plan Tracker application. |
-| 2026-06-03T22:53:05-04:00 | `08744d3` | Refined the lifetime development framework and supporting diagrams. |
-| 2026-06-03T22:54:58-04:00 | `9377fc7` | Updated README with setup and run instructions. |
-| 2026-06-04T22:21:50-04:00 | `be4ca03` | Added the dimensional thinking and life navigation pillar. |
-| 2026-06-05T22:22:52-04:00 | `92ca03d` | Added event attachments and expanded milestone detail handling. |
-| 2026-06-06T23:03:28-04:00 | `6968faf` | Added avatar upload and cropping functionality. |
-| 2026-06-10T00:03:29-04:00 | `1ffe125` | Added the civic and institutional navigation pillar. |
-| 2026-06-11T09:50:23-04:00 | `da0a2c3` | Implemented new pillars and addenda for lifetime development tracking. |
-| 2026-06-11T23:04:45-04:00 | `05810d2` | Added structured bounty program definitions and research topic banks. |
-| 2026-06-12T23:24:47-04:00 | `b1a0be6` | Added civic literacy bounties and power-transfer tracking. |
-| 2026-06-14T23:03:35-04:00 | `d68e113` | Updated PlantUML diagram coverage for the 14 development pillars. |
-| 2026-06-15T23:13:23-04:00 | `82ceb87` | Added discernment journals and reflections across fundamental domains. |
-| 2026-06-17T23:20:07-04:00 | `43e81de` | Added wishlist support and updated program diagrams. |
+| 2026-06-03T22:43:18-04:00 | `7e83a32` | Initial project scaffolding for life plan tracker. |
+| 2026-06-03T22:53:05-04:00 | `08744d3` | Refine lifetime development framework and diagrams. |
+| 2026-06-03T22:54:58-04:00 | `9377fc7` | Update README with app setup and run instructions. |
+| 2026-06-04T22:21:50-04:00 | `be4ca03` | Add dimensional thinking and life navigation pillar. |
+| 2026-06-05T22:22:52-04:00 | `92ca03d` | Add event attachments and expand milestone details. |
+| 2026-06-06T23:03:28-04:00 | `6968faf` | Add avatar upload and cropping functionality. |
+| 2026-06-10T00:03:29-04:00 | `1ffe125` | Add civic and institutional navigation pillar. |
+| 2026-06-11T09:50:23-04:00 | `da0a2c3` | Implement new pillars and addenda for lifetime development tracking. |
+| 2026-06-11T23:04:45-04:00 | `05810d2` | Add programs and research topics for structured bounty tracks. |
+| 2026-06-12T23:24:47-04:00 | `b1a0be6` | Add civic literacy bounties and power-transfer tracking. |
+| 2026-06-14T23:03:35-04:00 | `d68e113` | Update PlantUML diagram for 14 development pillars. |
+| 2026-06-15T23:13:23-04:00 | `82ceb87` | Add discernment journals and reflections on fundamental domains. |
+| 2026-06-17T23:20:07-04:00 | `43e81de` | Add wishlist feature and update program diagrams. |
+| 2026-06-22T21:18:06-04:00 | `c9d1408` | Add calling category, prerequisites, program phases, formation study bounties, LICENSE. |
+| 2026-06-23T22:54:16-04:00 | `777d65d` | Add formation study phases and bounty seeding logic. |
+| 2026-07-04T09:16:15-04:00 | `0a63d2e` | v0.5.0: Full program seeding (95 bounties), early childhood sub-bands (0–2/2–3/3–5), civic fact sheets (CCC §1928–§1942), 10 discernment bounties, streak bonus applied, readonly enforcement, backup endpoint, Life Maps split, 4 new docs (10a, 20–22), PlantUML diagrams updated. |

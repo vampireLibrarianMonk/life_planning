@@ -31,6 +31,7 @@ Thumbs.db
 # Original planning notes (private)
 raw.txt
 IMG_*.jpeg
+later_inclusion/
 
 # Secrets
 .env

@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from database import Base, engine
 from models import User
 from auth import hash_password
-from routes import users, profiles, pillars, economy, events, docs, discernment
+from routes import users, profiles, pillars, economy, events, docs, discernment, discernments
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -33,6 +33,7 @@ app.include_router(events.router)
 app.include_router(events.file_router)
 app.include_router(docs.router)
 app.include_router(discernment.router)
+app.include_router(discernments.router)
 
 
 @app.on_event("startup")

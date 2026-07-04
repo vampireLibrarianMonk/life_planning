@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth import get_current_user
+from auth import get_current_user, require_admin_or_child
 from database import get_db
 from models import DiscernmentJournal, User
 
@@ -66,7 +66,7 @@ def list_entries(profile_id: int, category: str | None = None, db: Session = Dep
 
 
 @router.post("/", status_code=201)
-def create_entry(profile_id: int, req: JournalCreate, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def create_entry(profile_id: int, req: JournalCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
     """Create a new discernment journal entry."""
     if req.category not in CATEGORIES:
         raise HTTPException(status_code=400, detail=f"Invalid category. Must be one of: {CATEGORIES}")
@@ -78,7 +78,7 @@ def create_entry(profile_id: int, req: JournalCreate, db: Session = Depends(get_
 
 
 @router.patch("/{entry_id}")
-def update_entry(profile_id: int, entry_id: int, req: JournalUpdate, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def update_entry(profile_id: int, entry_id: int, req: JournalUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
     """Update a discernment journal entry."""
     entry = db.query(DiscernmentJournal).filter(DiscernmentJournal.id == entry_id, DiscernmentJournal.profile_id == profile_id).first()
     if not entry:
@@ -91,7 +91,7 @@ def update_entry(profile_id: int, entry_id: int, req: JournalUpdate, db: Session
 
 
 @router.delete("/{entry_id}", status_code=204)
-def delete_entry(profile_id: int, entry_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def delete_entry(profile_id: int, entry_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
     """Delete a discernment journal entry."""
     entry = db.query(DiscernmentJournal).filter(DiscernmentJournal.id == entry_id, DiscernmentJournal.profile_id == profile_id).first()
     if not entry:

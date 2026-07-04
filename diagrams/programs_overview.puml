@@ -3,7 +3,7 @@
 skinparam backgroundColor #FEFEFE
 skinparam defaultFontSize 11
 
-title Programs & Structured Tracks (8)
+title Programs & Structured Tracks (9)
 
 package "Programs" {
   rectangle "🎖️ Military Preparation" as mil #F5F5F5 {
@@ -19,31 +19,29 @@ package "Programs" {
   }
 
   rectangle "⛪ Catholic Practices" as cath #F5F5FF {
-    (Weekly: Mass, Confession, Fast, Prayer) as cw
-    (Periodic: Rosary, Stations, Adoration) as cp
-    (Service: Altar, Mercy, Retreat) as cs
-    (Legendary: 4×4×14×48) as cl
+    (Weekly: Mass, Confession, Prayer) as cw
+    (Periodic: Season, Saints, CST) as cp
+    (Service: Mercy, Formation) as cs
+    (Legendary: 48 Consecutive Weeks) as cl
     cw --> cp
     cp --> cs
     cs --> cl
   }
 
-  rectangle "📚 Research Bounties" as res #FFFFF5 {
-    (Design Templates) as rt
-    (Saint Fact Sheets) as rs
-    (Paradox Fact Sheets) as rp
-    (Effect Fact Sheets) as re
-    rt --> rs
-    rt --> rp
-    rt --> re
+  rectangle "🧠 Formation Study" as form #FFFFF5 {
+    (Life Cards & Belonging Maps) as fl
+    (Systems Maintenance) as fs
+    (Breadth of Belonging) as fb
+    fl --> fs
+    fl --> fb
   }
 
   rectangle "💒 Marriage Prep (Catholic)" as marc #FFF5FF {
-    (Discernment → FOCCUS → NFP → Retreat → Sacrament) as mcc
+    (Discernment → Pre-Cana → NFP → Sponsor → Sacrament) as mcc
   }
 
   rectangle "💍 Marriage Prep (Secular)" as mars #FFF5FF {
-    (Readiness → 100 Questions → Frameworks → Constitution) as msc
+    (Self-Assessment → 100 Questions → Legal/Financial → Constitution) as msc
   }
 
   rectangle "🚗 Earn Your Car" as car #F5FFF5 {
@@ -51,7 +49,7 @@ package "Programs" {
     (Phase 2: Care & Maintenance) as c2
     (Phase 3: Legal Preparation) as c3
     (Phase 4: Licensure) as c4
-    (7-Year PMCS Streak → Vehicle) as c5
+    (Capstone: Keys in Hand) as c5
     c1 --> c2
     c2 --> c3
     c3 --> c4
@@ -59,10 +57,10 @@ package "Programs" {
   }
 
   rectangle "💪 Physical Fitness" as fit #F0FFF0 {
-    (Weekly Activity + Quarterly Assessment) as f1
-    (Sport Milestones) as f2
-    (Advanced Fitness) as f3
-    (Lifetime Habit Established) as f4
+    (Baseline + Weekly Activity) as f1
+    (Quarterly Assessment + Sport) as f2
+    (Training Program Design) as f3
+    (Sustained Lifestyle: 6 Months) as f4
     f1 --> f2
     f2 --> f3
     f3 --> f4
@@ -77,18 +75,32 @@ package "Programs" {
     v2 --> v3
     v3 --> v4
   }
+
+  rectangle "⚖️ Jury Duty & Case Review" as jury #FFF5F5 {
+    (Fairness & Evidence) as j1
+    (Cases, Sources & Narrative) as j2
+    (Legal Standards & Institutional Trust) as j3
+    (Capstone & Teaching) as j4
+    j1 --> j2
+    j2 --> j3
+    j3 --> j4
+  }
 }
 
 note bottom of mil
-  Ironforged: $10,000
+  Ironforged: $2,000
+end note
+
+note bottom of cath
+  Legendary: $2,000
 end note
 
 note bottom of marc
-  Covenant: $15,000
+  Covenant: $10,000
 end note
 
 note bottom of mars
-  Covenant: $15,000
+  Covenant: $10,000
 end note
 
 note bottom of car
@@ -101,5 +113,9 @@ end note
 
 note bottom of civic
   Diamond: $500
+end note
+
+note bottom of jury
+  Per-bounty (no capstone)
 end note
 @enduml

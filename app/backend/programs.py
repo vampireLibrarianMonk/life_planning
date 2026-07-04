@@ -19,8 +19,8 @@ PROGRAMS = [
         "key": "formation_study",
         "title": "Formation Study",
         "icon": "🧠",
-        "description": "Cross-cutting fact sheets and visual-map bounties: Life Cards, Breadth of Belonging, books, institutions, moral patterns.",
-        "categories": ["formation_study", "breadth_of_belonging", "life_cards"],
+        "description": "Cross-cutting fact sheets and visual-map bounties: Life Cards, Breadth of Belonging, systems maintenance, books, institutions, moral patterns.",
+        "categories": ["formation_study", "breadth_of_belonging", "life_cards", "systems_maintenance"],
     },
     {
         "key": "marriage_catholic",
@@ -56,5 +56,12 @@ PROGRAMS = [
         "icon": "🏙️",
         "description": "Municipal engagement from first 311 report through advisory boards. Learn how your city actually works.",
         "categories": ["311_civic"],
+    },
+    {
+        "key": "jury_case_review",
+        "title": "Jury Duty & Case Review",
+        "icon": "⚖️",
+        "description": "Review controversial court cases with juror discipline. Separate evidence from narrative, fact from allegation. Includes unresolved case review and civic grievance analysis.",
+        "categories": ["jury_case_review", "unresolved_case_review", "civic_literacy"],
     },
 ]

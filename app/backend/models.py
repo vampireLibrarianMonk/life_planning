@@ -283,3 +283,34 @@ class DiscernmentJournal(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     profile = relationship("Profile")
+
+
+class Fund(Base):
+    """A tracked fund with a starting balance that draws down over time (e.g., insurance fund)."""
+
+    __tablename__ = "funds"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
+    name = Column(String(300), nullable=False)
+    description = Column(Text, nullable=True)
+    starting_balance = Column(Integer, default=0)  # cents
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    profile = relationship("Profile")
+    transactions = relationship("FundTransaction", back_populates="fund", cascade="all, delete-orphan")
+
+
+class FundTransaction(Base):
+    """A single disbursement or adjustment on a fund."""
+
+    __tablename__ = "fund_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fund_id = Column(Integer, ForeignKey("funds.id"), nullable=False)
+    amount = Column(Integer, nullable=False)  # cents (positive = disbursement/withdrawal)
+    description = Column(String(500), nullable=False)
+    date = Column(String(10), nullable=True)  # YYYY-MM-DD
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    fund = relationship("Fund", back_populates="transactions")

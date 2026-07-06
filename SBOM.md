@@ -101,14 +101,14 @@ Note: Pinned versions in `requirements.txt` are floor pins. The installed versio
 
 | Metric | Value |
 |--------|-------|
-| Seeded milestones | 531 |
-| Seeded bounties | 95 |
+| Seeded milestones | 540 |
+| Seeded bounties | 114 |
 | Pillars | 14 |
-| Programs | 9 (all populated) |
+| Programs | 10 (all populated) |
 | Discernment categories | 10 |
 | Bounty tiers | 10 (Bronze → Ironforged) |
 | Planning documents | 22 + IMPLEMENTATION_NOTES |
-| API routes | 56 |
+| API routes | 62 |
 
 ---
 

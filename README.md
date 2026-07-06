@@ -1,6 +1,6 @@
 # Life Plan Tracker
 
-A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 9 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 531+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
+A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 10 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 540+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
 
 The dashboard answers one question: **"Is this child becoming a wise, capable, kind, and independent person?"**
 
@@ -106,7 +106,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 531 milestones and 95 bounties across all 14 pillars from the planning documents
+3. The system automatically seeds 540 milestones and 114 bounties across all 14 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -117,7 +117,7 @@ After selecting a profile, you see:
 - **Roadmap** showing per-phase progress across all pillars with the current phase highlighted (accordion — tap to expand any phase)
 - **Core Metric** — the one question the whole system answers
 - **14 pillar cards** with progress bars showing completion percentage (filterable)
-- **Programs & Economy** — Bounty Board + Programs card (9 structured tracks)
+- **Programs & Economy** — Bounty Board + Programs card (10 structured tracks)
 - **Discernment & Reflections** — 10 category cards (Health, Math, Science, Civics, Relationships, Faith, Tradition, Law, Network, Calling)
 
 ### Working with Pillars
@@ -167,6 +167,8 @@ The 💵 Bounty Board has four sections:
 
 **🎁 Wishlist** — The child adds items they want to save toward. Each shows a progress bar based on total earnings vs. item cost. Status: 💭 Saving → 👍 Approved → ✓ Purchased.
 
+**💰 Fund Tracker** — Earmarked money that draws down over time (e.g., the $10K insurance fund from Earn Your Car). Create a fund with a starting balance, then log disbursements as they happen. A progress bar shows remaining balance draining toward zero. Each transaction records amount, description, date, and running balance. Prevents the "invisible money" problem where a parent subsidizes something without the child seeing the drawdown.
+
 **Seeded Civic Fact Sheet Bounties** — Pre-loaded bounties under the Civic & Institutional pillar that progress from observation through structural action:
 
 - **Social Need Fact Sheet** (Bronze → Silver → Gold) — The child identifies a concrete social need in their observable world and documents what they actually did about it. Cites CCC §1928–§1942 (social justice, solidarity, subsidiarity, common good). Repeatable with decay (÷2–÷3) to prevent farming the same observation.
@@ -185,10 +187,11 @@ Both enforce the same rule: **what you did, not what you could do.**
 | 🧠 Formation Study | Life Cards/Belonging/Books/Institutions | Per-bounty |
 | 💒 Marriage Prep (Catholic) | 4 (Discernment → Sacrament) | $10,000 (Covenant) |
 | 💍 Marriage Prep (Secular) | 4 (Self-Assessment → Commitment) | $10,000 (Covenant) |
-| 🚗 Earn Your Car | 4 (Literacy → Licensure) | Vehicle ($25K cap, Ooh Shiny) |
+| 🚗 Earn Your Car | 5 (Literacy → Licensure → 7-Year Streak or Early Match) | $15K transportation budget (Ooh Shiny) |
 | 💪 Physical Fitness | Assessments + Milestones | $500 (Platinum) |
 | 🏙️ 311 Civic Service | 4 (Awareness → Leadership) | $500 (Diamond) |
 | ⚖️ Jury Duty & Case Review | 4 (Fairness → Teaching) | Per-bounty |
+| 🗳️ Civic Chain of Command | 5 (Layers → Map → Elections → Capstones → Readiness) | $500 (Diamond) |
 
 Programs close out upon completion — all bounties retire when the capstone is paid. Bounties within programs support prerequisites (bounties that must be completed before others unlock).
 
@@ -283,9 +286,9 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 531 milestones + 95 seeded bounties
+    │   ├── seed_data.py             # 540 milestones + 114 seeded bounties
     │   ├── research_topics.py       # Topic banks for saint/paradox/effect
-    │   ├── programs.py              # Program definitions (9 structured tracks)
+    │   ├── programs.py              # Program definitions (10 structured tracks)
     │   ├── program_phases.py        # Phase labels per program tier
     │   ├── requirements.txt
     │   ├── uploads/                 # User-uploaded event attachments (auto-created)
@@ -295,6 +298,7 @@ life_plan/
     │       ├── pillars.py           # Pillar entry CRUD
     │       ├── economy.py           # Behavior, bounties (repeatable + decay), wishlist, earnings
     │       ├── events.py            # Event attachments (upload, list, delete, serve)
+    │       ├── funds.py             # Fund tracker (drawdown ledgers for earmarked money)
     │       ├── docs.py              # Pillar guide content (filtered markdown from docs/)
     │       ├── discernment.py       # Discernment journal CRUD (10 categories)
     │       └── discernments.py      # Life-path discernments (career, vocation, education)

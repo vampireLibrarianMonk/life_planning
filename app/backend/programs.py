@@ -64,4 +64,11 @@ PROGRAMS = [
         "description": "Review controversial court cases with juror discipline. Separate evidence from narrative, fact from allegation. Includes unresolved case review and civic grievance analysis.",
         "categories": ["jury_case_review", "unresolved_case_review", "civic_literacy"],
     },
+    {
+        "key": "civic_chain_of_command",
+        "title": "Get to Know Your Civic Chain of Command",
+        "icon": "🗳️",
+        "description": "Map your complete governance structure from HOA to federal. Name every seat, election date, party pathway, and judicial appointment chain. Maintain a living document as elections cycle.",
+        "categories": ["civic_chain_of_command"],
+    },
 ]

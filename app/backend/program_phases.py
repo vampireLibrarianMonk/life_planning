@@ -12,10 +12,10 @@ PROGRAM_PHASES = {
     "earn_car": {
         "bronze": "Phase 1: Vehicle Literacy",
         "silver": "Phase 2: Care & Maintenance",
-        "gold": "Phase 3: Legal Preparation",
+        "gold": "Phase 3: Legal Preparation & Permit",
         "platinum": "Phase 4: Licensure & Independence",
-        "ooh_shiny": "Capstone",
-        "obsidian": "Bonus",
+        "diamond": "Early Purchase Path",
+        "ooh_shiny": "Capstone: Full 7-Year Streak",
     },
     "311_civic": {
         "bronze": "Phase 1: Awareness",
@@ -71,5 +71,13 @@ PROGRAM_PHASES = {
         "gold": "Analysis: Cases, Sources & Narrative",
         "platinum": "Advanced: Legal Standards & Institutional Trust",
         "diamond": "Capstone: Full Packet, Teaching & Named Cases",
+    },
+    "civic_chain_of_command": {
+        "bronze": "Phase 1: Name the Layers",
+        "silver": "Phase 2: Full Chain-of-Command Map",
+        "gold": "Phase 3: Election Mechanics & Party Pathways",
+        "platinum": "Phase 4: Deep Dives & Summer Capstones",
+        "diamond": "Phase 5: Election Readiness Capstone",
+        "obsidian": "Post-18: Participation & Teaching",
     },
 }

@@ -96,6 +96,54 @@ Includes:
 - Map reading (digital and physical)
 - Travel planning
 
+### Earn Your Car: PMCS Progressive Schedule
+
+The PMCS (Preventive Maintenance Checks and Services) program builds a 7-year inspection habit:
+
+| Phase | Age | Frequency | Purpose |
+|-------|-----|-----------|---------|
+| Learning the Vehicle | 6–12 | Monthly | Walk-around with parent. Building awareness. |
+| Pre-Permit Ramp-Up | 13–14 | Biweekly | Independent inspections. Year before permit eligibility. |
+| Permit Holder | 15–17 | Weekly | Inspecting the vehicle they operate under supervision. |
+| Licensed Driver | 18+ | Weekly | Independent driver. Tracks maintenance schedule. Funds real costs. |
+
+### Early Vehicle Purchase Path
+
+A child with 3+ years of PMCS streak who has saved enough to purchase a vehicle may use the **Early Vehicle Match**:
+
+- **Vehicle cap:** $15,000 (the car itself)
+- **Insurance fund:** $10,000 (declining parent subsidy, separate from vehicle)
+- **Total program value:** $25,000 transportation budget
+- **Match formula:** `parent_match = min(child_savings, $15K) × (streak_years ÷ 7)`
+- **Minimum:** 3 years of verified PMCS streak + age 16 minimum
+- **Transfer:** PMCS streak continues on the new car — no restart
+- **Restriction:** Remaining years to reach 7 pay out as maintenance-only funds
+
+**Insurance Fund Drawdown (weens off as child ages):**
+
+The $10K insurance fund pays a declining share of the premium. The child picks up the rest and gradually becomes fully independent:
+
+| Age | Premium (good student) | Fund Pays | Child Pays | Fund Balance |
+|-----|----------------------|-----------|-----------|--------------|
+| 16 | ~$3,600/yr | 100% ($3,600) | $0 | $6,400 |
+| 17 | ~$3,200/yr | 85% ($2,720) | $480 | $3,680 |
+| 18 | ~$2,800/yr | 70% ($1,960) | $840 | $1,720 |
+| 19 | ~$2,400/yr | 50% ($1,200) | $1,200 | $520 |
+| 20 | ~$2,000/yr | Exhausted | $2,000 | $0 |
+| 21+ | ~$1,800/yr | — | 100% | — |
+
+The fund covers ~4 years of declining subsidy. By age 20–21, the child is fully responsible for their own insurance — which aligns with when premiums drop to manageable adult levels.
+
+**Maintenance-only spending (until 7-year streak is complete):**
+- ✅ Oil changes, tires, brakes, filters, wipers, fluids, battery, inspection, registration, insurance, mechanical repairs
+- ❌ Rims, audio systems, tint, body kits, spoilers, performance mods, cosmetic upgrades
+
+**After 7-year streak is complete:** Restriction lifts. The child has proven sustained discipline.
+
+### Full 7-Year Capstone (Alternative)
+
+A child who waits the full 7 years earns the full $25K transportation budget ($15K vehicle + $10K insurance fund) with no personal savings required. Both paths reward discipline — the early path additionally rewards financial initiative.
+
 ## Digital Competence
 
 The ability to operate safely and effectively in digital environments.

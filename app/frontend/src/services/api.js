@@ -299,3 +299,34 @@ export async function updateDiscernment(profileId, id, data) {
 export async function deleteDiscernment(profileId, id) {
   await fetch(`/api/profiles/${profileId}/discernments/${id}`, { method: 'DELETE', headers: headers() })
 }
+
+
+// --- Funds ---
+
+export async function fetchFunds(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/funds/`, { headers: headers() })
+  return res.json()
+}
+
+export async function createFund(profileId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/funds/`, { method: 'POST', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function deleteFund(profileId, fundId) {
+  await fetch(`/api/profiles/${profileId}/funds/${fundId}`, { method: 'DELETE', headers: headers() })
+}
+
+export async function fetchFundTransactions(profileId, fundId) {
+  const res = await fetch(`/api/profiles/${profileId}/funds/${fundId}/transactions`, { headers: headers() })
+  return res.json()
+}
+
+export async function createFundTransaction(profileId, fundId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/funds/${fundId}/transactions`, { method: 'POST', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function deleteFundTransaction(profileId, fundId, txnId) {
+  await fetch(`/api/profiles/${profileId}/funds/${fundId}/transactions/${txnId}`, { method: 'DELETE', headers: headers() })
+}

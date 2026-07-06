@@ -378,6 +378,10 @@ export default function Profile() {
           </div>
         </div>
 
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#6c7a89', fontSize: 12 }} title="Add any new milestones and bounties from the planning documents to this profile. Corrects age bands on existing milestones.">🔄 Sync Milestones & Bounties</button>
+        </div>
+
         {/* Roadmap — at-a-glance overview */}
         <h2 style={s.sectionTitle}>Roadmap</h2>
         <div className="roadmap-container" style={s.roadmap}>

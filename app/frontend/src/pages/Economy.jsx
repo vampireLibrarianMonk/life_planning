@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog } from '../services/api'
+import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog, fetchFunds, createFund, deleteFund, fetchFundTransactions, createFundTransaction, deleteFundTransaction } from '../services/api'
 import MiniMarkdown from '../components/MiniMarkdown'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
@@ -39,6 +39,12 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
   const [expandedLog, setExpandedLog] = useState(null) // bounty id with log open
   const [bountyLogs, setBountyLogs] = useState([])
   const [logForm, setLogForm] = useState({ content: '', entry_type: 'note', author: 'parent' })
+  const [funds, setFunds] = useState([])
+  const [showFundForm, setShowFundForm] = useState(false)
+  const [fundForm, setFundForm] = useState({ name: '', description: '', starting_balance: '' })
+  const [expandedFund, setExpandedFund] = useState(null)
+  const [fundTxns, setFundTxns] = useState([])
+  const [txnForm, setTxnForm] = useState({ amount: '', description: '', date: new Date().toISOString().split('T')[0] })
 
   const load = () => {
     fetchEligibility(profileId).then(setEligibility)
@@ -46,6 +52,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
     fetchBounties(profileId).then(d => Array.isArray(d) && setBounties(d))
     fetchEarnings(profileId).then(setEarnings)
     fetchWishlist(profileId).then(d => Array.isArray(d) && setWishlist(d))
+    fetchFunds(profileId).then(d => Array.isArray(d) && setFunds(d))
   }
 
   useEffect(() => { load(); fetchResearchTopics(profileId).then(setResearchTopics) }, [profileId])
@@ -571,6 +578,69 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
           </div>
         </div>
       ))}
+
+      {/* Fund Tracker */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 12px' }}>
+        <h3 style={{ margin: 0 }}>💰 Fund Tracker</h3>
+        <button onClick={() => setShowFundForm(!showFundForm)} style={{ ...st.btn, background: '#27ae60' }}>{showFundForm ? 'Cancel' : '+ New Fund'}</button>
+      </div>
+      {showFundForm && (
+        <form onSubmit={async (e) => { e.preventDefault(); if (!fundForm.name.trim() || !fundForm.starting_balance) return; await createFund(profileId, { name: fundForm.name.trim(), description: fundForm.description.trim() || null, starting_balance: Math.round(parseFloat(fundForm.starting_balance) * 100) }); setFundForm({ name: '', description: '', starting_balance: '' }); setShowFundForm(false); load() }} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <input placeholder="Fund name (e.g. Insurance Fund)" value={fundForm.name} onChange={e => setFundForm({ ...fundForm, name: e.target.value })} style={{ ...st.input, flex: 1 }} />
+          <input placeholder="Description" value={fundForm.description} onChange={e => setFundForm({ ...fundForm, description: e.target.value })} style={{ ...st.input, flex: 1 }} />
+          <input placeholder="Starting balance ($)" type="number" step="0.01" min="0" value={fundForm.starting_balance} onChange={e => setFundForm({ ...fundForm, starting_balance: e.target.value })} style={{ ...st.input, maxWidth: 130 }} />
+          <button type="submit" style={{ ...st.btn, background: '#27ae60' }}>Create</button>
+        </form>
+      )}
+      {funds.map(fund => {
+        const pct = fund.starting_balance > 0 ? Math.round((fund.current_balance / fund.starting_balance) * 100) : 0
+        const isExpanded = expandedFund === fund.id
+        return (
+          <div key={fund.id} style={{ background: '#f8fff8', border: '1px solid #d4edda', borderRadius: 8, padding: 12, marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <strong>{fund.name}</strong>
+                {fund.description && <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>{fund.description}</span>}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontWeight: 700, color: fund.current_balance > 0 ? '#27ae60' : '#e74c3c' }}>${(fund.current_balance / 100).toFixed(2)}</span>
+                <span style={{ fontSize: 11, color: '#999', marginLeft: 6 }}>of ${(fund.starting_balance / 100).toFixed(2)}</span>
+              </div>
+            </div>
+            <div style={{ background: '#e9ecef', borderRadius: 4, height: 8, marginTop: 8 }}>
+              <div style={{ background: '#27ae60', borderRadius: 4, height: 8, width: `${pct}%`, transition: 'width 0.3s' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+              <button onClick={async () => { if (isExpanded) { setExpandedFund(null); return } setExpandedFund(fund.id); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []) }} style={{ ...st.btn, background: '#f0f0f0', color: '#333', fontSize: 11 }}>{isExpanded ? 'Hide' : 'Transactions'} ({fund.transaction_count})</button>
+              <button onClick={async () => { if (confirm(`Delete fund "${fund.name}"?`)) { await deleteFund(profileId, fund.id); load() }}} style={{ ...st.btn, background: '#fdecea', color: '#c0392b', fontSize: 11 }}>Delete</button>
+            </div>
+            {isExpanded && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #d4edda' }}>
+                <form onSubmit={async (e) => { e.preventDefault(); if (!txnForm.amount || !txnForm.description.trim()) return; const res = await createFundTransaction(profileId, fund.id, { amount: Math.round(parseFloat(txnForm.amount) * 100), description: txnForm.description.trim(), date: txnForm.date || null }); if (res && res.id) { setTxnForm({ amount: '', description: '', date: new Date().toISOString().split('T')[0] }); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []); load() } else { alert(res?.detail || 'Error') }}} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <input placeholder="Amount ($)" type="number" step="0.01" min="0" value={txnForm.amount} onChange={e => setTxnForm({ ...txnForm, amount: e.target.value })} style={{ ...st.input, maxWidth: 100 }} />
+                  <input placeholder="What was it for?" value={txnForm.description} onChange={e => setTxnForm({ ...txnForm, description: e.target.value })} style={{ ...st.input, flex: 1 }} />
+                  <input type="date" value={txnForm.date} onChange={e => setTxnForm({ ...txnForm, date: e.target.value })} style={{ ...st.input, maxWidth: 140 }} />
+                  <button type="submit" style={{ ...st.btn, background: '#27ae60', fontSize: 11 }}>+ Disburse</button>
+                </form>
+                {fundTxns.length === 0 && <p style={{ fontSize: 12, color: '#888', margin: 0 }}>No transactions yet.</p>}
+                {fundTxns.map(txn => (
+                  <div key={txn.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #eee', fontSize: 12 }}>
+                    <div>
+                      <span style={{ color: '#c0392b', fontWeight: 600 }}>-${(txn.amount / 100).toFixed(2)}</span>
+                      <span style={{ marginLeft: 8, color: '#555' }}>{txn.description}</span>
+                      {txn.date && <span style={{ marginLeft: 8, color: '#aaa' }}>{txn.date}</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: '#888' }}>bal: ${(txn.balance_after / 100).toFixed(2)}</span>
+                      <button onClick={async () => { await deleteFundTransaction(profileId, fund.id, txn.id); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []); load() }} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 11 }}>×</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
 
       {/* Wishlist */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 12px' }}>

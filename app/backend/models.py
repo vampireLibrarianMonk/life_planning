@@ -314,3 +314,38 @@ class FundTransaction(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     fund = relationship("Fund", back_populates="transactions")
+
+
+class LessonPlan(Base):
+    """A transcript-based lesson plan submitted by the admin for the child to study."""
+
+    __tablename__ = "lesson_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
+    pillar = Column(Enum(Pillar), nullable=True)
+    title = Column(String(500), nullable=False)
+    source = Column(String(500), nullable=True)  # e.g., "YouTube: Channel Name" or "Book: Title"
+    url = Column(String(1000), nullable=True)  # link to original video/article
+    transcript = Column(Text, nullable=False)
+    notes = Column(Text, nullable=True)  # admin notes on what to focus on
+    age_band = Column(String(10), nullable=True)
+    status = Column(String(20), default="assigned")  # assigned, in_progress, rebrief_done, expansion_done, teachback_done, complete
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    profile = relationship("Profile")
+    responses = relationship("LessonResponse", back_populates="lesson", cascade="all, delete-orphan")
+
+
+class LessonResponse(Base):
+    """A child's response to a lesson plan (rebrief, expansion, or teachback)."""
+
+    __tablename__ = "lesson_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lesson_id = Column(Integer, ForeignKey("lesson_plans.id"), nullable=False)
+    response_type = Column(String(20), nullable=False)  # rebrief, expansion, teachback
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    lesson = relationship("LessonPlan", back_populates="responses")

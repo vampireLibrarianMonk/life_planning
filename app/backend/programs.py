@@ -19,8 +19,8 @@ PROGRAMS = [
         "key": "formation_study",
         "title": "Formation Study",
         "icon": "🧠",
-        "description": "Cross-cutting fact sheets and visual-map bounties: Life Cards, Breadth of Belonging, systems maintenance, books, institutions, moral patterns.",
-        "categories": ["formation_study", "breadth_of_belonging", "life_cards", "systems_maintenance"],
+        "description": "Cross-cutting fact sheets and visual-map bounties: Life Cards, Breadth of Belonging, systems maintenance, mythic order of battle, return/restoration, society fabric, books, institutions, moral patterns.",
+        "categories": ["formation_study", "breadth_of_belonging", "life_cards", "systems_maintenance", "mythic_order_of_battle", "return_restoration_breakaway", "society_fabric"],
     },
     {
         "key": "marriage_catholic",

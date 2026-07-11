@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, reseedProfile, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, reseedProfile, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics, fetchLessons, createLesson, createLessonResponse, deleteLesson, updateLesson } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import Economy from './Economy'
@@ -140,6 +140,11 @@ export default function Profile() {
   const [discernEntries, setDiscernEntries] = useState([])
   const [activeDiscern, setActiveDiscern] = useState(null)
   const [discernForm, setDiscernForm] = useState({ title: '', reflection: '' })
+  const [lessons, setLessons] = useState([])
+  const [lessonForm, setLessonForm] = useState({ title: '', source: '', url: '', transcript: '', notes: '', pillar: '', age_band: '' })
+  const [showLessonForm, setShowLessonForm] = useState(false)
+  const [activeLesson, setActiveLesson] = useState(null)
+  const [lessonResponseForm, setLessonResponseForm] = useState({ response_type: 'rebrief', content: '' })
   const [belongingVariant, setBelongingVariant] = useState('religious')
 
   useEffect(() => { fetchProfile(id).then(setProfile); loadCounts() }, [id])
@@ -499,6 +504,16 @@ export default function Profile() {
           )}
         </div>
 
+        {/* Lesson Plans */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Lesson Plans</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <button onClick={() => { if (!lessons.length) fetchLessons(id).then(d => Array.isArray(d) && setLessons(d)); setActivePillar('__lessons__') }} style={{ ...s.pillarCard, border: '2px solid #e8f4e8', minWidth: 200 }}>
+            <span style={{ fontSize: 28 }}>📖</span>
+            <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Lesson Plans</span>
+            <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Transcript study → Rebrief → Expand → Teach</span>
+          </button>
+        </div>
+
         {/* Discernment */}
         <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Discernment & Reflections</h2>
         <div className="pillar-grid-desktop">
@@ -621,6 +636,121 @@ export default function Profile() {
             </ul>
           </details>
         </section>
+      </div>
+    )
+  }
+
+  // Lesson Plans view
+  if (activePillar === '__lessons__') {
+    const loadLessons = () => fetchLessons(id).then(d => Array.isArray(d) && setLessons(d))
+    if (!lessons.length) loadLessons()
+
+    const handleCreateLesson = async (e) => {
+      e.preventDefault()
+      if (!lessonForm.title.trim() || !lessonForm.transcript.trim()) return
+      await createLesson(id, { ...lessonForm, pillar: lessonForm.pillar || null, age_band: lessonForm.age_band || null, url: lessonForm.url || null })
+      setLessonForm({ title: '', source: '', url: '', transcript: '', notes: '', pillar: '', age_band: '' })
+      setShowLessonForm(false)
+      loadLessons()
+    }
+
+    const handleSubmitResponse = async (e) => {
+      e.preventDefault()
+      if (!lessonResponseForm.content.trim()) return
+      await createLessonResponse(id, activeLesson.id, lessonResponseForm)
+      setLessonResponseForm({ response_type: 'rebrief', content: '' })
+      const updated = await fetchLessons(id)
+      if (Array.isArray(updated)) {
+        setLessons(updated)
+        setActiveLesson(updated.find(l => l.id === activeLesson.id) || null)
+      }
+    }
+
+    if (activeLesson) {
+      const lesson = lessons.find(l => l.id === activeLesson.id) || activeLesson
+      const STATUS_LABELS = { assigned: '📋 Assigned', in_progress: '🔄 In Progress', rebrief_done: '✅ Rebrief Done', expansion_done: '✅ Expansion Done', teachback_done: '✅ Teachback Done', complete: '🏆 Complete' }
+      return (
+        <div style={s.container}>
+          <button onClick={() => setActiveLesson(null)} style={s.backBtn}>&larr; Back to Lessons</button>
+          <div style={{ margin: '24px 0 16px' }}>
+            <h2 style={{ margin: 0 }}>{lesson.title}</h2>
+            <p style={{ margin: '4px 0', fontSize: 13, color: '#888' }}>{lesson.source || 'No source'} · {lesson.pillar || 'General'} · {STATUS_LABELS[lesson.status] || lesson.status}</p>
+            {lesson.url && <p style={{ margin: '4px 0' }}><a href={lesson.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#2a7ae2' }}>▶ Watch Original</a></p>}
+            {lesson.notes && <p style={{ margin: '8px 0', fontSize: 13, color: '#555', fontStyle: 'italic' }}>📝 {lesson.notes}</p>}
+          </div>
+          <details style={{ marginBottom: 16, background: '#f9f9f9', padding: 12, borderRadius: 8, border: '1px solid #eee' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>📄 Transcript</summary>
+            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.6, marginTop: 8, maxHeight: 400, overflow: 'auto' }}>{lesson.transcript}</pre>
+          </details>
+          <h3 style={{ margin: '16px 0 8px' }}>Responses</h3>
+          {lesson.responses && lesson.responses.map(r => (
+            <div key={r.id} style={{ padding: 10, marginBottom: 8, background: r.response_type === 'rebrief' ? '#f0f8ff' : r.response_type === 'expansion' ? '#f8fff0' : '#fff8f0', borderRadius: 8, border: '1px solid #eee' }}>
+              <strong style={{ fontSize: 12, textTransform: 'uppercase', color: '#666' }}>{r.response_type}</strong>
+              <p style={{ margin: '4px 0 0', fontSize: 13, whiteSpace: 'pre-wrap' }}>{r.content}</p>
+            </div>
+          ))}
+          <form onSubmit={handleSubmitResponse} style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select value={lessonResponseForm.response_type} onChange={e => setLessonResponseForm({ ...lessonResponseForm, response_type: e.target.value })} style={s.input}>
+                <option value="rebrief">📝 Rebrief (summarize in own words)</option>
+                <option value="expansion">🔭 Expansion (connect, question, deepen)</option>
+                <option value="teachback">🎓 Teachback (teach it to someone)</option>
+              </select>
+            </div>
+            <textarea value={lessonResponseForm.content} onChange={e => setLessonResponseForm({ ...lessonResponseForm, content: e.target.value })} placeholder="Write your response..." style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
+            <button type="submit" style={s.submitBtn}>Submit Response</button>
+          </form>
+        </div>
+      )
+    }
+
+    return (
+      <div style={s.container}>
+        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 32 }}>📖</span>
+            <div>
+              <h2 style={{ margin: 0 }}>Lesson Plans</h2>
+              <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>Transcript-based lessons: read, rebrief, expand, teach.</p>
+            </div>
+          </div>
+          <button onClick={() => setShowLessonForm(!showLessonForm)} style={s.addBtn}>{showLessonForm ? 'Cancel' : '+ New Lesson'}</button>
+        </div>
+        {showLessonForm && (
+          <form onSubmit={handleCreateLesson} style={{ ...s.form, marginBottom: 16 }}>
+            <input value={lessonForm.title} onChange={e => setLessonForm({ ...lessonForm, title: e.target.value })} placeholder="Lesson title" style={s.input} required />
+            <input value={lessonForm.source} onChange={e => setLessonForm({ ...lessonForm, source: e.target.value })} placeholder="Source (e.g., YouTube: Channel Name)" style={s.input} />
+            <input value={lessonForm.url} onChange={e => setLessonForm({ ...lessonForm, url: e.target.value })} placeholder="URL (link to original video/article)" style={s.input} />
+            <textarea value={lessonForm.transcript} onChange={e => setLessonForm({ ...lessonForm, transcript: e.target.value })} placeholder="Paste transcript here..." style={{ ...s.input, minHeight: 120, resize: 'vertical' }} required />
+            <textarea value={lessonForm.notes} onChange={e => setLessonForm({ ...lessonForm, notes: e.target.value })} placeholder="Notes for child (what to focus on)..." style={{ ...s.input, minHeight: 50, resize: 'vertical' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select value={lessonForm.pillar} onChange={e => setLessonForm({ ...lessonForm, pillar: e.target.value })} style={{ ...s.input, maxWidth: 200 }}>
+                <option value="">Pillar (optional)</option>
+                {PILLARS.map(p => <option key={p.key} value={p.key}>{p.icon} {p.label}</option>)}
+              </select>
+              <select value={lessonForm.age_band} onChange={e => setLessonForm({ ...lessonForm, age_band: e.target.value })} style={{ ...s.input, maxWidth: 120 }}>
+                <option value="">Age band</option>
+                <option value="0-2">0–2</option><option value="2-3">2–3</option><option value="3-5">3–5</option>
+                <option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
+              </select>
+            </div>
+            <button type="submit" style={s.submitBtn}>Create Lesson</button>
+          </form>
+        )}
+        {lessons.length === 0 && !showLessonForm && <p style={{ color: '#888', fontSize: 14 }}>No lesson plans yet. Click "+ New Lesson" to paste a transcript.</p>}
+        {lessons.map(lesson => {
+          const STATUS_COLORS = { assigned: '#e0e0e0', in_progress: '#fff3cd', rebrief_done: '#d1ecf1', expansion_done: '#d4edda', teachback_done: '#cce5ff', complete: '#d4edda' }
+          return (
+            <div key={lesson.id} onClick={() => setActiveLesson(lesson)} style={{ padding: 12, marginBottom: 8, background: STATUS_COLORS[lesson.status] || '#f9f9f9', borderRadius: 8, border: '1px solid #eee', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong style={{ fontSize: 14 }}>{lesson.title}</strong>
+                <span style={{ fontSize: 11, color: '#666', textTransform: 'uppercase' }}>{lesson.status.replace(/_/g, ' ')}</span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#666' }}>{lesson.source || ''} {lesson.pillar ? `· ${lesson.pillar}` : ''} · {(lesson.responses || []).length} responses</p>
+            </div>
+          )
+        })}
       </div>
     )
   }

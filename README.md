@@ -106,7 +106,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 540 milestones and 114 bounties across all 14 pillars from the planning documents
+3. The system automatically seeds 540 milestones and 136 bounties across all 14 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -178,7 +178,7 @@ Both enforce the same rule: **what you did, not what you could do.**
 
 ### Programs
 
-9 structured bounty tracks, each with phased progression and a completion reward:
+10 structured bounty tracks, each with phased progression and a completion reward:
 
 | Program | Phases | Completion Reward |
 |---------|--------|-------------------|
@@ -266,6 +266,9 @@ life_plan/
 │   ├── 20_systems_collapse_maintenance_civilization.md
 │   ├── 21_grievance_reform_institutional_recidivism.md
 │   ├── 22_early_childhood_development_assessment.md
+│   ├── 23_mythic_order_of_battle.md
+│   ├── 24_return_restoration_breakaway.md
+│   ├── 25_society_fabric_forgiveness_sacrifice_providence.md
 │   └── IMPLEMENTATION_NOTES.md
 ├── diagrams/                        # PlantUML source + rendered PNGs
 │   ├── poster_lifetime_map.puml     # Full 0–35 overview (.png, .svg)
@@ -286,7 +289,7 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 540 milestones + 114 seeded bounties
+    │   ├── seed_data.py             # 540 milestones + 136 seeded bounties
     │   ├── research_topics.py       # Topic banks for saint/paradox/effect
     │   ├── programs.py              # Program definitions (10 structured tracks)
     │   ├── program_phases.py        # Phase labels per program tier
@@ -301,7 +304,8 @@ life_plan/
     │       ├── funds.py             # Fund tracker (drawdown ledgers for earmarked money)
     │       ├── docs.py              # Pillar guide content (filtered markdown from docs/)
     │       ├── discernment.py       # Discernment journal CRUD (10 categories)
-    │       └── discernments.py      # Life-path discernments (career, vocation, education)
+    │       ├── discernments.py      # Life-path discernments (career, vocation, education)
+    │       └── lessons.py           # Lesson plans (transcript-based study + responses)
     └── frontend/
         ├── index.html
         ├── package.json

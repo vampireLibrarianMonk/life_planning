@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
 **Project:** Life Plan Tracker
-**Version:** 0.5.0
-**Generated:** 2026-07-02
+**Version:** 0.5.1
+**Generated:** 2026-07-10
 
 ---
 
@@ -93,7 +93,7 @@ Note: Pinned versions in `requirements.txt` are floor pins. The installed versio
 | Database backups | `app/backend/backups/` | Timestamped copies (last 10 retained) |
 | Uploaded files | `app/backend/uploads/` | Event attachments (images, videos, documents) |
 | JWT secret | Environment variable or hardcoded default | Must be changed in production |
-| Planning documents | `docs/*.md` | 22 pillar/discernment/program guides + addenda, served filtered via API (admin only) |
+| Planning documents | `docs/*.md` | 25 pillar/discernment/program guides + addenda, served filtered via API (admin only) |
 
 ---
 
@@ -102,13 +102,13 @@ Note: Pinned versions in `requirements.txt` are floor pins. The installed versio
 | Metric | Value |
 |--------|-------|
 | Seeded milestones | 540 |
-| Seeded bounties | 114 |
+| Seeded bounties | 136 |
 | Pillars | 14 |
 | Programs | 10 (all populated) |
 | Discernment categories | 10 |
 | Bounty tiers | 10 (Bronze → Ironforged) |
-| Planning documents | 22 + IMPLEMENTATION_NOTES |
-| API routes | 62 |
+| Planning documents | 25 + IMPLEMENTATION_NOTES |
+| API routes | 69 |
 
 ---
 

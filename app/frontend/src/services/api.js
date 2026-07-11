@@ -330,3 +330,33 @@ export async function createFundTransaction(profileId, fundId, data) {
 export async function deleteFundTransaction(profileId, fundId, txnId) {
   await fetch(`/api/profiles/${profileId}/funds/${fundId}/transactions/${txnId}`, { method: 'DELETE', headers: headers() })
 }
+
+// --- Lesson Plans ---
+
+export async function fetchLessons(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/lessons/`, { headers: headers() })
+  return res.json()
+}
+
+export async function createLesson(profileId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/lessons/`, { method: 'POST', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function updateLesson(profileId, lessonId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/lessons/${lessonId}`, { method: 'PATCH', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function deleteLesson(profileId, lessonId) {
+  await fetch(`/api/profiles/${profileId}/lessons/${lessonId}`, { method: 'DELETE', headers: headers() })
+}
+
+export async function createLessonResponse(profileId, lessonId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/lessons/${lessonId}/responses`, { method: 'POST', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}
+
+export async function deleteLessonResponse(profileId, lessonId, responseId) {
+  await fetch(`/api/profiles/${profileId}/lessons/${lessonId}/responses/${responseId}`, { method: 'DELETE', headers: headers() })
+}

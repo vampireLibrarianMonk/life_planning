@@ -1,4 +1,4 @@
-0.5.0
+0.5.1
 
 # Life Plan Tracker Version Ledger
 
@@ -17,26 +17,22 @@
 
 ## Current Semantic Version Decision
 
-**Current version:** `0.5.0`
+**Current version:** `0.5.1`
 
-**Basis:** The previously tracked version was `0.4.0`. The current release adds substantial backward-compatible features:
+**Basis:** The previously tracked version was `0.5.0`. The current release adds:
 
-- All 9 programs fully seeded with bounties (was 2 of 9 populated)
-- Bounty count: 18 → 95
-- 3 new bounty tracks from planning documents (systems_maintenance, civic_literacy, unresolved_case_review)
-- 10 "Earn While You Learn" discernment bounties
-- Social Need & Social Justice fact sheet bounties with CCC citations
-- Streak bonuses now applied to actual earnings (was informational only)
-- Readonly role enforcement at API level
-- Database backup endpoint
-- `discernments.py` route mounted (was dead code)
-- Life Chart and Breadth of Belonging split into separate views
-- 2 new planning documents (docs 20, 21) integrated
-- `later_inclusion/` folder cleared — all content integrated
-- PlantUML diagrams updated (programs, pillars, tiers, decay/streak)
-- README fully synchronized with application state
+- Lesson Plans feature (new model, routes, frontend UI — transcript-based study with rebrief/expansion/teachback)
+- 10th program: Civic Chain of Command (14 bounties, $500 completable by 18)
+- 3 new Formation Study bounty tracks: Mythic Order of Battle (4), Return/Restoration/Breakaway (9), Society Fabric (9)
+- Bounties: 114 → 136
+- Planning docs: 22 → 25
+- API routes: 62 → 69
+- how_to_integrate/ guide created (main.md + template.md)
+- new_capability/ folder cleared (all docs integrated)
 
-**SemVer classification:** `MINOR` — these changes add features and content while preserving the existing data model, API contract, and deployment model. No migrations required; existing databases work unchanged via the reseed mechanism.
+**Previous release (0.5.0):** Full program seeding (18→95 bounties), early childhood sub-bands, civic fact sheets, streak bonus, readonly enforcement, backup endpoint.
+
+**SemVer classification:** `MINOR` — these changes add features and content while preserving the existing data model, API contract, and deployment model. The new LessonPlan table is additive (no migration needed for existing data).
 
 ## Commit History Summary
 
@@ -58,3 +54,4 @@
 | 2026-06-22T21:18:06-04:00 | `c9d1408` | Add calling category, prerequisites, program phases, formation study bounties, LICENSE. |
 | 2026-06-23T22:54:16-04:00 | `777d65d` | Add formation study phases and bounty seeding logic. |
 | 2026-07-04T09:16:15-04:00 | `0a63d2e` | v0.5.0: Full program seeding (95 bounties), early childhood sub-bands (0–2/2–3/3–5), civic fact sheets (CCC §1928–§1942), 10 discernment bounties, streak bonus applied, readonly enforcement, backup endpoint, Life Maps split, 4 new docs (10a, 20–22), PlantUML diagrams updated. |
+| 2026-07-10T23:12:13-04:00 | `520ceb4` | v0.5.1: Lesson Plans feature, Civic Chain of Command program ($500), Mythic Order of Battle, Return/Restoration/Breakaway, Society Fabric bounty tracks, how_to_integrate/ guide, new_capability/ cleared. |

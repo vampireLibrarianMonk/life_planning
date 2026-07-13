@@ -200,3 +200,5 @@ This document integrates with:
 - **Document 06** (Environmental Resilience) — the cascade pattern is the Accuser's preferred temporal weapon
 - **Document 05** (Heritage & Identity, Faith Heritage domain) — understanding how ancestors navigated this same fight
 - **Document 09** (Dimensional Navigation) — the conviction vs. accusation diagnostic is the primary tool of the Circuit Breaker framework; the Golden Rule section extends the Accuser's mechanism to self-treatment and abuse recognition
+- **Document 13** (Catholic Sacramental Formation) — safe-environment formation, authority literacy, and the transmission audit extend the Fruit Test into institutional Catholic practice
+- **Pillar Guide** (docs/pillar_guides/spiritual.md) — reorganized guide integrating the Fruit Test (Matthew 7:15–20) as the primary discernment skill for testing structures that wear the mask of good

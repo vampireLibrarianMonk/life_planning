@@ -11,6 +11,7 @@ from models import User
 router = APIRouter(prefix="/api/docs", tags=["docs"])
 
 DOCS_DIR = Path(__file__).parent.parent.parent.parent / "docs"
+GUIDES_DIR = DOCS_DIR / "pillar_guides"
 
 # Map pillar keys to their doc file(s)
 PILLAR_DOCS = {
@@ -98,7 +99,18 @@ def filter_markdown(content: str) -> str:
 
 @router.get("/{pillar}")
 def get_pillar_guide(pillar: str, _: User = Depends(require_admin)):
-    """Return filtered markdown guide content for a pillar (admin only)."""
+    """Return filtered markdown guide content for a pillar (admin only).
+
+    Checks for a dedicated pillar guide in docs/pillar_guides/ first.
+    Falls back to filtered raw doc content if no dedicated guide exists.
+    """
+    # Check for a dedicated pillar guide first
+    guide_path = GUIDES_DIR / f"{pillar}.md"
+    if guide_path.exists():
+        content = guide_path.read_text(encoding="utf-8").strip()
+        return {"pillar": pillar, "content": content}
+
+    # Fall back to filtered raw doc files
     doc_files = PILLAR_DOCS.get(pillar)
     if doc_files is None:
         raise HTTPException(status_code=404, detail="Unknown pillar")

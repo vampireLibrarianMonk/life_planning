@@ -176,6 +176,35 @@ Not by their words. Not by their office. Not by their credentials. Not by their 
 
 **The rule:** Any structure — religious, educational, governmental, familial, medical, legal — that consistently produces the right column of the table above has been compromised regardless of its stated mission, history, or credentials. The child must learn to see this clearly, name it without shame, and act without waiting for permission from the compromised structure itself.
 
+### VI-B. The Fruit Test as Media Replacement
+
+Here is the consequence most people miss: **if you have the Fruit Test, you do not need the daily news cycle.**
+
+The media industry — news, commentary, social media, punditry — operates on a premise: "You need US to tell you what's happening and who to trust." But the Fruit Test inverts this entirely:
+
+- You don't need a pundit to tell you whether a politician is good. **Look at their voting record. Look at what their district became under their leadership. Look at what they produced over time.** The fruit is public record.
+- You don't need a news segment to tell you whether a company is ethical. **Look at what happens to their employees, their customers, their communities over 5 years.** The fruit is observable.
+- You don't need social media to tell you whether a person is trustworthy. **Look at how people who spend years around them turn out.** The fruit is in the lives they touch.
+- You don't need commentary to tell you whether an ideology is sound. **Look at what kind of people it produces after a decade of adherence.** Are they wiser, kinder, freer, more capable? Or angrier, more isolated, more dependent, more afraid?
+
+**The media exists because most people have never been taught to evaluate fruit directly.** They outsource their judgment to personalities who perform certainty on camera. A child trained in the Fruit Test does not need this. They have their own eyes, their own patience, and their own standard.
+
+This does not mean "never read news." It means: **news is not your evaluation method.** News tells you what happened yesterday. The Fruit Test tells you what something produces over years. These are not the same kind of information — and the one that matters more for life decisions is almost never found in a headline.
+
+**Practical application:**
+
+| Instead of... | Do this... |
+|--------------|-----------|
+| Watching news about a candidate | Read their voting record and financial disclosures |
+| Reading opinions about a school | Talk to parents whose kids graduated 5 years ago |
+| Consuming commentary about a church | Observe what its members become over a decade |
+| Following social media about a company | Look at employee retention, customer satisfaction, community impact |
+| Absorbing punditry about an ideology | Find people who followed it for 10 years and assess their lives |
+
+The Fruit Test is slow. It requires patience. It requires observation over time rather than reaction to stimuli. And it is *vastly* more reliable than anything the daily media cycle can offer.
+
+**The formation goal:** A child who defaults to fruit-testing — who, when asked "What do you think about X?" responds with "I haven't watched long enough to see the fruit yet" — has been inoculated against the outrage cycle, the personality cult, the tribal reflex, and the manipulation machine. They are not uninformed. They are *differently informed* — by evidence over time rather than narrative in the moment.
+
 ### VII. The Defense: Why the Sacramental System Exists
 
 The entire sacramental system is the Church's response to the wound and the attack. Each sacrament directly addresses a dimension of the human condition:

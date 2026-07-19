@@ -6,6 +6,7 @@ PROGRAMS = [
         "title": "Military Preparation",
         "icon": "🎖️",
         "description": "5-phase progression from orientation to decision point. Discipline, knowledge, standards, technical skills.",
+        "intro": "This program helps you make one of the biggest decisions of your life with full information instead of impulse. You will research every branch, test your fitness against real standards, study career paths that match your strengths, interview someone who has served, understand exactly what you are signing, and make your decision with your eyes wide open. Whether you join or choose a different path, you will decide from knowledge, not pressure or romance.",
         "categories": ["military_prep"],
     },
     {
@@ -13,6 +14,7 @@ PROGRAMS = [
         "title": "Catholic Practices",
         "icon": "⛪",
         "description": "Weekly, seasonal, and annual devotional practices. Mass, confession, prayer, service.",
+        "intro": "Faith is not something you do once and check off. It is a rhythm you live inside. This program tracks the weekly, seasonal, and service practices that form a Catholic life over time. Mass attendance, confession, liturgical seasons, saint studies, works of mercy, and Catholic Social Teaching. The goal is not performance. The goal is a habit so deep that when the world shakes, you have something beneath you that holds.",
         "categories": ["catholic"],
     },
     {
@@ -20,6 +22,7 @@ PROGRAMS = [
         "title": "Formation Study",
         "icon": "🧠",
         "description": "Cross-cutting fact sheets and visual-map bounties: Life Cards, Breadth of Belonging, systems maintenance, mythic order of battle, return/restoration, society fabric, books, institutions, moral patterns.",
+        "intro": "This is the program where you study how the world actually works beneath the surface. You will map your expanding circles of belonging, study how civilizations maintain themselves or collapse, analyze mythic and spiritual conflicts for moral patterns, examine how people wander and return, and review how society handles forgiveness, sacrifice, and justice. Each study produces a fact sheet that becomes part of your permanent formation library.",
         "categories": ["formation_study", "breadth_of_belonging", "life_cards", "systems_maintenance", "mythic_order_of_battle", "return_restoration_breakaway", "society_fabric"],
     },
     {
@@ -27,6 +30,7 @@ PROGRAMS = [
         "title": "Marriage Prep (Catholic)",
         "icon": "💒",
         "description": "Pre-Cana pathway: discernment, FOCCUS assessment, NFP, sponsor couple, retreat, sacrament.",
+        "intro": "Marriage is not a wedding. It is a vocation that lasts the rest of your life. This program walks you through the Catholic preparation pathway step by step. You will study what the Church actually teaches about marriage as a sacrament, complete formal preparation with your future spouse, learn Natural Family Planning together, meet with a sponsor couple who will tell you what they wish they had known, and arrive at your wedding day having done the real work, not just the party planning.",
         "categories": ["marriage_catholic"],
     },
     {
@@ -34,6 +38,7 @@ PROGRAMS = [
         "title": "Marriage Prep (Secular)",
         "icon": "💍",
         "description": "Evidence-based pathway: Sexton, 100 questions, financial plan, conflict framework, constitution.",
+        "intro": "Before you commit your life to another person, you need to know what you are agreeing to and whether you are both ready. This program takes you through a structured self-assessment, deep conversation exercises covering every major topic (money, children, conflict, values, in-laws), legal and financial literacy about what marriage actually means in your state, and a conflict resolution framework you build together before you need it. The goal is not a perfect relationship. The goal is two people who enter commitment with full honesty about who they are and what they are building.",
         "categories": ["marriage_secular"],
     },
     {
@@ -41,6 +46,7 @@ PROGRAMS = [
         "title": "Earn Your Car",
         "icon": "🚗",
         "description": "Vehicle literacy → maintenance → legal prep → license → 7-year PMCS streak → keys in hand.",
+        "intro": "A car is not a gift. It is a responsibility you earn by proving you understand what it takes to own, maintain, and operate a vehicle safely. You will learn how a car works, check fluids, change a tire, jump a battery, study for your permit, log driving hours, understand insurance, and perform weekly inspections. When you hold those keys, you will know that you earned them through demonstrated competence, not just age.",
         "categories": ["earn_car"],
     },
     {
@@ -48,6 +54,7 @@ PROGRAMS = [
         "title": "Physical Fitness",
         "icon": "💪",
         "description": "Weekly activity, quarterly assessments, sport milestones, and annual PT tests. Build the habit.",
+        "intro": "Your body is the vehicle that carries everything else. This program builds the habit of physical activity so deeply that it becomes part of who you are, not something you have to force. You will establish a baseline, log weekly activity, reassess quarterly, commit to a sport or discipline for a full season, and eventually design your own training programs. The goal is not a number on a scale. The goal is a body you maintain because you understand it is the only one you will ever have.",
         "categories": ["fitness"],
     },
     {
@@ -55,6 +62,7 @@ PROGRAMS = [
         "title": "311 Civic Service",
         "icon": "🏙️",
         "description": "Municipal engagement from first 311 report through advisory boards. Learn how your city actually works.",
+        "intro": "Most people live in a city and have no idea how it runs. This program teaches you by doing. You will discover your city's reporting system, walk your neighborhood looking for issues, file your first real report, track whether the government responds, attend a public meeting, analyze the budget, give public testimony, and eventually organize others. By the end, you will know more about how your city works than most adults who live in it.",
         "categories": ["311_civic"],
     },
     {
@@ -62,6 +70,7 @@ PROGRAMS = [
         "title": "Jury Duty & Case Review",
         "icon": "⚖️",
         "description": "Review controversial court cases with juror discipline. Separate evidence from narrative, fact from allegation. Includes unresolved case review and civic grievance analysis.",
+        "intro": "Someday you will serve on a jury or evaluate a public controversy where everyone around you has already made up their mind. This program trains you to think like a careful juror instead of a mob member. You will learn to separate confirmed facts from allegations, admitted evidence from excluded evidence, public narrative from courtroom record, and your personal feelings from the legal standard. The goal is not to have the right opinion. The goal is to have a disciplined process that protects you from being manipulated by either side.",
         "categories": ["jury_case_review", "unresolved_case_review", "civic_literacy"],
     },
     {
@@ -69,6 +78,31 @@ PROGRAMS = [
         "title": "Get to Know Your Civic Chain of Command",
         "icon": "🗳️",
         "description": "Map your complete governance structure from HOA to federal. Name every seat, election date, party pathway, and judicial appointment chain. Maintain a living document as elections cycle.",
+        "intro": "There is a political cartoon that shows a crowd unknowingly holding up the platform a politician speaks from. The caption says the people do not know their true power. This program makes sure you do. You will map every layer of government that affects your life, from your school board to the Supreme Court. You will name who holds every seat, learn when every election happens, discover how candidates actually get on your ballot, and research who funds them. By 18, you will walk into your first election knowing exactly what every seat controls and why most of your neighbors cannot say the same.",
         "categories": ["civic_chain_of_command"],
+    },
+    {
+        "key": "revolutionary_minds",
+        "title": "Revolutionary Minds",
+        "icon": "📜",
+        "description": "Primary source immersion: get inside the head of a decision-maker in extremis, then judge by the fruit. One figure per summer, daily reading, standalone deliverables.",
+        "intro": "Most people learn about history from textbooks that already tell them what to think. This program is different. You will read the actual words of people who faced impossible situations and had to decide what to do about it. Letters, speeches, diaries, manifestos. You will get inside their head, understand their reasoning from inside their world, and then step back out and judge what their decisions actually produced over 10, 20, 50 years. One figure per summer. Daily reading. Your own conclusions. Nobody tells you who is a hero and who is a villain. You read their words and decide for yourself.",
+        "categories": ["revolutionary_minds"],
+    },
+    {
+        "key": "ten_commandments",
+        "title": "Ten Commandments Formation",
+        "icon": "⛰️",
+        "description": "Structured moral formation through recurring study of each commandment at increasing depth.",
+        "intro": "The Ten Commandments are not just rules you memorize for a test. They are the oldest surviving instruction manual for how human beings can live together without destroying each other. Every civilization that has lasted more than a few generations figured out most of these principles on their own, because they describe how reality actually works. You will study each commandment not just to know what it says but to understand what it protects, what virtue it builds, what happens when a society ignores it, and how it applies to the situations you face right now. This is not about guilt. This is about seeing clearly what kind of life these principles produce when followed and what kind of wreckage they prevent. There is also a harder truth beneath this: every commandment you break in secret becomes a leash someone else can put around your neck. The undercurrent beneath most institutional power is blackmail. People who seek power over others look for compromise, for wrongdoing they can hold over someone's head. If they cannot find it, they will fabricate it. The commandments are not just a moral code. They are operational security for your freedom. A person who lives cleanly cannot be owned. A person with hidden violations has handed the keys to their life to whoever discovers them first.",
+        "categories": ["ten_commandments"],
+    },
+    {
+        "key": "foreign_influence",
+        "title": "Foreign Influence & Democratic Discernment",
+        "icon": "🌐",
+        "description": "Evidence-based study of influence operations and election integrity. Recognize manipulation without becoming paranoid.",
+        "intro": "Every country in the world tries to influence every other country. This is not new and it is not secret. What is new is the speed, scale, and sophistication of modern influence operations, especially online. This program teaches you to identify when someone is trying to shape your thinking for their benefit, not yours. You will study real historical cases of foreign influence on elections, propaganda campaigns, disinformation operations, and economic coercion. You will learn to evaluate evidence carefully, separate confirmed operations from speculation, and understand why a healthy democracy depends on citizens who can think clearly about who is trying to influence them and why. The goal is not suspicion of everything. The goal is the ability to ask the right questions and demand real evidence before accepting or rejecting any claim. There is also a deeper dimension to understand: we are a nation of immigrants, and a portion of every immigrant community maintains ties to their homeland. This is natural. But foreign influence exploits this exact loyalty. It does not always need to send agents when it can leverage people who never fully committed to where they are now, people who are still trying to build their old kingdom's power structure inside their new country instead of remaking themselves in the new country's image. The tension between homeland loyalty and adopted-country commitment is the exact seam that influence operations target. A citizen who understands this can hold both love for heritage and full commitment to their country without being used as a vector by either.",
+        "categories": ["foreign_influence"],
     },
 ]

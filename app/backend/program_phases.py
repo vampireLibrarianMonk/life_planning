@@ -80,4 +80,24 @@ PROGRAM_PHASES = {
         "diamond": "Phase 5: Election Readiness Capstone",
         "obsidian": "Post-18: Participation & Teaching",
     },
+    "revolutionary_minds": {
+        "bronze": "Orientation & Wandering",
+        "silver": "Summer Immersion",
+        "gold": "Optional Depth & Comparison",
+        "platinum": "Synthesis & Patterns",
+        "diamond": "Application & Teaching",
+    },
+    "ten_commandments": {
+        "bronze": "Learn & Memorize",
+        "silver": "Deep Study & Self-Examination",
+        "gold": "Applied Ethics",
+        "platinum": "Leadership & Teaching",
+    },
+    "foreign_influence": {
+        "bronze": "Foundations: Advertising & Honesty",
+        "silver": "Media Literacy & Source Analysis",
+        "gold": "Election Security & Case Studies",
+        "platinum": "Public Policy & Institutional Defense",
+        "diamond": "Teaching & Stewardship",
+    },
 }

@@ -319,6 +319,7 @@ def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depen
             "title": prog["title"],
             "icon": prog["icon"],
             "description": prog["description"],
+            "intro": prog.get("intro", ""),
             "total": total,
             "completed": completed,
             "total_reward": total_reward,

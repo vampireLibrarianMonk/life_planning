@@ -3,7 +3,7 @@
 skinparam backgroundColor #FEFEFE
 skinparam defaultFontSize 11
 
-title Programs & Structured Tracks (10)
+title Programs & Structured Tracks (14)
 
 package "Programs" {
   rectangle "🎖️ Military Preparation" as mil #F5F5F5 {
@@ -31,7 +31,7 @@ package "Programs" {
   rectangle "🧠 Formation Study" as form #FFFFF5 {
     (Life Cards & Belonging Maps) as fl
     (Systems Maintenance) as fs
-    (Breadth of Belonging) as fb
+    (Mythic Order / Society Fabric) as fb
     fl --> fs
     fl --> fb
   }
@@ -45,11 +45,11 @@ package "Programs" {
   }
 
   rectangle "🚗 Earn Your Car" as car #F5FFF5 {
-    (Phase 1: Vehicle Literacy) as c1
-    (Phase 2: Care & Maintenance + PMCS) as c2
-    (Phase 3: Legal Prep & Permit) as c3
-    (Phase 4: Licensure) as c4
-    (Early Match Path OR Full 7-Year Streak) as c5
+    (Vehicle Literacy) as c1
+    (Care & Maintenance) as c2
+    (Legal Preparation) as c3
+    (Licensure) as c4
+    (Capstone: Keys in Hand) as c5
     c1 --> c2
     c2 --> c3
     c3 --> c4
@@ -60,17 +60,17 @@ package "Programs" {
     (Baseline + Weekly Activity) as f1
     (Quarterly Assessment + Sport) as f2
     (Training Program Design) as f3
-    (Sustained Lifestyle: 6 Months) as f4
+    (Sustained Lifestyle) as f4
     f1 --> f2
     f2 --> f3
     f3 --> f4
   }
 
   rectangle "🏙️ 311 Civic Service" as civic #F5F5FF {
-    (Phase 1: Awareness) as v1
-    (Phase 2: Engagement) as v2
-    (Phase 3: Service) as v3
-    (Phase 4: Leadership) as v4
+    (Awareness) as v1
+    (Engagement) as v2
+    (Service) as v3
+    (Leadership) as v4
     v1 --> v2
     v2 --> v3
     v3 --> v4
@@ -78,8 +78,8 @@ package "Programs" {
 
   rectangle "⚖️ Jury Duty & Case Review" as jury #FFF5F5 {
     (Fairness & Evidence) as j1
-    (Cases, Sources & Narrative) as j2
-    (Legal Standards & Institutional Trust) as j3
+    (Cases & Narrative) as j2
+    (Legal Standards) as j3
     (Capstone & Teaching) as j4
     j1 --> j2
     j2 --> j3
@@ -87,15 +87,61 @@ package "Programs" {
   }
 
   rectangle "🗳️ Civic Chain of Command" as chain #F5FFF5 {
-    (Phase 1: Name the Layers) as cc1
-    (Phase 2: Full Map) as cc2
-    (Phase 3: Elections & Parties) as cc3
-    (Phase 4: Deep Dives & Capstones) as cc4
-    (Phase 5: Election Readiness) as cc5
+    (Name the Layers) as cc1
+    (Full Map) as cc2
+    (Election Mechanics) as cc3
+    (Deep Dives) as cc4
+    (Readiness Capstone) as cc5
     cc1 --> cc2
     cc2 --> cc3
     cc3 --> cc4
     cc4 --> cc5
+  }
+
+  rectangle "📜 Revolutionary Minds" as rev #FFFFF0 {
+    (Orientation & Wandering) as r1
+    (Summer Immersion) as r2
+    (Optional Depth) as r3
+    (Synthesis) as r4
+    (Application) as r5
+    r1 --> r2
+    r2 --> r3
+    r3 --> r4
+    r4 --> r5
+  }
+
+  rectangle "⛰️ Ten Commandments" as ten #F5F0FF {
+    (Learn & Memorize) as t1
+    (Deep Study) as t2
+    (Applied Ethics) as t3
+    (Teach) as t4
+    t1 --> t2
+    t2 --> t3
+    t3 --> t4
+  }
+
+  rectangle "🌐 Foreign Influence" as fi #FFF0F5 {
+    (Advertising Literacy) as fi1
+    (Media & Source Analysis) as fi2
+    (Election Security) as fi3
+    (Policy & Defense) as fi4
+    (Teaching) as fi5
+    fi1 --> fi2
+    fi2 --> fi3
+    fi3 --> fi4
+    fi4 --> fi5
+  }
+
+  rectangle "🏆 Sportsmanship" as sport #F0FFF5 {
+    (Rules & Fairness) as s1
+    (Lose Well) as s2
+    (Win Well & Bad Calls) as s3
+    (Lead & Coach) as s4
+    (Full Arc) as s5
+    s1 --> s2
+    s2 --> s3
+    s3 --> s4
+    s4 --> s5
   }
 }
 
@@ -103,36 +149,23 @@ note bottom of mil
   Ironforged: $2,000
 end note
 
-note bottom of cath
-  Legendary: $2,000
-end note
-
 note bottom of marc
   Covenant: $10,000
 end note
 
-note bottom of mars
-  Covenant: $10,000
-end note
-
 note bottom of car
-  Ooh Shiny: $15K transportation budget
-  (vehicle + 2yr insurance)
-end note
-
-note bottom of fit
-  Platinum: $500
-end note
-
-note bottom of civic
-  Diamond: $500
-end note
-
-note bottom of jury
-  Per-bounty (no capstone)
+  Ooh Shiny: Vehicle ($25K cap)
 end note
 
 note bottom of chain
   Diamond: $500
+end note
+
+note bottom of rev
+  $500/summer
+end note
+
+note bottom of sport
+  $265 (by age 16)
 end note
 @enduml

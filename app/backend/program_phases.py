@@ -100,4 +100,11 @@ PROGRAM_PHASES = {
         "platinum": "Public Policy & Institutional Defense",
         "diamond": "Teaching & Stewardship",
     },
+    "sportsmanship": {
+        "bronze": "What Makes a Game a Game",
+        "silver": "Lose Well, Read the Room",
+        "gold": "Compete Under Pressure",
+        "platinum": "Lead, Organize, Coach",
+        "diamond": "The Full Arc",
+    },
 }

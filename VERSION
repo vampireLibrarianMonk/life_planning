@@ -1,4 +1,4 @@
-0.5.2
+0.5.3
 
 # Life Plan Tracker Version Ledger
 
@@ -17,21 +17,22 @@
 
 ## Current Semantic Version Decision
 
-**Current version:** `0.5.2`
+**Current version:** `0.5.3`
 
-**Basis:** The previously tracked version was `0.5.1`. This release adds:
+**Basis:** The previously tracked version was `0.5.2`. This release adds:
 
-- 3 new programs: Revolutionary Minds (#11), Ten Commandments Formation (#12), Foreign Influence & Democratic Discernment (#13)
-- All 13 programs now have child-facing intro paragraphs served via dropdown
-- 4 pillar guides (civic, education, life navigation, spiritual updates)
-- 15 new milestones across civic, education, life_skills, life navigation, spiritual, scientific reality testing
-- Fruit Test as media replacement (cross-pillar)
-- Blackmail/leverage dimension in Ten Commandments
-- Heritage vs. foreign allegiance + captured legislation in Foreign Influence
-- Bounties: 147 → 160
-- Planning docs: 25 → 26
+- Program #14: Sportsmanship & Competitive Character (8 bounties, $265, completable by 16, any medium)
+- Post-election accountability cycle: Voting Rationale Record + End-of-Term Evaluation bounties
+- Scientific Reality Testing pillar guide (falsifiability definition, puddle fallacy, confidence scale)
+- Falsifiability milestones across 4 pillars (scientific, catholic, civic, navigation)
+- Buckslip habit (milestone + weekly bounty)
+- Lesson Plans loaded: Navy SEAL Meal-to-Meal, Veterans Window of Tolerance
+- Bounties: 160 → 171
+- Milestones: 571 → 576
+- Programs: 13 → 14
+- Pillar guides: 4 → 5
 
-**Previous release (0.5.1):** Lesson Plans feature, Civic Chain of Command, Mythic Order of Battle, Return/Restoration, Society Fabric.
+**Previous release (0.5.2):** Programs 11-13, pillar guide rewrites, Fruit Test as media replacement.
 
 **SemVer classification:** `MINOR` — adds programs, content, and pillar guides while preserving existing data model and API.
 
@@ -56,4 +57,5 @@
 | 2026-06-23T22:54:16-04:00 | `777d65d` | Add formation study phases and bounty seeding logic. |
 | 2026-07-04T09:16:15-04:00 | `0a63d2e` | v0.5.0: Full program seeding (95 bounties), early childhood sub-bands (0–2/2–3/3–5), civic fact sheets (CCC §1928–§1942), 10 discernment bounties, streak bonus applied, readonly enforcement, backup endpoint, Life Maps split, 4 new docs (10a, 20–22), PlantUML diagrams updated. |
 | 2026-07-10T23:12:13-04:00 | `520ceb4` | v0.5.1: Lesson Plans feature, Civic Chain of Command program ($500), Mythic Order of Battle, Return/Restoration/Breakaway, Society Fabric bounty tracks, how_to_integrate/ guide, new_capability/ cleared. |
-| 2026-07-18 | — | v0.5.2: Programs 11–13 (Revolutionary Minds, Ten Commandments, Foreign Influence), all program intros, pillar guide rewrites (civic/education/navigation/spiritual), Fruit Test as media replacement, 15 new milestones, captured legislation bounty. |
+| 2026-07-18 | `0e9adfa` | v0.5.2: Programs 11–13 (Revolutionary Minds, Ten Commandments, Foreign Influence), all program intros, pillar guide rewrites (civic/education/navigation/spiritual), Fruit Test as media replacement, 15 new milestones, captured legislation bounty. |
+| 2026-07-20 | — | v0.5.3: Sportsmanship program (#14), post-election accountability bounties, Scientific Reality Testing pillar guide (falsifiability, puddle fallacy), falsifiability milestones (4 pillars), buckslip habit, 2 new lesson plans. |

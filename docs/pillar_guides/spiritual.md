@@ -205,6 +205,32 @@ The Fruit Test is slow. It requires patience. It requires observation over time 
 
 **The formation goal:** A child who defaults to fruit-testing — who, when asked "What do you think about X?" responds with "I haven't watched long enough to see the fruit yet" — has been inoculated against the outrage cycle, the personality cult, the tribal reflex, and the manipulation machine. They are not uninformed. They are *differently informed* — by evidence over time rather than narrative in the moment.
 
+### VI-C. The Falsifiability Boundary
+
+There is a line your child must learn to see clearly:
+
+**On one side:** Claims that can be tested, measured, and potentially proven wrong. "This medicine cures infection." "This policy reduces crime." "This person said they would do X and either they did or they didn't." These are falsifiable. They can be held accountable to evidence.
+
+**On the other side:** Claims about ultimate reality, meaning, purpose, and the transcendent. "God exists." "The soul is immortal." "Love is the highest good." These are not falsifiable in the scientific sense. No experiment resolves them. They are held by faith, reason, tradition, and lived experience, not by measurement.
+
+**The danger is confusing the two in either direction:**
+
+- **Treating unfalsifiable claims as if they were scientific** ("I can prove God exists with this equation") reduces faith to bad science
+- **Treating falsifiable claims as if they were matters of faith** ("God told me this business will succeed, so I don't need a plan") uses spiritual language to shield testable decisions from evaluation
+- **Dismissing all unfalsifiable claims as meaningless** ("If you can't measure it, it's not real") eliminates the entire domain of meaning, purpose, love, beauty, and moral reality
+- **Using "faith" to make yourself immune to correction** ("You can't question this because it's my belief") weaponizes the unfalsifiable to avoid accountability
+
+**The rule the child must learn:**
+
+When someone makes a claim about the observable world and attaches spiritual authority to it, the Fruit Test applies AND the falsifiability test applies. "God told me" does not exempt a claim from evaluation if the claim produces observable predictions.
+
+- "God called me to ministry" → Not directly falsifiable. Hold with discernment.
+- "God told me this investment will succeed" → The investment either succeeds or it doesn't. This is a falsifiable claim wearing spiritual clothing.
+- "The Church teaches X about marriage" → Doctrine, held by faith and tradition.
+- "Fr. So-and-so says God wants you to give him money" → The Fruit Test applies. What does this produce over time?
+
+**The formation question:** "Is this claim being placed beyond questioning because it is genuinely about ultimate reality, or because someone benefits from it being unquestionable?"
+
 ### VII. The Defense: Why the Sacramental System Exists
 
 The entire sacramental system is the Church's response to the wound and the attack. Each sacrament directly addresses a dimension of the human condition:

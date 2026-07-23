@@ -3,9 +3,10 @@
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin_or_child
+from auth import get_current_user, require_admin, require_admin_or_child
 from database import get_db
 from models import BehaviorIncident, BehaviorScore, Bounty, User, WishlistItem
 from schemas import (
@@ -188,6 +189,33 @@ def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Sessio
                 raise HTTPException(status_code=400, detail=f"Prerequisites not met: {', '.join(names)}")
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(bounty, field, value)
+    # Budget enforcement: block payout if budget cap exceeded
+    if req.status == "paid":
+        from models import Profile
+        from datetime import timedelta
+        profile = db.query(Profile).filter(Profile.id == profile_id).first()
+        if profile:
+            now = datetime.utcnow()
+            def _period_spent(since):
+                paid_bounties = db.query(Bounty).filter(
+                    Bounty.profile_id == profile_id,
+                    Bounty.completed_at >= since,
+                    Bounty.status == "paid"
+                ).all()
+                return sum(b.reward_amount for b in paid_bounties)
+            if profile.weekly_budget_cents is not None:
+                week_start = now - timedelta(days=now.weekday())
+                week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                if _period_spent(week_start) + bounty.reward_amount > profile.weekly_budget_cents:
+                    raise HTTPException(status_code=400, detail=f"Weekly budget cap reached (${profile.weekly_budget_cents/100:.2f}). Bounty stays at 'complete' until next week.")
+            if profile.monthly_budget_cents is not None:
+                month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                if _period_spent(month_start) + bounty.reward_amount > profile.monthly_budget_cents:
+                    raise HTTPException(status_code=400, detail=f"Monthly budget cap reached (${profile.monthly_budget_cents/100:.2f}). Bounty stays at 'complete' until next month.")
+            if profile.annual_budget_cents is not None:
+                year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                if _period_spent(year_start) + bounty.reward_amount > profile.annual_budget_cents:
+                    raise HTTPException(status_code=400, detail=f"Annual budget cap reached (${profile.annual_budget_cents/100:.2f}). Bounty stays at 'complete' until next year.")
     if req.status == "paid" and bounty.repeatable:
         # Repeatable: increment times_completed, update streak, reset to available
         bounty.times_completed = (bounty.times_completed or 0) + 1
@@ -380,6 +408,87 @@ def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = 
         tier = "bronze"
 
     return {"eligible_tier": tier, "percentage": overall, "trait_scores": trait_scores}
+
+
+# --- Budget ---
+
+class BudgetUpdate(PydanticBaseModel):
+    weekly_budget_cents: int | None = None
+    monthly_budget_cents: int | None = None
+    annual_budget_cents: int | None = None
+
+
+@router.get("/budget")
+def get_budget(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    """Return budget caps and current spend for this period."""
+    from models import Profile
+    from datetime import timedelta
+
+    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    now = datetime.utcnow()
+    week_start = now - timedelta(days=now.weekday())  # Monday
+    week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # Calculate spend by looking at bounty logs or completed_at timestamps
+    bounties = db.query(Bounty).filter(Bounty.profile_id == profile_id).all()
+
+    def spend_since(since):
+        """Calculate total paid out since a given date using bounty completion history."""
+        total = 0
+        for b in bounties:
+            if b.status == "paid" and b.completed_at and b.completed_at >= since:
+                total += b.reward_amount
+            # For repeatable bounties, use last_completed_at as proxy for most recent payout
+            if b.repeatable and b.last_completed_at and b.last_completed_at >= since and (b.times_completed or 0) > 0:
+                # Estimate last payout amount (decayed)
+                divisor = b.decay_divisor or 2
+                times = b.times_completed or 1
+                total += max(1, b.reward_amount // (divisor ** (times - 1)))
+        return total
+
+    weekly_spent = spend_since(week_start)
+    monthly_spent = spend_since(month_start)
+    annual_spent = spend_since(year_start)
+
+    return {
+        "weekly_budget_cents": profile.weekly_budget_cents,
+        "monthly_budget_cents": profile.monthly_budget_cents,
+        "annual_budget_cents": profile.annual_budget_cents,
+        "weekly_spent_cents": weekly_spent,
+        "monthly_spent_cents": monthly_spent,
+        "annual_spent_cents": annual_spent,
+        "weekly_remaining_cents": (profile.weekly_budget_cents - weekly_spent) if profile.weekly_budget_cents else None,
+        "monthly_remaining_cents": (profile.monthly_budget_cents - monthly_spent) if profile.monthly_budget_cents else None,
+        "annual_remaining_cents": (profile.annual_budget_cents - annual_spent) if profile.annual_budget_cents else None,
+        "budget_exceeded": (
+            (profile.weekly_budget_cents is not None and weekly_spent >= profile.weekly_budget_cents) or
+            (profile.monthly_budget_cents is not None and monthly_spent >= profile.monthly_budget_cents) or
+            (profile.annual_budget_cents is not None and annual_spent >= profile.annual_budget_cents)
+        ),
+    }
+
+
+@router.patch("/budget")
+def update_budget(profile_id: int, req: BudgetUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    """Update budget caps for a profile (admin only)."""
+    from models import Profile
+    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    for field, value in req.model_dump(exclude_unset=True).items():
+        setattr(profile, field, value)
+    db.commit()
+    db.refresh(profile)
+    return {
+        "weekly_budget_cents": profile.weekly_budget_cents,
+        "monthly_budget_cents": profile.monthly_budget_cents,
+        "annual_budget_cents": profile.annual_budget_cents,
+    }
 
 
 # --- Earnings Summary ---

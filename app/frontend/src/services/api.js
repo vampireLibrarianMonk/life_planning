@@ -360,3 +360,16 @@ export async function createLessonResponse(profileId, lessonId, data) {
 export async function deleteLessonResponse(profileId, lessonId, responseId) {
   await fetch(`/api/profiles/${profileId}/lessons/${lessonId}/responses/${responseId}`, { method: 'DELETE', headers: headers() })
 }
+
+
+// --- Budget ---
+
+export async function fetchBudget(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/budget`, { headers: headers() })
+  return res.json()
+}
+
+export async function updateBudget(profileId, data) {
+  const res = await fetch(`/api/profiles/${profileId}/budget`, { method: 'PATCH', headers: headers(), body: JSON.stringify(data) })
+  return res.json()
+}

@@ -107,4 +107,10 @@ PROGRAM_PHASES = {
         "platinum": "Lead, Organize, Coach",
         "diamond": "The Full Arc",
     },
+    "creative_writing": {
+        "bronze": "Foundation",
+        "silver": "Development",
+        "gold": "Decisions & Consequences",
+        "platinum": "Final Project",
+    },
 }

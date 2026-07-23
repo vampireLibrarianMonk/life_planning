@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog, fetchFunds, createFund, deleteFund, fetchFundTransactions, createFundTransaction, deleteFundTransaction } from '../services/api'
+import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog, fetchFunds, createFund, deleteFund, fetchFundTransactions, createFundTransaction, deleteFundTransaction, fetchBudget, updateBudget } from '../services/api'
 import MiniMarkdown from '../components/MiniMarkdown'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
@@ -23,6 +23,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
   const [incidents, setIncidents] = useState([])
   const [bounties, setBounties] = useState([])
   const [earnings, setEarnings] = useState(null)
+  const [budget, setBudget] = useState(null)
   const [showIncidentForm, setShowIncidentForm] = useState(false)
   const [incForm, setIncForm] = useState({ trait: 'integrity', positive: 1, description: '', date: new Date().toISOString().split('T')[0] })
   const [showBountyForm, setShowBountyForm] = useState(false)
@@ -51,6 +52,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
     fetchIncidents(profileId).then(d => Array.isArray(d) && setIncidents(d))
     fetchBounties(profileId).then(d => Array.isArray(d) && setBounties(d))
     fetchEarnings(profileId).then(setEarnings)
+    fetchBudget(profileId).then(setBudget)
     fetchWishlist(profileId).then(d => Array.isArray(d) && setWishlist(d))
     fetchFunds(profileId).then(d => Array.isArray(d) && setFunds(d))
   }
@@ -323,6 +325,26 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
           <div style={st.earnCard}><span style={st.earnLabel}>Paid Out</span><span style={st.earnValue}>{earnings.paid_out}</span></div>
           <div style={st.earnCard}><span style={st.earnLabel}>Pending</span><span style={st.earnValue}>{earnings.pending_payout}</span></div>
           <div style={st.earnCard}><span style={st.earnLabel}>Completed</span><span style={st.earnValue}>{earnings.bounties_completed}</span></div>
+        </div>
+      )}
+
+      {/* Budget Status */}
+      {budget && (budget.weekly_budget_cents || budget.monthly_budget_cents || budget.annual_budget_cents) && (
+        <div style={{ background: budget.budget_exceeded ? '#fff0f0' : '#f0faf0', border: `1px solid ${budget.budget_exceeded ? '#f5c6c6' : '#c6e6c6'}`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <strong style={{ fontSize: 13, color: budget.budget_exceeded ? '#c0392b' : '#27ae60' }}>{budget.budget_exceeded ? '⚠️ Budget Cap Reached' : '💰 Budget Status'}</strong>
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12 }}>
+            {budget.weekly_budget_cents != null && (
+              <div><span style={{ color: '#888' }}>Week:</span> <strong>${(budget.weekly_spent_cents / 100).toFixed(2)}</strong> / ${(budget.weekly_budget_cents / 100).toFixed(2)}</div>
+            )}
+            {budget.monthly_budget_cents != null && (
+              <div><span style={{ color: '#888' }}>Month:</span> <strong>${(budget.monthly_spent_cents / 100).toFixed(2)}</strong> / ${(budget.monthly_budget_cents / 100).toFixed(2)}</div>
+            )}
+            {budget.annual_budget_cents != null && (
+              <div><span style={{ color: '#888' }}>Year:</span> <strong>${(budget.annual_spent_cents / 100).toFixed(2)}</strong> / ${(budget.annual_budget_cents / 100).toFixed(2)}</div>
+            )}
+          </div>
         </div>
       )}
 

@@ -135,6 +135,7 @@ export default function Profile() {
   const [pillarFilter, setPillarFilter] = useState('')
   const [programs, setPrograms] = useState([])
   const [activeProgram, setActiveProgram] = useState(null)
+  const [progTrackFilter, setProgTrackFilter] = useState(null)
   const [researchTopics, setResearchTopics] = useState({})
   const [discernCats, setDiscernCats] = useState({})
   const [discernEntries, setDiscernEntries] = useState([])
@@ -784,9 +785,40 @@ export default function Profile() {
               <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.7, color: '#444' }}>{prog.intro}</p>
             </details>
           )}
+          {prog.bounties.length > 0 && (() => {
+            const categories = [...new Set(prog.bounties.map(b => b.category))].filter(Boolean)
+            const hasMultipleCategories = categories.length > 1
+            const CATEGORY_LABELS = {
+              'creative_writing_rome': '🏛️ Rome Sweet Rome',
+              'creative_writing_blackmirror': '📺 Black Mirror',
+              'formation_study': '🧠 Formation Study',
+              'breadth_of_belonging': '◎ Breadth of Belonging',
+              'life_cards': '🕰️ Life Cards',
+              'systems_maintenance': '🔧 Systems Maintenance',
+              'mythic_order_of_battle': '⚔️ Mythic Order of Battle',
+              'return_restoration_breakaway': '🔄 Return & Restoration',
+              'society_fabric': '🧵 Society Fabric',
+              'jury_case_review': '⚖️ Jury Case Review',
+              'unresolved_case_review': '🔍 Unresolved Cases',
+              'civic_literacy': '📋 Civic Literacy',
+            }
+            if (!hasMultipleCategories) return null
+            const activeFilter = progTrackFilter || categories[0]
+            return (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                {categories.map(cat => (
+                  <button key={cat} onClick={() => setProgTrackFilter(cat)} style={{ padding: '4px 12px', borderRadius: 14, border: '1px solid #ddd', background: activeFilter === cat ? '#4a90d9' : '#fff', color: activeFilter === cat ? '#fff' : '#555', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{CATEGORY_LABELS[cat] || cat}</button>
+                ))}
+              </div>
+            )
+          })()}
           {(() => {
+            const categories = [...new Set(prog.bounties.map(b => b.category))].filter(Boolean)
+            const hasMultipleCategories = categories.length > 1
+            const activeFilter = hasMultipleCategories ? (progTrackFilter || categories[0]) : null
+            const filteredBounties = activeFilter ? prog.bounties.filter(b => b.category === activeFilter) : prog.bounties
             let lastTier = null
-            return prog.bounties.map(b => {
+            return filteredBounties.map(b => {
               const showPhaseHeader = b.tier !== lastTier && prog.phases && prog.phases[b.tier]
               lastTier = b.tier
               return (
@@ -867,7 +899,7 @@ export default function Profile() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
           {programs.map(prog => (
-            <button key={prog.key} onClick={() => setActiveProgram(prog.key)} style={{ ...s.pillarCard, alignItems: 'flex-start', textAlign: 'left' }}>
+            <button key={prog.key} onClick={() => { setActiveProgram(prog.key); setProgTrackFilter(null) }} style={{ ...s.pillarCard, alignItems: 'flex-start', textAlign: 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
                 <span style={{ fontSize: 24 }}>{prog.icon}</span>
                 <div style={{ flex: 1 }}>

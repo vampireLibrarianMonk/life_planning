@@ -113,4 +113,12 @@ PROGRAMS = [
         "intro": "Every game you have ever played, whether it was a board game, a video game, a sport, or even an argument with a friend about whose turn it was, taught you something about how people work together and compete at the same time. This program is about understanding what makes a game worth playing, why people stop playing with cheaters and sore losers, and how the exact same skills that make you someone people want on their team in a game are the skills that make you someone people want in their life. It does not matter if your game is soccer, chess, Minecraft, debate, or World of Warcraft. The rules are the same: play fair, lose without destruction, win without humiliation, and keep the game going so everyone comes back tomorrow.",
         "categories": ["sportsmanship"],
     },
+    {
+        "key": "creative_writing",
+        "title": "Speculative Writing & Consequence Fiction",
+        "icon": "✍️",
+        "description": "Creative writing programs that explore decision-making, cause-and-effect, and moral reasoning through fiction. Two tracks: historical what-if and technology consequences.",
+        "intro": "This program uses creative writing to train your mind in ways that textbooks cannot. You will not just study consequences, you will build worlds where consequences unfold from the decisions you write. Track one places a modern force into ancient Rome and asks: what would you actually do when your advantages run out and you must negotiate with a civilization of millions? Track two asks you to invent a technology that starts helpful and becomes dangerous, then write the story of what it does to people. Both tracks demand the same discipline: every decision you write must have a believable reason and a believable consequence. You cannot rescue your characters with magic. You must think through what actually happens next. The stories you produce are not graded for literary quality. They are evaluated for how honestly you confront the second and third order effects of the choices your characters make.",
+        "categories": ["creative_writing_rome", "creative_writing_blackmirror"],
+    },
 ]

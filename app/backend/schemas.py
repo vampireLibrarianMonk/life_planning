@@ -71,6 +71,9 @@ class ProfileResponse(BaseModel):
     date_of_birth: str | None
     avatar: str | None
     avatar_original: str | None
+    weekly_budget_cents: int | None = None
+    monthly_budget_cents: int | None = None
+    annual_budget_cents: int | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -70,6 +70,9 @@ class Profile(Base):
     date_of_birth = Column(String(10), nullable=True)  # YYYY-MM-DD
     avatar = Column(String(500), nullable=True)  # cropped avatar filename in uploads/
     avatar_original = Column(String(500), nullable=True)  # original full photo filename
+    weekly_budget_cents = Column(Integer, nullable=True)  # max payout per week (null = no cap)
+    monthly_budget_cents = Column(Integer, nullable=True)  # max payout per month (null = no cap)
+    annual_budget_cents = Column(Integer, nullable=True)  # max payout per year (null = no cap)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="profile")

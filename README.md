@@ -1,6 +1,6 @@
 # Life Plan Tracker
 
-A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 14 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 576+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
+A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 17 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 590+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
 
 The dashboard answers one question: **"Is this child becoming a wise, capable, kind, and independent person?"**
 
@@ -106,7 +106,7 @@ The database (`life_plan.db`) persists between restarts. Do not delete it unless
 
 1. Log in as admin
 2. Click **+ New Profile** and enter the child's name and date of birth
-3. The system automatically seeds 576 milestones and 171 bounties across all 14 pillars from the planning documents
+3. The system automatically seeds 590 milestones and 209 bounties across all 14 pillars from the planning documents
 4. Click the profile card to enter the Lifetime Development Dashboard
 
 ### Navigating the Dashboard
@@ -196,6 +196,8 @@ Both enforce the same rule: **what you did, not what you could do.**
 | ⛰️ Ten Commandments Formation | 4 (Learn → Deep Study → Applied Ethics → Teach) | $950 |
 | 🌐 Foreign Influence & Democratic Discernment | 5 (Advertising → Media → Elections → Policy → Teaching) | $335+ |
 | 🏆 Sportsmanship & Competitive Character | 5 (Rules → Lose Well → Win Well → Lead → Full Arc) | $265 |
+| ⚖️ Just War Ethics | 5 (Fair Fight → Judging Cases → Both Sides → Refusal & Restraint → Teach) | $150 (Diamond) |
+| 🏰 City of God (Spiritual Warfare) | 5 (Two Loves → Ordo Amoris → Spot the Accuser → Defend the Rungs → Guard the House) | $150 (Diamond) |
 
 Programs close out upon completion — all bounties retire when the capstone is paid. Bounties within programs support prerequisites (bounties that must be completed before others unlock).
 
@@ -294,7 +296,7 @@ life_plan/
     │   ├── schemas.py               # Pydantic request/response schemas
     │   ├── auth.py                  # JWT + role-based access
     │   ├── database.py              # DB connection
-    │   ├── seed_data.py             # 576 milestones + 171 seeded bounties
+    │   ├── seed_data.py             # 590 milestones + 209 seeded bounties
     │   ├── research_topics.py       # Topic banks for saint/paradox/effect
     │   ├── programs.py              # Program definitions (14 structured tracks)
     │   ├── program_phases.py        # Phase labels per program tier

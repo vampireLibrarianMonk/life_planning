@@ -119,6 +119,22 @@ PROGRAMS = [
         "icon": "✍️",
         "description": "Creative writing programs that explore decision-making, cause-and-effect, and moral reasoning through fiction. Two tracks: historical what-if and technology consequences.",
         "intro": "This program uses creative writing to train your mind in ways that textbooks cannot. You will not just study consequences, you will build worlds where consequences unfold from the decisions you write. Track one places a modern force into ancient Rome and asks: what would you actually do when your advantages run out and you must negotiate with a civilization of millions? Track two asks you to invent a technology that starts helpful and becomes dangerous, then write the story of what it does to people. Both tracks demand the same discipline: every decision you write must have a believable reason and a believable consequence. You cannot rescue your characters with magic. You must think through what actually happens next. The stories you produce are not graded for literary quality. They are evaluated for how honestly you confront the second and third order effects of the choices your characters make.",
-        "categories": ["creative_writing_rome", "creative_writing_blackmirror"],
+        "categories": ["creative_writing_rome", "creative_writing_blackmirror", "creative_writing_temple"],
+    },
+    {
+        "key": "just_war",
+        "title": "Just War Ethics",
+        "icon": "⚖️",
+        "description": "Learn the disciplined checklist that decides whether any use of force is just — and practice saying no when it is not.",
+        "intro": "Augustine gave the West two ways of talking about warfare, and people confuse them constantly. One is the outward question: when, if ever, is it right to use force, and how must it be waged? This program trains that judgment. You will learn the classic checklist — just cause, legitimate authority, right intention, proportionality, chance of success, last resort — and the rules for how force may be used: protect noncombatants, use no more than necessary, and never do an evil act even for a good cause. Then you will apply it to real conflicts, from historical wars to playground fights to online pile-ons. The point is not to make you eager to fight. The criteria exist mostly to say no. A person trained here is slower to fight, harder to manipulate into fighting, and able to refuse an unjust fight with reasons. This is the sibling of the City of God program: the outer war is never rightly judged by someone whose inner loves are disordered, so the two belong together.",
+        "categories": ["just_war"],
+    },
+    {
+        "key": "city_of_god",
+        "title": "City of God",
+        "icon": "🏰",
+        "description": "Learn Augustine's two cities and two loves, recognize disordered love and the Accuser's tactics in your own heart, and build the sacramental defenses that keep you free.",
+        "intro": "Augustine said two loves built two cities: love of self to the contempt of God built the earthly city, and love of God to the contempt of self built the heavenly one. The real war is not out there — it is the war between those two loves inside your own heart. This program trains the inward defense. You will name what you love and in what order, learn that sin is usually loving a real good in the wrong order or amount (ordo amoris), and learn to catch the Accuser's oldest tactics — projection, accusation, isolation, despair — when they are working on you. It builds directly on the Spiritual Warfare framework you already know and adds Augustine's two cities on top. The hardest bounties ask you to catch yourself being the accuser, not just others. The whole point: the sword saves no soul, and the only enemy you are guaranteed to meet is the disorder in your own heart.",
+        "categories": ["city_of_god"],
     },
 ]

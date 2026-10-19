@@ -113,4 +113,18 @@ PROGRAM_PHASES = {
         "gold": "Decisions & Consequences",
         "platinum": "Final Project",
     },
+    "just_war": {
+        "bronze": "Phase 1: The Rules of a Fair Fight",
+        "silver": "Phase 2: Judging Real Cases",
+        "gold": "Phase 3: Both Sides of the Table",
+        "platinum": "Phase 4: Living It — Refusal & Restraint",
+        "diamond": "Phase 5: Teach the Checklist",
+    },
+    "city_of_god": {
+        "bronze": "Phase 1: Two Cities, Two Loves",
+        "silver": "Phase 2: Ordering My Loves (Ordo Amoris)",
+        "gold": "Phase 3: Spotting the Accuser",
+        "platinum": "Phase 4: Defending the Rungs",
+        "diamond": "Phase 5: Guard the House",
+    },
 }

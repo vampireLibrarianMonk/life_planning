@@ -77,7 +77,7 @@ const BELONGING_BOUNTY_TEMPLATE = [
   'End with a one-sentence lesson.',
 ]
 
-const STATUS_COLORS = { not_started: '#e0e0e0', introduced: '#a0d2db', in_progress: '#f5a623', practicing: '#c39bd3', complete: '#2ecc71', mastered: '#1a7a4c', pending: '#e0e0e0' }
+const STATUS_COLORS = { not_started: '#e0e0e0', introduced: '#a0d2db', in_progress: '#f5a623', practicing: '#c39bd3', complete: '#15803d', mastered: '#1a7a4c', pending: '#e0e0e0' }
 const STATUS_LABELS = { not_started: '○', introduced: '◔', in_progress: '◑', practicing: '◕', complete: '●', mastered: '★', pending: '○' }
 const STATUS_CYCLE = { not_started: 'introduced', introduced: 'in_progress', in_progress: 'practicing', practicing: 'complete', complete: 'mastered', mastered: 'not_started', pending: 'in_progress' }
 const STATUS_DISPLAY = { not_started: 'Not Started', introduced: 'Introduced', in_progress: 'In Progress', practicing: 'Practicing', complete: 'Complete', mastered: 'Mastered', pending: 'Pending' }
@@ -385,7 +385,7 @@ export default function Profile() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#6c7a89', fontSize: 12 }} title="Add any new milestones and bounties from the planning documents to this profile. Corrects age bands on existing milestones.">🔄 Sync Milestones & Bounties</button>
+          <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#55606b', fontSize: 12 }} title="Add any new milestones and bounties from the planning documents to this profile. Corrects age bands on existing milestones.">🔄 Sync Milestones & Bounties</button>
         </div>
 
         {/* Roadmap — at-a-glance overview */}
@@ -403,9 +403,9 @@ export default function Profile() {
               <details key={band} className="roadmap-phase" open={isCurrentBand} style={{ ...s.roadmapPhase, ...(isCurrentBand ? s.roadmapActive : {}) }}>
                 <summary style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', listStyle: 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrentBand ? '#4a90d9' : '#ddd' }} />
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrentBand ? '#2563b0' : '#ddd' }} />
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{labels[band]}</span>
-                    <span style={{ fontSize: 12, color: '#aaa', fontWeight: 400 }}>{band}</span>
+                    <span style={{ fontSize: 12, color: '#595959', fontWeight: 400 }}>{band}</span>
                   </div>
                 </summary>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, paddingLeft: 24 }}>
@@ -414,7 +414,7 @@ export default function Profile() {
                     const done = pillarEntries.filter(e => e.status === 'complete' || e.status === 'mastered').length
                     const total = pillarEntries.length
                     if (!total) return null
-                    return <span key={p.key} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: done === total ? '#e8f8f0' : '#f5f5f5', color: done === total ? '#27ae60' : '#888' }}>{p.icon} {done}/{total}</span>
+                    return <span key={p.key} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: done === total ? '#e8f8f0' : '#f5f5f5', color: done === total ? '#15803d' : '#595959' }}>{p.icon} {done}/{total}</span>
                   })}
                 </div>
               </details>
@@ -424,7 +424,7 @@ export default function Profile() {
 
         {/* Core Metric */}
         <div style={{ ...s.coreMetric, marginTop: 20 }}>
-          <p style={{ margin: 0, fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Core Metric</p>
+          <p style={{ margin: 0, fontSize: 12, color: '#595959', textTransform: 'uppercase', letterSpacing: 1 }}>Core Metric</p>
           <p style={{ margin: '8px 0 0', fontSize: 18, fontStyle: 'italic' }}>"Is {profile.name.split(' ')[0]} becoming a wise, capable, kind, and independent person?"</p>
         </div>
 
@@ -435,14 +435,14 @@ export default function Profile() {
             <button onClick={() => setActivePillar('__life_chart__')} style={{ ...s.pillarCard, border: '2px solid #d9e7ff' }}>
               <span style={{ fontSize: 28 }}>🕰️</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Life Chart Card</span>
-              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Before conception → legacy</span>
+              <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Before conception → legacy</span>
             </button>
           )}
           {(!pillarFilter || 'belonging breadth responsibility circles bounty'.includes(pillarFilter.toLowerCase())) && (
             <button onClick={() => setActivePillar('__belonging__')} style={{ ...s.pillarCard, border: '2px solid #e4d8f5' }}>
               <span style={{ fontSize: 28 }}>◎</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Breadth of Belonging</span>
-              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Responsibility widens outward</span>
+              <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Responsibility widens outward</span>
             </button>
           )}
         </div>
@@ -459,9 +459,9 @@ export default function Profile() {
                 <span style={{ fontSize: 28 }}>{p.icon}</span>
                 <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>{p.label}</span>
                 <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2, marginTop: 8 }}>
-                  <div style={{ width: `${pct}%`, height: 4, background: '#2ecc71', borderRadius: 2 }} />
+                  <div style={{ width: `${pct}%`, height: 4, background: '#15803d', borderRadius: 2 }} />
                 </div>
-                <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{c.complete}/{c.total}</span>
+                <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>{c.complete}/{c.total}</span>
               </button>
             )
           })}
@@ -474,7 +474,7 @@ export default function Profile() {
             <button onClick={() => setActivePillar('__wishlist__')} style={{ ...s.pillarCard, border: '2px solid #e0f0d0' }}>
               <span style={{ fontSize: 28 }}>🎁</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Wishlist</span>
-              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Save toward what you want</span>
+              <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Save toward what you want</span>
             </button>
           )}
         </div>
@@ -486,21 +486,21 @@ export default function Profile() {
             <button onClick={() => setActivePillar('__economy__')} style={{ ...s.pillarCard, border: '2px solid #f0e6d0' }}>
               <span style={{ fontSize: 28 }}>💵</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Bounty Board</span>
-              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Behavior &middot; Bounties &middot; Earnings</span>
+              <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Behavior &middot; Bounties &middot; Earnings</span>
             </button>
           )}
           {(!pillarFilter || 'programs'.includes(pillarFilter.toLowerCase()) || 'military'.includes(pillarFilter.toLowerCase()) || 'pmcs'.includes(pillarFilter.toLowerCase()) || 'research'.includes(pillarFilter.toLowerCase()) || 'marriage'.includes(pillarFilter.toLowerCase()) || 'catholic'.includes(pillarFilter.toLowerCase())) && (
             <button onClick={() => setActivePillar('__programs__')} style={{ ...s.pillarCard, border: '2px solid #d0e6f0' }}>
               <span style={{ fontSize: 28 }}>📋</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Programs</span>
-              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Structured tracks</span>
+              <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Structured tracks</span>
             </button>
           )}
           {(!pillarFilter || 'career'.includes(pillarFilter.toLowerCase())) && (
             <button onClick={() => setActivePillar('education')} style={{ ...s.pillarCard, border: '2px solid #e0d0f0' }}>
               <span style={{ fontSize: 28 }}>💼</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Career</span>
-              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Discernment &middot; Formation</span>
+              <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Discernment &middot; Formation</span>
             </button>
           )}
         </div>
@@ -511,7 +511,7 @@ export default function Profile() {
           <button onClick={() => { if (!lessons.length) fetchLessons(id).then(d => Array.isArray(d) && setLessons(d)); setActivePillar('__lessons__') }} style={{ ...s.pillarCard, border: '2px solid #e8f4e8', minWidth: 200 }}>
             <span style={{ fontSize: 28 }}>📖</span>
             <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Lesson Plans</span>
-            <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Transcript study → Rebrief → Expand → Teach</span>
+            <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Transcript study → Rebrief → Expand → Teach</span>
           </button>
         </div>
 
@@ -533,7 +533,7 @@ export default function Profile() {
             <button key={d.key} onClick={() => { setActiveDiscern(d.key); setActivePillar('__discernment__') }} style={{ ...s.pillarCard, border: '2px solid #e8e0f0' }}>
               <span style={{ fontSize: 28 }}>{d.icon}</span>
               <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>{d.label}</span>
-              <span style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Discernment</span>
+              <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Discernment</span>
             </button>
           ))}
         </div>
@@ -675,13 +675,13 @@ export default function Profile() {
           <button onClick={() => setActiveLesson(null)} style={s.backBtn}>&larr; Back to Lessons</button>
           <div style={{ margin: '24px 0 16px' }}>
             <h2 style={{ margin: 0 }}>{lesson.title}</h2>
-            <p style={{ margin: '4px 0', fontSize: 13, color: '#888' }}>{lesson.source || 'No source'} · {lesson.pillar || 'General'} · {STATUS_LABELS[lesson.status] || lesson.status}</p>
+            <p style={{ margin: '4px 0', fontSize: 13, color: '#595959' }}>{lesson.source || 'No source'} · {lesson.pillar || 'General'} · {STATUS_LABELS[lesson.status] || lesson.status}</p>
             {lesson.url && <p style={{ margin: '4px 0' }}><a href={lesson.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#2a7ae2' }}>▶ Watch Original</a></p>}
             {lesson.notes && <p style={{ margin: '8px 0', fontSize: 13, color: '#555', fontStyle: 'italic' }}>📝 {lesson.notes}</p>}
           </div>
           <details style={{ marginBottom: 16, background: '#f9f9f9', padding: 12, borderRadius: 8, border: '1px solid #eee' }}>
             <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>📄 Transcript</summary>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.6, marginTop: 8, maxHeight: 400, overflow: 'auto' }}>{lesson.transcript}</pre>
+            <pre tabIndex={0} role="region" aria-label="Lesson transcript" style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.6, marginTop: 8, maxHeight: 400, overflow: 'auto' }}>{lesson.transcript}</pre>
           </details>
           <h3 style={{ margin: '16px 0 8px' }}>Responses</h3>
           {lesson.responses && lesson.responses.map(r => (
@@ -739,7 +739,7 @@ export default function Profile() {
             <button type="submit" style={s.submitBtn}>Create Lesson</button>
           </form>
         )}
-        {lessons.length === 0 && !showLessonForm && <p style={{ color: '#888', fontSize: 14 }}>No lesson plans yet. Click "+ New Lesson" to paste a transcript.</p>}
+        {lessons.length === 0 && !showLessonForm && <p style={{ color: '#595959', fontSize: 14 }}>No lesson plans yet. Click "+ New Lesson" to paste a transcript.</p>}
         {lessons.map(lesson => {
           const STATUS_COLORS = { assigned: '#e0e0e0', in_progress: '#fff3cd', rebrief_done: '#d1ecf1', expansion_done: '#d4edda', teachback_done: '#cce5ff', complete: '#d4edda' }
           return (
@@ -769,15 +769,15 @@ export default function Profile() {
             <span style={{ fontSize: 32 }}>{prog.icon}</span>
             <div style={{ flex: 1 }}>
               <h2 style={{ margin: 0 }}>{prog.title}</h2>
-              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>{prog.completed}/{prog.total} tasks engaged</p>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#595959' }}>{prog.completed}/{prog.total} tasks engaged</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: 20, fontWeight: 700, color: '#2ecc71' }}>${(prog.total_reward / 100).toLocaleString()}{prog.has_repeatable ? <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}> +🔄</span> : ''}</span>
-              <p style={{ margin: '2px 0 0', fontSize: 10, color: '#999', textTransform: 'uppercase' }}>Total Rewardable</p>
+              <span style={{ fontSize: 20, fontWeight: 700, color: '#15803d' }}>${(prog.total_reward / 100).toLocaleString()}{prog.has_repeatable ? <span style={{ fontSize: 12, color: '#595959', fontWeight: 400 }}> +🔄</span> : ''}</span>
+              <p style={{ margin: '2px 0 0', fontSize: 10, color: '#595959', textTransform: 'uppercase' }}>Total Rewardable</p>
             </div>
           </div>
           <div style={{ width: '100%', height: 6, background: '#eee', borderRadius: 3, marginBottom: 20 }}>
-            <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 6, background: '#2ecc71', borderRadius: 3 }} />
+            <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 6, background: '#15803d', borderRadius: 3 }} />
           </div>
           {prog.intro && (
             <details style={{ marginBottom: 16, background: '#f8fafe', padding: 12, borderRadius: 8, border: '1px solid #e4edfa' }}>
@@ -791,6 +791,7 @@ export default function Profile() {
             const CATEGORY_LABELS = {
               'creative_writing_rome': '🏛️ Rome Sweet Rome',
               'creative_writing_blackmirror': '📺 Black Mirror',
+              'creative_writing_temple': '⛪ Temple Clearing',
               'formation_study': '🧠 Formation Study',
               'breadth_of_belonging': '◎ Breadth of Belonging',
               'life_cards': '🕰️ Life Cards',
@@ -807,7 +808,7 @@ export default function Profile() {
             return (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
                 {categories.map(cat => (
-                  <button key={cat} onClick={() => setProgTrackFilter(cat)} style={{ padding: '4px 12px', borderRadius: 14, border: '1px solid #ddd', background: activeFilter === cat ? '#4a90d9' : '#fff', color: activeFilter === cat ? '#fff' : '#555', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{CATEGORY_LABELS[cat] || cat}</button>
+                  <button key={cat} onClick={() => setProgTrackFilter(cat)} style={{ padding: '4px 12px', borderRadius: 14, border: '1px solid #ddd', background: activeFilter === cat ? '#2563b0' : '#fff', color: activeFilter === cat ? '#fff' : '#555', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{CATEGORY_LABELS[cat] || cat}</button>
                 ))}
               </div>
             )
@@ -823,8 +824,8 @@ export default function Profile() {
               lastTier = b.tier
               return (
                 <div key={b.id}>
-                  {showPhaseHeader && <h4 style={{ margin: '16px 0 8px', fontSize: 13, color: '#4a90d9', fontWeight: 600, borderBottom: '1px solid #e8e8e8', paddingBottom: 4 }}>{prog.phases[b.tier]}</h4>}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${b.status === 'retired' ? '#999' : b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#2ecc71' : b.status === 'claimed' ? '#f5a623' : b.status === 'complete' ? '#27ae60' : '#ddd'}` }}>
+                  {showPhaseHeader && <h4 style={{ margin: '16px 0 8px', fontSize: 13, color: '#2563b0', fontWeight: 600, borderBottom: '1px solid #e8e8e8', paddingBottom: 4 }}>{prog.phases[b.tier]}</h4>}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', background: '#fff', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${b.status === 'retired' ? '#999' : b.status === 'paid' || (b.repeatable && b.times_completed > 0) ? '#15803d' : b.status === 'claimed' ? '#f5a623' : b.status === 'complete' ? '#15803d' : '#ddd'}` }}>
               {editingPBounty === b.id ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -862,21 +863,21 @@ export default function Profile() {
               ) : (
                 <>
                   <button onClick={async () => { if (b.status === 'retired') return; if (b.category && researchTopics[b.category] && b.status === 'available') { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: 'claimed' }); return; } const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', cursor: b.status === 'retired' ? 'default' : 'pointer', padding: 2, fontSize: 16, opacity: b.status === 'retired' ? 0.4 : 1 }} title={b.status === 'retired' ? 'Retired' : `${b.status} — click to advance`}>
-                    <span style={{ color: b.status === 'retired' ? '#999' : b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
+                    <span style={{ color: b.status === 'retired' ? '#999' : b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
                       {b.status === 'retired' ? '🔒' : b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
                     </span>
                   </button>
                   <div style={{ flex: 1, opacity: b.status === 'retired' ? 0.5 : 1 }}>
                     <span style={{ fontWeight: 500 }}>{b.title}</span>
-                    {b.age_band && <span style={{ fontSize: 10, marginLeft: 6, padding: '1px 5px', borderRadius: 6, background: '#f0f4ff', color: '#4a90d9' }}>{b.age_band}</span>}
-                    {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 12 ? '#ffd700' : '#2ecc71' }}> 🔥{b.streak_count}</span> : ''}</span> : null}
+                    {b.age_band && <span style={{ fontSize: 10, marginLeft: 6, padding: '1px 5px', borderRadius: 6, background: '#f0f4ff', color: '#2563b0' }}>{b.age_band}</span>}
+                    {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#595959' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 12 ? '#8a6f00' : '#15803d' }}> 🔥{b.streak_count}</span> : ''}</span> : null}
                     {b.description && <MiniMarkdown text={b.description} maxHeight={120} />}
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f5f5f5', color: '#888' }}>{b.tier}</span>
+                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f5f5f5', color: '#595959' }}>{b.tier}</span>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{b.reward_amount ? `$${(b.current_reward / 100).toFixed(2)}` : '🏆'}</div>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button onClick={() => { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: b.status }) }} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: 12, cursor: 'pointer' }} title="Edit">✎</button>
+                      <button onClick={() => { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: b.status }) }} style={{ background: 'none', border: 'none', color: '#595959', fontSize: 12, cursor: 'pointer' }} title="Edit">✎</button>
                       <button onClick={async () => { if (confirm('Delete this bounty?')) { await deleteBounty(id, b.id); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 16, cursor: 'pointer' }} title="Delete">&times;</button>
                     </div>
                   </div>
@@ -904,14 +905,14 @@ export default function Profile() {
                 <span style={{ fontSize: 24 }}>{prog.icon}</span>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{prog.title}</span>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>{prog.completed}/{prog.total} engaged</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#595959' }}>{prog.completed}/{prog.total} engaged</p>
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#2ecc71' }}>${(prog.total_reward / 100).toLocaleString()}{prog.has_repeatable ? <span style={{ fontSize: 10, color: '#999', fontWeight: 400 }}> +🔄</span> : ''}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>${(prog.total_reward / 100).toLocaleString()}{prog.has_repeatable ? <span style={{ fontSize: 10, color: '#595959', fontWeight: 400 }}> +🔄</span> : ''}</span>
               </div>
               <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2, marginTop: 10 }}>
-                <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 4, background: '#2ecc71', borderRadius: 2 }} />
+                <div style={{ width: `${prog.total ? (prog.completed / prog.total * 100) : 0}%`, height: 4, background: '#15803d', borderRadius: 2 }} />
               </div>
-              <p style={{ margin: '8px 0 0', fontSize: 11, color: '#888' }}>{prog.description}</p>
+              <p style={{ margin: '8px 0 0', fontSize: 11, color: '#595959' }}>{prog.description}</p>
             </button>
           ))}
         </div>
@@ -970,7 +971,7 @@ export default function Profile() {
             {discernBounties.map(b => (
               <div key={b.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid #e6eedf' }}>
                 <button onClick={async () => { const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchBounties(id).then(d => Array.isArray(d) && setPillarBounties(d)) } }} style={{ width: 34, height: 34, borderRadius: 17, border: '1px solid #d9e8cf', background: '#fff', cursor: b.status === 'paid' ? 'default' : 'pointer', fontSize: 16 }} title={statusLabel[b.status] || b.status}>
-                  <span style={{ color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#bbb' }}>{statusIcon[b.status] || '○'}</span>
+                  <span style={{ color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#f5a623' : '#bbb' }}>{statusIcon[b.status] || '○'}</span>
                 </button>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 11, color: '#6b7c5f', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{meta.title || titleCase(b.category)} reflection bounty</div>
@@ -978,8 +979,8 @@ export default function Profile() {
                   <div style={{ fontSize: 11, color: '#7b8772', marginTop: 4 }}>{statusLabel[b.status] || b.status}{b.repeatable ? ` · repeatable, completed ${b.times_completed || 0} time${(b.times_completed || 0) === 1 ? '' : 's'} · ${resetLabel(b)}` : ''}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#2ecc71' }}>${(b.current_reward / 100).toFixed(2)}</div>
-                  <div style={{ fontSize: 10, color: '#8a9683' }}>current reward</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#15803d' }}>${(b.current_reward / 100).toFixed(2)}</div>
+                  <div style={{ fontSize: 10, color: '#5a6b52' }}>current reward</div>
                 </div>
               </div>
             ))}
@@ -993,19 +994,19 @@ export default function Profile() {
           <button type="submit" style={s.submitBtn}>Save Reflection</button>
         </form>
 
-        {discernEntries.length === 0 && <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
+        {discernEntries.length === 0 && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
 
         {discernEntries.map(entry => (
           <div key={entry.id} style={{ padding: '16px', background: '#fff', borderRadius: 10, marginBottom: 12, borderLeft: '3px solid #9b59b6' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.title}</span>
-                {entry.age_at_entry != null && <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>age {entry.age_at_entry}</span>}
+                {entry.age_at_entry != null && <span style={{ fontSize: 11, color: '#595959', marginLeft: 8 }}>age {entry.age_at_entry}</span>}
               </div>
               <button onClick={async () => { if (confirm('Delete this reflection?')) { await deleteDiscernmentEntry(id, entry.id); loadDiscern() } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
             </div>
             <p style={{ margin: '8px 0 0', fontSize: 13, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.reflection}</p>
-            <span style={{ fontSize: 10, color: '#bbb' }}>{new Date(entry.created_at).toLocaleDateString()}</span>
+            <span style={{ fontSize: 10, color: '#595959' }}>{new Date(entry.created_at).toLocaleDateString()}</span>
           </div>
         ))}
       </div>
@@ -1082,9 +1083,9 @@ export default function Profile() {
             <span style={{ color: STATUS_COLORS[item.status] || '#e0e0e0', fontSize: 18 }}>{STATUS_LABELS[item.status] || '○'}</span>
           </button>
           <div style={{ flex: 1, cursor: isMilestone ? 'pointer' : 'default', minWidth: 0 }} onClick={() => isMilestone && toggleMilestoneExpand(item.id)}>
-            <span style={{ textDecoration: item.status === 'complete' || item.status === 'mastered' ? 'line-through' : 'none', color: item.status === 'mastered' ? '#1a7a4c' : item.status === 'complete' ? '#888' : '#1a1a1a', wordBreak: 'break-word' }}>{item.title}</span>
-            {item.content && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888', wordBreak: 'break-word' }}>{item.content}</p>}
-            {isMilestone && <span style={{ fontSize: 10, color: '#bbb', marginLeft: 4 }}>{isExpanded ? '▾' : '▸'} details</span>}
+            <span style={{ textDecoration: item.status === 'complete' || item.status === 'mastered' ? 'line-through' : 'none', color: item.status === 'mastered' ? '#1a7a4c' : item.status === 'complete' ? '#595959' : '#1a1a1a', wordBreak: 'break-word' }}>{item.title}</span>
+            {item.content && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#595959', wordBreak: 'break-word' }}>{item.content}</p>}
+            {isMilestone && <span style={{ fontSize: 10, color: '#595959', marginLeft: 4 }}>{isExpanded ? '▾' : '▸'} details</span>}
           </div>
           <div className="milestone-actions">
             <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 8, background: STATUS_COLORS[item.status] || '#e0e0e0', color: '#fff', whiteSpace: 'nowrap' }}>{STATUS_DISPLAY[item.status] || item.status}</span>
@@ -1097,7 +1098,7 @@ export default function Profile() {
         </div>
         {expandedAttachments === item.id && (
           <div style={s.attachPanel}>
-            {atts.length === 0 && <span style={{ fontSize: 12, color: '#999' }}>No attachments</span>}
+            {atts.length === 0 && <span style={{ fontSize: 12, color: '#595959' }}>No attachments</span>}
             {atts.map(a => (
               <div key={a.id} style={s.attachItem}>
                 {a.mime_type.startsWith('image/') ? (
@@ -1107,7 +1108,7 @@ export default function Profile() {
                 ) : a.mime_type.startsWith('video/') ? (
                   <video src={`/api/uploads/${a.filename}`} controls style={{ maxWidth: 180, maxHeight: 100, borderRadius: 4 }} />
                 ) : (
-                  <a href={`/api/uploads/${a.filename}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#4a90d9' }}>📄 {a.original_name}</a>
+                  <a href={`/api/uploads/${a.filename}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#2563b0' }}>📄 {a.original_name}</a>
                 )}
                 <button onClick={() => handleDeleteAttachment(item.id, a.id)} style={{ ...s.deleteBtn, fontSize: 14 }} title="Remove">×</button>
               </div>
@@ -1116,13 +1117,13 @@ export default function Profile() {
         )}
         {/* Sub-entries panel for milestones */}
         {isMilestone && isExpanded && (
-          <div style={s.subPanel}>
+          <div tabIndex={0} role="region" aria-label="Sub-entries" style={s.subPanel}>
             {kids.length > 0 && kids.map(child => (
               <div key={child.id} style={s.subEntry}>
                 <span style={{ fontSize: 11, color: '#666', fontWeight: 600, textTransform: 'uppercase' }}>{child.entry_type}</span>
                 <span style={{ fontSize: 13 }}>{child.title}</span>
-                {child.content && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#999' }}>{child.content}</p>}
-                <span style={{ fontSize: 10, color: '#bbb' }}>{new Date(child.created_at).toLocaleDateString()}</span>
+                {child.content && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#595959' }}>{child.content}</p>}
+                <span style={{ fontSize: 10, color: '#595959' }}>{new Date(child.created_at).toLocaleDateString()}</span>
               </div>
             ))}
             {subFormParent === item.id ? (
@@ -1143,7 +1144,7 @@ export default function Profile() {
                 </div>
               </form>
             ) : (
-              <button onClick={() => setSubFormParent(item.id)} style={{ fontSize: 11, color: '#4a90d9', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', textAlign: 'left' }}>+ Add note, event, or evidence</button>
+              <button onClick={() => setSubFormParent(item.id)} style={{ fontSize: 11, color: '#2563b0', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', textAlign: 'left' }}>+ Add note, event, or evidence</button>
             )}
           </div>
         )}
@@ -1197,7 +1198,7 @@ export default function Profile() {
       {guideContent && (
         <details style={{ ...s.aboutDropdown, marginTop: 8 }}>
           <summary style={s.aboutSummary}>📖 Pillar Guide</summary>
-          <div style={{ padding: '12px 16px', fontSize: 14, lineHeight: 1.7, color: '#333', maxHeight: 500, overflow: 'auto' }}>
+          <div tabIndex={0} role="region" aria-label="Pillar guide content" style={{ padding: '12px 16px', fontSize: 14, lineHeight: 1.7, color: '#333', maxHeight: 500, overflow: 'auto' }}>
             {(() => {
               const lines = guideContent.split('\n')
               const elements = []
@@ -1259,7 +1260,7 @@ export default function Profile() {
       {pillarTab === 'bounties' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
-            <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#6c7a89' }} title="Add any newly seeded milestones and bounties to this existing profile">Sync Seeded Bounties</button>
+            <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#55606b' }} title="Add any newly seeded milestones and bounties to this existing profile">Sync Seeded Bounties</button>
             <button onClick={() => setShowPillarBountyForm(!showPillarBountyForm)} style={s.addBtn}>{showPillarBountyForm ? 'Cancel' : '+ New Bounty'}</button>
           </div>
           {showPillarBountyForm && (
@@ -1290,7 +1291,7 @@ export default function Profile() {
             </form>
           )}
           {pillarBounties.length === 0 && !showPillarBountyForm && (
-            <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No bounties for this pillar yet.</p>
+            <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No bounties for this pillar yet.</p>
           )}
           {pillarBounties.map(b => (
             <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#fff', borderRadius: 6, marginBottom: 4, flexWrap: editingPBounty === b.id ? 'wrap' : 'nowrap' }}>
@@ -1319,19 +1320,19 @@ export default function Profile() {
               ) : (
                 <>
                   <button onClick={() => cyclePillarBountyStatus(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }} title={`${b.status} — click to advance`}>
-                    <span style={{ fontSize: 16, color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
+                    <span style={{ fontSize: 16, color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
                       {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
                     </span>
                   </button>
                   <div style={{ flex: 1 }}>
                     <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none' }}>{b.title}</span>
-                    {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄 ×{b.times_completed}</span> : null}
-                    {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{b.description}</p>}
+                    {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#595959' }}>🔄 ×{b.times_completed}</span> : null}
+                    {b.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#595959' }}>{b.description}</p>}
                   </div>
-                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff','diamond':'#effcff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#888','gold':'#b8860b','platinum':'#4a90d9','diamond':'#0088aa'}[b.tier] }}>{b.tier}</span>
-                  {b.age_band && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f0f4ff', color: '#4a90d9' }}>{b.age_band}</span>}
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>${((b.current_reward ?? b.reward_amount) / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 10, color: '#999', textDecoration: 'line-through', marginLeft: 4 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
-                  <button onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#aaa' }} title="Edit">✎</button>
+                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff','diamond':'#effcff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#595959','gold':'#b8860b','platinum':'#2563b0','diamond':'#0088aa'}[b.tier] }}>{b.tier}</span>
+                  {b.age_band && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f0f4ff', color: '#2563b0' }}>{b.age_band}</span>}
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>${((b.current_reward ?? b.reward_amount) / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 10, color: '#595959', textDecoration: 'line-through', marginLeft: 4 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
+                  <button onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>
                   <button onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
                 </>
               )}
@@ -1342,7 +1343,7 @@ export default function Profile() {
 
       {pillarTab === 'milestones' && showForm && (
         <form onSubmit={handleAddEntry} style={s.form}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#4a90d9', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#2563b0', marginBottom: 4 }}>
             📌 New Milestone (goal/target)
           </div>
           <input type="text" placeholder={currentPillar.placeholder} value={formTitle} onChange={e => setFormTitle(e.target.value)} style={s.input} autoFocus />
@@ -1366,7 +1367,7 @@ export default function Profile() {
       {/* Milestones by age band */}
       {pillarTab === 'milestones' && bandOrder.filter(b => grouped[b]).map(band => (
         <div key={band} style={{ marginBottom: 24 }}>
-          <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ages {band}</h3>
+          <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#595959', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ages {band}</h3>
           {grouped[band].map(m => renderItem(m, true))}
         </div>
       ))}
@@ -1377,8 +1378,8 @@ export default function Profile() {
 
 const s = {
   container: { maxWidth: 900, margin: '0 auto', padding: '32px 24px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', color: '#1a1a1a' },
-  back: { color: '#4a90d9', textDecoration: 'none', fontSize: 14 },
-  backBtn: { background: 'none', border: 'none', color: '#4a90d9', cursor: 'pointer', fontSize: 14, padding: 0 },
+  back: { color: '#2563b0', textDecoration: 'none', fontSize: 14 },
+  backBtn: { background: 'none', border: 'none', color: '#2563b0', cursor: 'pointer', fontSize: 14, padding: 0 },
   profileHeader: { display: 'flex', alignItems: 'center', gap: 20, margin: '24px 0 32px', padding: 24, background: 'linear-gradient(135deg, #f8f9ff, #f0f4ff)', borderRadius: 16 },
   bigAvatar: { width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
   bigAvatarPlaceholder: { width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 600, flexShrink: 0 },
@@ -1389,20 +1390,20 @@ const s = {
   pillarGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 },
   pillarCard: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 20, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   coreMetric: { marginTop: 40, padding: 24, background: '#fffbf0', border: '1px solid #f0e6d0', borderRadius: 12, textAlign: 'center' },
-  addBtn: { padding: '10px 20px', background: '#4a90d9', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  addBtn: { padding: '10px 20px', background: '#2563b0', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
   form: { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20, padding: 20, background: '#f8f9ff', borderRadius: 12 },
   input: { padding: '10px 14px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' },
-  submitBtn: { padding: '10px 24px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  submitBtn: { padding: '10px 24px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
   cancelBtn: { padding: '10px 24px', background: '#eee', color: '#333', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 },
   milestone: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 6, background: '#fff', borderRadius: 8 },
   statusBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 },
-  categoryBadge: { fontSize: 10, padding: '2px 8px', background: '#f5f5f5', borderRadius: 10, color: '#888', whiteSpace: 'nowrap' },
+  categoryBadge: { fontSize: 10, padding: '2px 8px', background: '#f5f5f5', borderRadius: 10, color: '#595959', whiteSpace: 'nowrap' },
   scoreBadge: { fontSize: 10, padding: '2px 8px', background: '#efe', borderRadius: 10, color: '#464', whiteSpace: 'nowrap' },
-  editBtn: { background: 'none', border: 'none', color: '#aaa', fontSize: 14, cursor: 'pointer', padding: '0 4px' },
+  editBtn: { background: 'none', border: 'none', color: '#595959', fontSize: 14, cursor: 'pointer', padding: '0 4px' },
   deleteBtn: { background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 },
   roadmap: { display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', paddingLeft: 20 },
   roadmapPhase: { display: 'flex', gap: 12, padding: '12px 16px', borderLeft: '2px solid #e8e8e8', marginLeft: 6 },
-  roadmapActive: { background: '#f0f6ff', borderRadius: 8, borderLeft: '2px solid #4a90d9' },
+  roadmapActive: { background: '#f0f6ff', borderRadius: 8, borderLeft: '2px solid #2563b0' },
   roadmapDot: { position: 'relative', left: -27, display: 'flex', alignItems: 'center' },
   attachPanel: { padding: '8px 12px 8px 40px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', background: '#fafafa', borderRadius: '0 0 8px 8px', marginTop: -2 },
   attachItem: { display: 'flex', alignItems: 'center', gap: 6, padding: 4, background: '#fff', borderRadius: 6, border: '1px solid #eee' },
@@ -1413,7 +1414,7 @@ const s = {
   aboutText: { margin: '0 0 12px', fontSize: 13, lineHeight: 1.6, color: '#444' },
   learningCard: { marginBottom: 16, padding: 16, background: '#f7fbff', border: '1px solid #dcecff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   learningImage: { width: 260, maxWidth: '100%', borderRadius: 10, border: '1px solid #d8e4f0', background: '#fff' },
-  learningEyebrow: { margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#4a90d9', textTransform: 'uppercase', letterSpacing: 0.5 },
+  learningEyebrow: { margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#2563b0', textTransform: 'uppercase', letterSpacing: 0.5 },
   learningTitle: { margin: '0 0 8px', fontSize: 18, color: '#1f344a' },
   learningText: { margin: '0 0 8px', fontSize: 13, lineHeight: 1.6, color: '#34495e' },
   learningList: { margin: '8px 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.6, color: '#34495e' },
@@ -1429,6 +1430,6 @@ const s = {
   variantBtn: { padding: '8px 14px', background: '#fff', border: '1px solid #ddd', borderRadius: 999, cursor: 'pointer', fontSize: 13, color: '#666', fontWeight: 600 },
   variantActive: { padding: '8px 14px', background: '#6c3fc4', border: '1px solid #6c3fc4', borderRadius: 999, cursor: 'pointer', fontSize: 13, color: '#fff', fontWeight: 700 },
   tabRow: { display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #e8e8e8' },
-  tab: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#888', borderBottom: '2px solid transparent', marginBottom: -2 },
-  tabActive: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#4a90d9', fontWeight: 600, borderBottom: '2px solid #4a90d9', marginBottom: -2 },
+  tab: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959', borderBottom: '2px solid transparent', marginBottom: -2 },
+  tabActive: { padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#2563b0', fontWeight: 600, borderBottom: '2px solid #2563b0', marginBottom: -2 },
 }

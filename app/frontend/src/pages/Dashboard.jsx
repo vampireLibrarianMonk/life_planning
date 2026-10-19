@@ -109,7 +109,7 @@ export default function Dashboard() {
             <div style={styles.empty}>
               <p style={{ fontSize: 48, margin: 0 }}>👶</p>
               <p style={{ fontSize: 18, margin: '12px 0 4px' }}>No profiles yet</p>
-              <p style={{ color: '#888', margin: 0 }}>Click "+ New Profile" above to create one</p>
+              <p style={{ color: '#595959', margin: 0 }}>Click "+ New Profile" above to create one</p>
             </div>
           )}
         </>
@@ -124,19 +124,19 @@ const styles = {
   title: { margin: 0, fontSize: 28, fontWeight: 700 },
   subtitle: { margin: '4px 0 0', color: '#666', fontSize: 14 },
   logoutBtn: { padding: '8px 20px', background: 'none', border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer', fontSize: 14, color: '#666' },
-  loading: { textAlign: 'center', color: '#888', padding: 40 },
+  loading: { textAlign: 'center', color: '#595959', padding: 40 },
   error: { color: '#c0392b', background: '#fdf0ef', padding: 16, borderRadius: 8, marginBottom: 16 },
-  addBtn: { padding: '10px 20px', background: '#4a90d9', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  addBtn: { padding: '10px 20px', background: '#2563b0', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
   form: { display: 'flex', gap: 12, marginBottom: 24, padding: 20, background: '#f8f9ff', borderRadius: 12, flexWrap: 'wrap' },
   input: { flex: 1, minWidth: 180, padding: '10px 14px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14 },
-  submitBtn: { padding: '10px 24px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  submitBtn: { padding: '10px 24px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 },
   card: { display: 'flex', alignItems: 'center', padding: 20, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, textDecoration: 'none', color: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   avatar: { width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 600, flexShrink: 0 },
   avatarImg: { width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
   cardBody: { flex: 1, marginLeft: 16 },
   cardName: { margin: 0, fontSize: 18, fontWeight: 600 },
-  cardMeta: { margin: '4px 0 0', color: '#888', fontSize: 13 },
+  cardMeta: { margin: '4px 0 0', color: '#595959', fontSize: 13 },
   cardArrow: { fontSize: 20, color: '#ccc', marginLeft: 12 },
   empty: { textAlign: 'center', padding: 60, background: '#fafafa', borderRadius: 12, border: '1px dashed #ddd', marginTop: 16 },
 }

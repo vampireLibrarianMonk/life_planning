@@ -81,5 +81,5 @@ const s = {
   modal: { background: '#fff', borderRadius: 16, padding: 24, width: '90%', maxWidth: 420 },
   cropContainer: { position: 'relative', width: '100%', height: 300, borderRadius: 8, overflow: 'hidden', background: '#111' },
   cancelBtn: { padding: '10px 20px', background: '#eee', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 },
-  saveBtn: { padding: '10px 20px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  saveBtn: { padding: '10px 20px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
 }

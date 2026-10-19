@@ -38,5 +38,5 @@ export default function MiniMarkdown({ text, maxHeight = 150 }) {
     elements.push(<p key={elements.length} style={{ margin: '4px 0', fontSize: 12 }}>{renderInline(line)}</p>)
     i++
   }
-  return <div style={{ maxHeight, overflowY: 'auto', color: '#555', lineHeight: 1.6, marginTop: 4 }}>{elements}</div>
+  return <div tabIndex={0} role="region" aria-label="Description" style={{ maxHeight, overflowY: 'auto', color: '#555', lineHeight: 1.6, marginTop: 4 }}>{elements}</div>
 }

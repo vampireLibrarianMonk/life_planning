@@ -4,7 +4,10 @@ import MiniMarkdown from '../components/MiniMarkdown'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
 const TRAIT_LABELS = { integrity: 'Integrity', honesty: 'Honesty', responsibility: 'Responsibility', respect: 'Respect', school_effort: 'School Effort', citizenship: 'Citizenship' }
-const TIER_COLORS = { bronze: '#cd7f32', silver: '#a0a0a0', gold: '#ffd700', platinum: '#4a90d9', diamond: '#b9f2ff', obsidian: '#1a1a2e', legendary: '#ff4500', covenant: '#7b2d8b', ooh_shiny: '#ff69b4', ironforged: '#4a5568' }
+const TIER_COLORS = { bronze: '#cd7f32', silver: '#a0a0a0', gold: '#ffd700', platinum: '#2563b0', diamond: '#b9f2ff', obsidian: '#1a1a2e', legendary: '#ff4500', covenant: '#7b2d8b', ooh_shiny: '#ff69b4', ironforged: '#4a5568' }
+// AA-compliant (>=4.5:1 on white) equivalents of the tier identity colors, for use as TEXT.
+// TIER_COLORS stays for swatches/borders where contrast rules don't apply.
+const TIER_TEXT_COLORS = { bronze: '#8a5420', silver: '#595959', gold: '#8a6f00', platinum: '#2563b0', diamond: '#00707f', obsidian: '#1a1a2e', legendary: '#c23600', covenant: '#7b2d8b', ooh_shiny: '#b03a73', ironforged: '#4a5568' }
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'obsidian', 'legendary', 'covenant', 'ooh_shiny', 'ironforged']
 const BEHAVIOR_GATED_TIERS = ['bronze', 'silver', 'gold', 'platinum']
 const BOUNTY_STATUS_CYCLE = { available: 'claimed', claimed: 'complete', complete: 'paid' }
@@ -222,26 +225,26 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
           <button onClick={() => setShowWishForm(!showWishForm)} style={{ ...st.btn, background: '#8e44ad' }}>{showWishForm ? 'Cancel' : '+ Add Item'}</button>
         </div>
-        {wishlist.length === 0 && !showWishForm && <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No wishlist items yet. What are you saving toward?</p>}
+        {wishlist.length === 0 && !showWishForm && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No wishlist items yet. What are you saving toward?</p>}
         {wishlist.map(item => {
           const earned = earnings ? earnings.total_earned_cents : 0
           const pct = item.cost_cents > 0 ? Math.min(100, Math.round((earned / item.cost_cents) * 100)) : 0
           const priorityLabel = { 1: '⭐', 2: '⭐⭐', 3: '⭐⭐⭐' }[item.priority] || ''
           return (
-            <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#2ecc71' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
+            <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#15803d' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
               <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
                 <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
               </button>
               <div style={{ flex: 1 }}>
                 <span style={{ textDecoration: item.status === 'purchased' ? 'line-through' : 'none' }}>{item.title}</span>
                 <span style={{ fontSize: 11, marginLeft: 6 }}>{priorityLabel}</span>
-                {item.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{item.description}</p>}
+                {item.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#595959' }}>{item.description}</p>}
                 {item.cost_cents > 0 && item.status === 'saving' && (
                   <div style={{ marginTop: 4 }}>
                     <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2 }}>
                       <div style={{ width: `${pct}%`, height: 4, background: '#8e44ad', borderRadius: 2 }} />
                     </div>
-                    <span style={{ fontSize: 10, color: '#888' }}>{pct}% of ${(item.cost_cents / 100).toFixed(2)}</span>
+                    <span style={{ fontSize: 10, color: '#595959' }}>{pct}% of ${(item.cost_cents / 100).toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -260,11 +263,11 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {eligibility && (
         <div style={{ ...st.banner, borderColor: TIER_COLORS[eligibility.eligible_tier] }}>
           <div>
-            <span style={{ fontSize: 12, color: '#888', textTransform: 'uppercase' }}>Current Eligibility</span>
-            <h3 style={{ margin: '4px 0 0', color: TIER_COLORS[eligibility.eligible_tier], textTransform: 'capitalize' }}>{eligibility.eligible_tier} Tier</h3>
+            <span style={{ fontSize: 12, color: '#595959', textTransform: 'uppercase' }}>Current Eligibility</span>
+            <h3 style={{ margin: '4px 0 0', color: TIER_TEXT_COLORS[eligibility.eligible_tier], textTransform: 'capitalize' }}>{eligibility.eligible_tier} Tier</h3>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: 12, color: '#888' }}>Overall Score</span>
+            <span style={{ fontSize: 12, color: '#595959' }}>Overall Score</span>
             <h3 style={{ margin: '4px 0 0' }}>{eligibility.percentage}%</h3>
           </div>
         </div>
@@ -277,9 +280,9 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
             const ts = eligibility.trait_scores[t] || { positive: 0, negative: 0, ratio: 100 }
             return (
               <div key={t} style={{ padding: 10, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#888' }}>{TRAIT_LABELS[t]}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: ts.ratio >= 90 ? '#1a7a4c' : ts.ratio >= 70 ? '#f5a623' : ts.ratio >= 50 ? '#e67e22' : '#c0392b' }}>{ts.ratio}%</div>
-                <div style={{ fontSize: 10, color: '#aaa' }}>✓{ts.positive} ✗{ts.negative}</div>
+                <div style={{ fontSize: 11, color: '#595959' }}>{TRAIT_LABELS[t]}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: ts.ratio >= 90 ? '#1a7a4c' : ts.ratio >= 70 ? '#a86b00' : ts.ratio >= 50 ? '#b9541a' : '#c0392b' }}>{ts.ratio}%</div>
+                <div style={{ fontSize: 10, color: '#595959' }}>✓{ts.positive} ✗{ts.negative}</div>
               </div>
             )
           })}
@@ -313,7 +316,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
             <tr><td style={st.td}>⚙️ <strong>Ironforged</strong></td><td style={st.td}>Requires: All 5 phases of Military Preparation program complete. Every knowledge test passed, every inspection passed, decision brief delivered.</td></tr>
           </tbody>
         </table>
-        <p style={{ margin: 0, fontSize: 11, color: '#999', fontStyle: 'italic' }}>
+        <p style={{ margin: 0, fontSize: 11, color: '#595959', fontStyle: 'italic' }}>
           Bronze–Platinum are behavior-gated (30-day incident ratio). Diamond and above are earned through program completion, sustained streaks, and life milestones — not just good behavior scores.
         </p>
       </details>
@@ -332,17 +335,17 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {budget && (budget.weekly_budget_cents || budget.monthly_budget_cents || budget.annual_budget_cents) && (
         <div style={{ background: budget.budget_exceeded ? '#fff0f0' : '#f0faf0', border: `1px solid ${budget.budget_exceeded ? '#f5c6c6' : '#c6e6c6'}`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <strong style={{ fontSize: 13, color: budget.budget_exceeded ? '#c0392b' : '#27ae60' }}>{budget.budget_exceeded ? '⚠️ Budget Cap Reached' : '💰 Budget Status'}</strong>
+            <strong style={{ fontSize: 13, color: budget.budget_exceeded ? '#c0392b' : '#15803d' }}>{budget.budget_exceeded ? '⚠️ Budget Cap Reached' : '💰 Budget Status'}</strong>
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12 }}>
             {budget.weekly_budget_cents != null && (
-              <div><span style={{ color: '#888' }}>Week:</span> <strong>${(budget.weekly_spent_cents / 100).toFixed(2)}</strong> / ${(budget.weekly_budget_cents / 100).toFixed(2)}</div>
+              <div><span style={{ color: '#595959' }}>Week:</span> <strong>${(budget.weekly_spent_cents / 100).toFixed(2)}</strong> / ${(budget.weekly_budget_cents / 100).toFixed(2)}</div>
             )}
             {budget.monthly_budget_cents != null && (
-              <div><span style={{ color: '#888' }}>Month:</span> <strong>${(budget.monthly_spent_cents / 100).toFixed(2)}</strong> / ${(budget.monthly_budget_cents / 100).toFixed(2)}</div>
+              <div><span style={{ color: '#595959' }}>Month:</span> <strong>${(budget.monthly_spent_cents / 100).toFixed(2)}</strong> / ${(budget.monthly_budget_cents / 100).toFixed(2)}</div>
             )}
             {budget.annual_budget_cents != null && (
-              <div><span style={{ color: '#888' }}>Year:</span> <strong>${(budget.annual_spent_cents / 100).toFixed(2)}</strong> / ${(budget.annual_budget_cents / 100).toFixed(2)}</div>
+              <div><span style={{ color: '#595959' }}>Year:</span> <strong>${(budget.annual_spent_cents / 100).toFixed(2)}</strong> / ${(budget.annual_budget_cents / 100).toFixed(2)}</div>
             )}
           </div>
         </div>
@@ -376,13 +379,13 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       )}
 
       {incidents.length > 0 && (
-        <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 20 }}>
+        <div tabIndex={0} role="region" aria-label="Behavior incidents" style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 20 }}>
           {incidents.map(inc => (
             <div key={inc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderBottom: '1px solid #f0f0f0' }}>
               <span style={{ fontSize: 14 }}>{inc.positive ? '✓' : '✗'}</span>
-              <span style={{ fontSize: 11, color: '#888', minWidth: 70 }}>{TRAIT_LABELS[inc.trait]?.slice(0, 8)}</span>
+              <span style={{ fontSize: 11, color: '#595959', minWidth: 70 }}>{TRAIT_LABELS[inc.trait]?.slice(0, 8)}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{inc.description}</span>
-              <span style={{ fontSize: 11, color: '#bbb' }}>{inc.date}</span>
+              <span style={{ fontSize: 11, color: '#595959' }}>{inc.date}</span>
               <button onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>
             </div>
           ))}
@@ -439,7 +442,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       )}
 
       {bounties.length === 0 && !showBountyForm && (
-        <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No bounties yet. Create one above.</p>
+        <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No bounties yet. Create one above.</p>
       )}
 
       {/* Topic picker for research bounties */}
@@ -467,9 +470,9 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
 
       {getVisibleTiers(eligibility?.eligible_tier || 'bronze', isAdmin).filter(tier => bounties.some(b => b.tier === tier)).map(tier => (
         <div key={tier} style={{ marginBottom: 24 }}>
-          <h4 style={{ margin: '0 0 8px', color: TIER_COLORS[tier], textTransform: 'capitalize', fontSize: 14 }}>{tier} Tier <span style={{ fontSize: 11, color: '#999', fontWeight: 400 }}>({bounties.filter(b => b.tier === tier).length})</span></h4>
+          <h4 style={{ margin: '0 0 8px', color: TIER_TEXT_COLORS[tier], textTransform: 'capitalize', fontSize: 14 }}>{tier} Tier <span style={{ fontSize: 11, color: '#595959', fontWeight: 400 }}>({bounties.filter(b => b.tier === tier).length})</span></h4>
           {/* Column headers */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 10px', fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #eee', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 10px', fontSize: 10, color: '#595959', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #eee', marginBottom: 4 }}>
             <span style={{ width: 28, textAlign: 'center' }}>Status</span>
             <span style={{ flex: 1, paddingLeft: 4 }}>Task</span>
             <span style={{ width: 40, textAlign: 'center' }}>Age</span>
@@ -477,7 +480,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
             <span style={{ width: 44 }}></span>
           </div>
           {/* Scrollable tier list */}
-          <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 8, padding: '4px 0' }}>
+          <div tabIndex={0} role="region" aria-label={`${tier} tier bounties`} style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 8, padding: '4px 0' }}>
             {bounties.filter(b => b.tier === tier).map(b => (
               <div key={b.id}>
                 <div style={st.bountyItem}>
@@ -537,13 +540,13 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                 ) : (
                   <>
                     <button onClick={() => cycleBountyStatus(b)} style={st.statusDot} title={`${b.status} — click to advance`}>
-                      <span style={{ color: b.status === 'paid' ? '#2ecc71' : b.status === 'complete' ? '#27ae60' : b.status === 'claimed' ? '#f5a623' : '#ddd', fontSize: 16 }}>
+                      <span style={{ color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#a86b00' : '#767676', fontSize: 16 }}>
                         {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
                       </span>
                     </button>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none', color: b.status === 'paid' ? '#888' : '#1a1a1a' }}>{b.title}</span>
-                      {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#999' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 52 ? '#ff4500' : b.streak_count >= 12 ? '#ffd700' : b.streak_count >= 4 ? '#2ecc71' : '#999' }}> 🔥{b.streak_count}</span> : ''}{b.reset_days && b.times_completed > 0 && b.last_completed_at ? (() => {
+                      <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none', color: b.status === 'paid' ? '#595959' : '#1a1a1a' }}>{b.title}</span>
+                      {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#595959' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 52 ? '#c23600' : b.streak_count >= 12 ? '#8a6f00' : b.streak_count >= 4 ? '#15803d' : '#595959' }}> 🔥{b.streak_count}</span> : ''}{b.reset_days && b.times_completed > 0 && b.last_completed_at ? (() => {
                         const daysElapsed = Math.floor((Date.now() - new Date(b.last_completed_at).getTime()) / 86400000)
                         const daysLeft = Math.max(0, b.reset_days - daysElapsed)
                         return daysLeft > 0 ? ` · resets in ${daysLeft}d` : ' · reset!'
@@ -551,30 +554,30 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                       {b.description && <MiniMarkdown text={b.description} maxHeight={120} />}
                       {(b.requirements || b.reference || b.criteria) && (
                         <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {b.requirements && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#4a90d9', fontWeight: 600 }}>📋 Requirements</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#f8f9ff', padding: 8, borderRadius: 6 }}>{b.requirements}</pre></details>}
-                          {b.reference && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#27ae60', fontWeight: 600 }}>📖 Reference</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#f0fff4', padding: 8, borderRadius: 6 }}>{b.reference}</pre></details>}
-                          {b.criteria && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#e67e22', fontWeight: 600 }}>✓ Criteria</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#fffbf0', padding: 8, borderRadius: 6 }}>{b.criteria}</pre></details>}
+                          {b.requirements && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#2563b0', fontWeight: 600 }}>📋 Requirements</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#f8f9ff', padding: 8, borderRadius: 6 }}>{b.requirements}</pre></details>}
+                          {b.reference && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#15803d', fontWeight: 600 }}>📖 Reference</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#f0fff4', padding: 8, borderRadius: 6 }}>{b.reference}</pre></details>}
+                          {b.criteria && <details style={{ fontSize: 11, width: '100%' }}><summary style={{ cursor: 'pointer', color: '#b9541a', fontWeight: 600 }}>✓ Criteria</summary><pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444', background: '#fffbf0', padding: 8, borderRadius: 6 }}>{b.criteria}</pre></details>}
                         </div>
                       )}
                     </div>
-                    <span style={{ width: 40, textAlign: 'center', fontSize: 10, padding: '2px 4px', borderRadius: 8, background: b.age_band ? '#f0f4ff' : 'transparent', color: '#4a90d9' }}>{b.age_band || ''}</span>
-                    <span style={{ width: 70, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#333' }}>${(b.current_reward / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 9, color: '#999', textDecoration: 'line-through', marginLeft: 3 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
-                    <button onClick={() => toggleBountyLog(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: expandedLog === b.id ? '#4a90d9' : '#aaa' }} title="Log">📝</button>
-                    <button onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#aaa' }} title="Edit">✎</button>
+                    <span style={{ width: 40, textAlign: 'center', fontSize: 10, padding: '2px 4px', borderRadius: 8, background: b.age_band ? '#f0f4ff' : 'transparent', color: '#2563b0' }}>{b.age_band || ''}</span>
+                    <span style={{ width: 70, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#333' }}>${(b.current_reward / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 9, color: '#595959', textDecoration: 'line-through', marginLeft: 3 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
+                    <button onClick={() => toggleBountyLog(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: expandedLog === b.id ? '#2563b0' : '#aaa' }} title="Log">📝</button>
+                    <button onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>
                     <button onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>
                   </>
                 )}
               </div>
               {expandedLog === b.id && (
                 <div style={{ padding: '10px 12px', background: '#f9f9ff', borderTop: '1px solid #eee', borderRadius: '0 0 8px 8px', marginTop: -2 }}>
-                  <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 10 }}>
-                    {bountyLogs.length === 0 && <p style={{ fontSize: 12, color: '#999', margin: 0 }}>No log entries yet.</p>}
+                  <div tabIndex={0} role="region" aria-label="Bounty completion log" style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 10 }}>
+                    {bountyLogs.length === 0 && <p style={{ fontSize: 12, color: '#595959', margin: 0 }}>No log entries yet.</p>}
                     {bountyLogs.map(log => (
                       <div key={log.id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: '1px solid #f0f0f0', alignItems: 'flex-start' }}>
-                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: log.author === 'child' ? '#e8f8f0' : '#f0f4ff', color: log.author === 'child' ? '#27ae60' : '#4a90d9', whiteSpace: 'nowrap' }}>{log.author}</span>
-                        <span style={{ fontSize: 10, padding: '2px 4px', borderRadius: 4, background: '#f5f5f5', color: '#888', whiteSpace: 'nowrap' }}>{log.entry_type}</span>
+                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: log.author === 'child' ? '#e8f8f0' : '#f0f4ff', color: log.author === 'child' ? '#15803d' : '#2563b0', whiteSpace: 'nowrap' }}>{log.author}</span>
+                        <span style={{ fontSize: 10, padding: '2px 4px', borderRadius: 4, background: '#f5f5f5', color: '#595959', whiteSpace: 'nowrap' }}>{log.entry_type}</span>
                         <span style={{ flex: 1, fontSize: 12, color: '#333' }}>{log.content}</span>
-                        <span style={{ fontSize: 10, color: '#bbb', whiteSpace: 'nowrap' }}>{log.created_at ? new Date(log.created_at).toLocaleDateString() : ''}</span>
+                        <span style={{ fontSize: 10, color: '#595959', whiteSpace: 'nowrap' }}>{log.created_at ? new Date(log.created_at).toLocaleDateString() : ''}</span>
                         <button onClick={() => removeLog(b.id, log.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 14 }}>×</button>
                       </div>
                     ))}
@@ -604,14 +607,14 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {/* Fund Tracker */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 12px' }}>
         <h3 style={{ margin: 0 }}>💰 Fund Tracker</h3>
-        <button onClick={() => setShowFundForm(!showFundForm)} style={{ ...st.btn, background: '#27ae60' }}>{showFundForm ? 'Cancel' : '+ New Fund'}</button>
+        <button onClick={() => setShowFundForm(!showFundForm)} style={{ ...st.btn, background: '#15803d' }}>{showFundForm ? 'Cancel' : '+ New Fund'}</button>
       </div>
       {showFundForm && (
         <form onSubmit={async (e) => { e.preventDefault(); if (!fundForm.name.trim() || !fundForm.starting_balance) return; await createFund(profileId, { name: fundForm.name.trim(), description: fundForm.description.trim() || null, starting_balance: Math.round(parseFloat(fundForm.starting_balance) * 100) }); setFundForm({ name: '', description: '', starting_balance: '' }); setShowFundForm(false); load() }} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           <input placeholder="Fund name (e.g. Insurance Fund)" value={fundForm.name} onChange={e => setFundForm({ ...fundForm, name: e.target.value })} style={{ ...st.input, flex: 1 }} />
           <input placeholder="Description" value={fundForm.description} onChange={e => setFundForm({ ...fundForm, description: e.target.value })} style={{ ...st.input, flex: 1 }} />
           <input placeholder="Starting balance ($)" type="number" step="0.01" min="0" value={fundForm.starting_balance} onChange={e => setFundForm({ ...fundForm, starting_balance: e.target.value })} style={{ ...st.input, maxWidth: 130 }} />
-          <button type="submit" style={{ ...st.btn, background: '#27ae60' }}>Create</button>
+          <button type="submit" style={{ ...st.btn, background: '#15803d' }}>Create</button>
         </form>
       )}
       {funds.map(fund => {
@@ -625,12 +628,12 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                 {fund.description && <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>{fund.description}</span>}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontWeight: 700, color: fund.current_balance > 0 ? '#27ae60' : '#e74c3c' }}>${(fund.current_balance / 100).toFixed(2)}</span>
-                <span style={{ fontSize: 11, color: '#999', marginLeft: 6 }}>of ${(fund.starting_balance / 100).toFixed(2)}</span>
+                <span style={{ fontWeight: 700, color: fund.current_balance > 0 ? '#15803d' : '#e74c3c' }}>${(fund.current_balance / 100).toFixed(2)}</span>
+                <span style={{ fontSize: 11, color: '#595959', marginLeft: 6 }}>of ${(fund.starting_balance / 100).toFixed(2)}</span>
               </div>
             </div>
             <div style={{ background: '#e9ecef', borderRadius: 4, height: 8, marginTop: 8 }}>
-              <div style={{ background: '#27ae60', borderRadius: 4, height: 8, width: `${pct}%`, transition: 'width 0.3s' }} />
+              <div style={{ background: '#15803d', borderRadius: 4, height: 8, width: `${pct}%`, transition: 'width 0.3s' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
               <button onClick={async () => { if (isExpanded) { setExpandedFund(null); return } setExpandedFund(fund.id); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []) }} style={{ ...st.btn, background: '#f0f0f0', color: '#333', fontSize: 11 }}>{isExpanded ? 'Hide' : 'Transactions'} ({fund.transaction_count})</button>
@@ -642,18 +645,18 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                   <input placeholder="Amount ($)" type="number" step="0.01" min="0" value={txnForm.amount} onChange={e => setTxnForm({ ...txnForm, amount: e.target.value })} style={{ ...st.input, maxWidth: 100 }} />
                   <input placeholder="What was it for?" value={txnForm.description} onChange={e => setTxnForm({ ...txnForm, description: e.target.value })} style={{ ...st.input, flex: 1 }} />
                   <input type="date" value={txnForm.date} onChange={e => setTxnForm({ ...txnForm, date: e.target.value })} style={{ ...st.input, maxWidth: 140 }} />
-                  <button type="submit" style={{ ...st.btn, background: '#27ae60', fontSize: 11 }}>+ Disburse</button>
+                  <button type="submit" style={{ ...st.btn, background: '#15803d', fontSize: 11 }}>+ Disburse</button>
                 </form>
-                {fundTxns.length === 0 && <p style={{ fontSize: 12, color: '#888', margin: 0 }}>No transactions yet.</p>}
+                {fundTxns.length === 0 && <p style={{ fontSize: 12, color: '#595959', margin: 0 }}>No transactions yet.</p>}
                 {fundTxns.map(txn => (
                   <div key={txn.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #eee', fontSize: 12 }}>
                     <div>
                       <span style={{ color: '#c0392b', fontWeight: 600 }}>-${(txn.amount / 100).toFixed(2)}</span>
                       <span style={{ marginLeft: 8, color: '#555' }}>{txn.description}</span>
-                      {txn.date && <span style={{ marginLeft: 8, color: '#aaa' }}>{txn.date}</span>}
+                      {txn.date && <span style={{ marginLeft: 8, color: '#595959' }}>{txn.date}</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: '#888' }}>bal: ${(txn.balance_after / 100).toFixed(2)}</span>
+                      <span style={{ color: '#595959' }}>bal: ${(txn.balance_after / 100).toFixed(2)}</span>
                       <button onClick={async () => { await deleteFundTransaction(profileId, fund.id, txn.id); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []); load() }} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 11 }}>×</button>
                     </div>
                   </div>
@@ -688,7 +691,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       )}
 
       {wishlist.length === 0 && !showWishForm && (
-        <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No wishes yet. Add something to save toward!</p>
+        <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No wishes yet. Add something to save toward!</p>
       )}
 
       {wishlist.map(item => {
@@ -696,7 +699,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
         const pct = item.cost_cents > 0 ? Math.min(100, Math.round((earned / item.cost_cents) * 100)) : 0
         const priorityLabel = { 1: '⭐', 2: '⭐⭐', 3: '⭐⭐⭐' }[item.priority] || ''
         return (
-          <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#2ecc71' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
+          <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#15803d' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
             <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
               <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
             </button>
@@ -705,16 +708,16 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                 <span style={{ textDecoration: item.status === 'purchased' ? 'line-through' : 'none' }}>{item.title}</span>
                 <span style={{ fontSize: 11 }}>{priorityLabel}</span>
               </div>
-              {item.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{item.description}</p>}
+              {item.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#595959' }}>{item.description}</p>}
               {item.cost_cents > 0 && item.status === 'saving' && (
                 <div style={{ marginTop: 4 }}>
                   <div style={{ width: '100%', height: 4, background: '#eee', borderRadius: 2 }}>
-                    <div style={{ width: `${pct}%`, height: 4, background: pct >= 100 ? '#2ecc71' : '#4a90d9', borderRadius: 2 }} />
+                    <div style={{ width: `${pct}%`, height: 4, background: pct >= 100 ? '#15803d' : '#2563b0', borderRadius: 2 }} />
                   </div>
-                  <span style={{ fontSize: 11, color: '#888' }}>${(earned / 100).toFixed(2)} / ${(item.cost_cents / 100).toFixed(2)} ({pct}%)</span>
+                  <span style={{ fontSize: 11, color: '#595959' }}>${(earned / 100).toFixed(2)} / ${(item.cost_cents / 100).toFixed(2)} ({pct}%)</span>
                 </div>
               )}
-              {item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#4a90d9' }}>View item ↗</a>}
+              {item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#2563b0' }}>View item ↗</a>}
             </div>
             <span style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>${(item.cost_cents / 100).toFixed(2)}</span>
             <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>
@@ -729,14 +732,14 @@ const st = {
   banner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 20, background: '#fafafa', borderRadius: 12, border: '2px solid', marginBottom: 20 },
   earningsRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginBottom: 20 },
   earnCard: { display: 'flex', flexDirection: 'column', padding: 14, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, textAlign: 'center' },
-  earnLabel: { fontSize: 11, color: '#888', textTransform: 'uppercase' },
+  earnLabel: { fontSize: 11, color: '#595959', textTransform: 'uppercase' },
   earnValue: { fontSize: 20, fontWeight: 700, marginTop: 4 },
-  btn: { padding: '8px 16px', background: '#4a90d9', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  btn: { padding: '8px 16px', background: '#2563b0', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   form: { display: 'flex', flexDirection: 'column', gap: 10, padding: 16, background: '#f8f9ff', borderRadius: 10, marginBottom: 16 },
   input: { padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, width: '100%', boxSizing: 'border-box' },
-  submitBtn: { padding: '8px 20px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' },
+  submitBtn: { padding: '8px 20px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  th: { textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #eee', fontSize: 11, color: '#888', textTransform: 'uppercase' },
+  th: { textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #eee', fontSize: 11, color: '#595959', textTransform: 'uppercase' },
   td: { padding: '6px 8px', borderBottom: '1px solid #f5f5f5' },
   bountyItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#fff', borderRadius: 6, marginBottom: 4 },
   statusDot: { background: 'none', border: 'none', cursor: 'pointer', padding: 2 },

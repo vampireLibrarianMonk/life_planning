@@ -64,15 +64,17 @@ Note: Pinned versions in `requirements.txt` are floor pins. The installed versio
 |---------|------|-----------|---------|---------|
 | react | ^18.3.1 | 18.3.1 | UI library | MIT |
 | react-dom | ^18.3.1 | 18.3.1 | DOM rendering | MIT |
-| react-router-dom | ^6.26.0 | 6.30.4 | Client-side routing | MIT |
+| react-router-dom | ^7.18.4 | 7.18.4 | Client-side routing | MIT |
 | react-easy-crop | ^5.1.0 | 5.1.0 | Avatar image cropping | MIT |
 
-### Dev Dependencies (build only, not shipped)
+### Dev Dependencies (build/test only, not shipped)
 
 | Package | Spec | Installed | Purpose | License |
 |---------|------|-----------|---------|---------|
-| vite | ^5.4.0 | 5.4.21 | Build tool / dev server | MIT |
-| @vitejs/plugin-react | ^4.3.1 | 4.7.0 | React JSX transform | MIT |
+| vite | ^7.3.7 | 7.3.7 | Build tool / dev server | MIT |
+| @vitejs/plugin-react | ^5.2.0 | 5.2.0 | React JSX transform | MIT |
+| @playwright/test | ^1.55.1 | 1.55.1 | Browser e2e / walkthrough testing | Apache-2.0 |
+| @axe-core/playwright | ^4.10.2 | 4.10.2 | Accessibility (WCAG) scanning | MPL-2.0 |
 
 ---
 

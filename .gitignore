@@ -15,6 +15,12 @@ app/backend/uploads/
 node_modules/
 dist/
 
+# Playwright test artifacts
+app/frontend/playwright-report/
+app/frontend/test-results/
+app/frontend/blob-report/
+app/frontend/.cache/
+
 # IDE
 .idea/
 .vscode/

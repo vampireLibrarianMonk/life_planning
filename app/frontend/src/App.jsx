@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
+import RegionFailoverBanner from './components/RegionFailoverBanner'
 import { getToken, setToken as saveToken } from './services/auth'
 
 export default function App() {
@@ -14,16 +15,24 @@ export default function App() {
   }
 
   if (!token) {
-    return <Login onLogin={handleLogin} />
+    return (
+      <>
+        <RegionFailoverBanner />
+        <Login onLogin={handleLogin} />
+      </>
+    )
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/profile/:id" element={<Profile />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <RegionFailoverBanner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/profile/:id" element={<Profile />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   )
 }

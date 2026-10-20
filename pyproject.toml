@@ -1,0 +1,29 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# Scope ruff to the backend app code.
+src = ["app/backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = [
+    "E501",  # Line length handled by ruff-format; long seed strings acceptable
+    "N806",  # Non-lowercase variable in function — used for class-like constants
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/backend/main.py" = ["E402"]        # FastAPI router/import ordering after table create
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# Backend unit tests live under app/backend/tests and import backend modules
+# directly (the backend runs with its own dir on sys.path). This suite is the
+# PYTHON side; the frontend Playwright e2e/a11y suite is separate and lives in
+# app/frontend/tests — the two never share a runner.
+testpaths = ["app/backend/tests"]
+pythonpath = ["app/backend"]
+addopts = "-q"

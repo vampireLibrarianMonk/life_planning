@@ -99,7 +99,7 @@ class ProfileAccess(Base):
 
 class PillarEntry(Base):
     """A tracked entry for a pillar at a point in time.
-    
+
     Milestones can have children (sub-events, notes, evidence) via parent_id.
     Status codes for milestones:
       - not_started: Seeded but not yet relevant
@@ -115,7 +115,9 @@ class PillarEntry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
-    parent_id = Column(Integer, ForeignKey("pillar_entries.id"), nullable=True)  # sub-entries nest under milestones
+    parent_id = Column(
+        Integer, ForeignKey("pillar_entries.id"), nullable=True
+    )  # sub-entries nest under milestones
     pillar = Column(Enum(Pillar), nullable=False)
     entry_type = Column(String(20), default="milestone")  # milestone, event, note, evidence
     age_band = Column(String(10), nullable=True)  # e.g. "0-5", "6-12"
@@ -125,12 +127,16 @@ class PillarEntry(Base):
     category = Column(String(100), nullable=True)  # Foundation, Exploration, etc.
     score = Column(Integer, nullable=True)  # 1-5 optional rating
     is_milestone = Column(Integer, default=0)  # 1=framework goal, 0=user entry
-    status = Column(String(20), default="not_started")  # not_started, introduced, in_progress, practicing, complete, mastered
+    status = Column(
+        String(20), default="not_started"
+    )  # not_started, introduced, in_progress, practicing, complete, mastered
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     profile = relationship("Profile", back_populates="entries")
-    attachments = relationship("EventAttachment", back_populates="entry", cascade="all, delete-orphan")
+    attachments = relationship(
+        "EventAttachment", back_populates="entry", cascade="all, delete-orphan"
+    )
     children = relationship("PillarEntry", back_populates="parent", cascade="all, delete-orphan")
     parent = relationship("PillarEntry", back_populates="children", remote_side=[id])
 
@@ -162,7 +168,9 @@ class BehaviorIncident(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
-    trait = Column(String(50), nullable=False)  # integrity, honesty, responsibility, respect, school_effort, citizenship
+    trait = Column(
+        String(50), nullable=False
+    )  # integrity, honesty, responsibility, respect, school_effort, citizenship
     positive = Column(Integer, default=1)  # 1=positive demonstration, 0=violation
     description = Column(String(500), nullable=False)  # what happened
     date = Column(String(10), nullable=False)  # YYYY-MM-DD
@@ -190,7 +198,9 @@ class Bounty(Base):
     category = Column(String(30), nullable=True)  # saint, paradox, effect, or null for standard
     repeatable = Column(Integer, default=0)  # 1=repeatable, 0=one-time
     decay_divisor = Column(Integer, default=2)  # divide reward by this each completion (2=halve)
-    reset_days = Column(Integer, nullable=True)  # days after last completion before decay resets (null=never)
+    reset_days = Column(
+        Integer, nullable=True
+    )  # days after last completion before decay resets (null=never)
     times_completed = Column(Integer, default=0)  # how many times completed (for decay calc)
     streak_count = Column(Integer, default=0)  # consecutive on-time completions
     streak_best = Column(Integer, default=0)  # all-time best streak
@@ -278,7 +288,9 @@ class DiscernmentJournal(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False)
-    category = Column(String(30), nullable=False)  # health, math, science, civics, relationships, faith
+    category = Column(
+        String(30), nullable=False
+    )  # health, math, science, civics, relationships, faith
     title = Column(String(300), nullable=False)  # brief summary
     reflection = Column(Text, nullable=False)  # the child's written reflection
     age_at_entry = Column(Integer, nullable=True)  # child's age when written
@@ -301,7 +313,9 @@ class Fund(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     profile = relationship("Profile")
-    transactions = relationship("FundTransaction", back_populates="fund", cascade="all, delete-orphan")
+    transactions = relationship(
+        "FundTransaction", back_populates="fund", cascade="all, delete-orphan"
+    )
 
 
 class FundTransaction(Base):
@@ -333,11 +347,15 @@ class LessonPlan(Base):
     transcript = Column(Text, nullable=False)
     notes = Column(Text, nullable=True)  # admin notes on what to focus on
     age_band = Column(String(10), nullable=True)
-    status = Column(String(20), default="assigned")  # assigned, in_progress, rebrief_done, expansion_done, teachback_done, complete
+    status = Column(
+        String(20), default="assigned"
+    )  # assigned, in_progress, rebrief_done, expansion_done, teachback_done, complete
     created_at = Column(DateTime, default=datetime.utcnow)
 
     profile = relationship("Profile")
-    responses = relationship("LessonResponse", back_populates="lesson", cascade="all, delete-orphan")
+    responses = relationship(
+        "LessonResponse", back_populates="lesson", cascade="all, delete-orphan"
+    )
 
 
 class LessonResponse(Base):

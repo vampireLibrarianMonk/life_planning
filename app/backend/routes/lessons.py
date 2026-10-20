@@ -1,6 +1,7 @@
 """Lesson Plan routes — transcript-based lessons with rebrief, expansion, and teachback."""
 
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -37,7 +38,7 @@ class ResponseCreate(BaseModel):
     content: str
 
 
-class LessonResponse_(BaseModel):
+class LessonResponseModel(BaseModel):
     id: int
     lesson_id: int
     response_type: str
@@ -58,18 +59,30 @@ class LessonOut(BaseModel):
     age_band: str | None
     status: str
     created_at: datetime | None = None
-    responses: list[LessonResponse_] = []
+    responses: list[LessonResponseModel] = []
     model_config = {"from_attributes": True}
 
 
 @router.get("/", response_model=list[LessonOut])
-def list_lessons(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_lessons(
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+):
     """List all lesson plans for a profile."""
-    return db.query(LessonPlan).filter(LessonPlan.profile_id == profile_id).order_by(LessonPlan.created_at.desc()).all()
+    return (
+        db.query(LessonPlan)
+        .filter(LessonPlan.profile_id == profile_id)
+        .order_by(LessonPlan.created_at.desc())
+        .all()
+    )
 
 
 @router.post("/", response_model=LessonOut, status_code=201)
-def create_lesson(profile_id: int, req: LessonCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def create_lesson(
+    profile_id: int,
+    req: LessonCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     """Create a new lesson plan (admin assigns transcript for child to study)."""
     lesson = LessonPlan(profile_id=profile_id, **req.model_dump())
     db.add(lesson)
@@ -79,18 +92,37 @@ def create_lesson(profile_id: int, req: LessonCreate, db: Session = Depends(get_
 
 
 @router.get("/{lesson_id}", response_model=LessonOut)
-def get_lesson(profile_id: int, lesson_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def get_lesson(
+    profile_id: int,
+    lesson_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     """Get a single lesson plan with its responses."""
-    lesson = db.query(LessonPlan).filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id).first()
+    lesson = (
+        db.query(LessonPlan)
+        .filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id)
+        .first()
+    )
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     return lesson
 
 
 @router.patch("/{lesson_id}", response_model=LessonOut)
-def update_lesson(profile_id: int, lesson_id: int, req: LessonUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def update_lesson(
+    profile_id: int,
+    lesson_id: int,
+    req: LessonUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     """Update lesson metadata or status."""
-    lesson = db.query(LessonPlan).filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id).first()
+    lesson = (
+        db.query(LessonPlan)
+        .filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id)
+        .first()
+    )
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     for field, value in req.model_dump(exclude_unset=True).items():
@@ -101,9 +133,15 @@ def update_lesson(profile_id: int, lesson_id: int, req: LessonUpdate, db: Sessio
 
 
 @router.delete("/{lesson_id}", status_code=204)
-def delete_lesson(profile_id: int, lesson_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def delete_lesson(
+    profile_id: int, lesson_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)
+):
     """Delete a lesson plan and all its responses."""
-    lesson = db.query(LessonPlan).filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id).first()
+    lesson = (
+        db.query(LessonPlan)
+        .filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id)
+        .first()
+    )
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     db.delete(lesson)
@@ -112,14 +150,27 @@ def delete_lesson(profile_id: int, lesson_id: int, db: Session = Depends(get_db)
 
 # --- Responses (child submits rebrief, expansion, teachback) ---
 
-@router.post("/{lesson_id}/responses", response_model=LessonResponse_, status_code=201)
-def create_response(profile_id: int, lesson_id: int, req: ResponseCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+
+@router.post("/{lesson_id}/responses", response_model=LessonResponseModel, status_code=201)
+def create_response(
+    profile_id: int,
+    lesson_id: int,
+    req: ResponseCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     """Child submits a response to a lesson (rebrief, expansion, or teachback)."""
-    lesson = db.query(LessonPlan).filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id).first()
+    lesson = (
+        db.query(LessonPlan)
+        .filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id)
+        .first()
+    )
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     if req.response_type not in ("rebrief", "expansion", "teachback"):
-        raise HTTPException(status_code=400, detail="response_type must be: rebrief, expansion, or teachback")
+        raise HTTPException(
+            status_code=400, detail="response_type must be: rebrief, expansion, or teachback"
+        )
     resp = LessonResponse(lesson_id=lesson_id, **req.model_dump())
     db.add(resp)
     # Auto-advance lesson status
@@ -135,11 +186,19 @@ def create_response(profile_id: int, lesson_id: int, req: ResponseCreate, db: Se
 
 
 @router.delete("/{lesson_id}/responses/{response_id}", status_code=204)
-def delete_response(profile_id: int, lesson_id: int, response_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def delete_response(
+    profile_id: int,
+    lesson_id: int,
+    response_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     """Delete a lesson response."""
-    resp = db.query(LessonResponse).filter(
-        LessonResponse.id == response_id, LessonResponse.lesson_id == lesson_id
-    ).first()
+    resp = (
+        db.query(LessonResponse)
+        .filter(LessonResponse.id == response_id, LessonResponse.lesson_id == lesson_id)
+        .first()
+    )
     if not resp:
         raise HTTPException(status_code=404, detail="Response not found")
     db.delete(resp)

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from auth import get_current_user, require_admin_or_child
 from database import get_db
 from models import PillarEntry, User
-from schemas import PillarEntryCreate, PillarEntryResponse, PillarEntryUpdate, Pillar
+from schemas import Pillar, PillarEntryCreate, PillarEntryResponse, PillarEntryUpdate
 
 router = APIRouter(prefix="/api/profiles/{profile_id}/entries", tags=["pillars"])
 
@@ -25,7 +25,9 @@ def list_entries(
         q = q.filter(PillarEntry.pillar == pillar)
     if top_level:
         q = q.filter(PillarEntry.parent_id == parent_id)
-    return q.order_by(PillarEntry.is_milestone.desc(), PillarEntry.age_band, PillarEntry.created_at).all()
+    return q.order_by(
+        PillarEntry.is_milestone.desc(), PillarEntry.age_band, PillarEntry.created_at
+    ).all()
 
 
 @router.get("/{entry_id}/children", response_model=list[PillarEntryResponse])
@@ -52,7 +54,6 @@ def create_entry(
 ):
     data = req.model_dump()
     is_milestone = data.pop("is_milestone", 0)
-    entry_type = data.get("entry_type", "note")
     default_status = "not_started" if is_milestone else "complete"
     entry = PillarEntry(
         profile_id=profile_id,

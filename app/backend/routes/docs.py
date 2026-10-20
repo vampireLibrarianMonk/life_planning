@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from auth import get_current_user, require_admin
+from auth import require_admin
 from models import User
 
 router = APIRouter(prefix="/api/docs", tags=["docs"])
@@ -25,10 +25,19 @@ PILLAR_DOCS = {
     "resilience": ["06_environmental_resilience.md"],
     "dimensional_navigation": ["09_dimensional_navigation.md"],
     "civic": ["10_civic_institutional_navigation.md"],
-    "scientific_reality_testing": ["11_scientific_method_reality_testing.md", "11a_lost_knowledge_corruption_institutional_blindness.md"],
+    "scientific_reality_testing": [
+        "11_scientific_method_reality_testing.md",
+        "11a_lost_knowledge_corruption_institutional_blindness.md",
+    ],
     "inheritance_burden_stewardship": ["12_inheritance_burden_stewardship.md"],
-    "catholic_formation": ["13_catholic_sacramental_formation_domestic_church.md", "14a_recidivism_forgiveness_forgetting_addendum.md"],
-    "secular_sacred_formation": ["14_secular_sacred_formation_civilizational_literacy.md", "14a_recidivism_forgiveness_forgetting_addendum.md"],
+    "catholic_formation": [
+        "13_catholic_sacramental_formation_domestic_church.md",
+        "14a_recidivism_forgiveness_forgetting_addendum.md",
+    ],
+    "secular_sacred_formation": [
+        "14_secular_sacred_formation_civilizational_literacy.md",
+        "14a_recidivism_forgiveness_forgetting_addendum.md",
+    ],
 }
 
 # Section headings that should be excluded (age bands, implementation details)

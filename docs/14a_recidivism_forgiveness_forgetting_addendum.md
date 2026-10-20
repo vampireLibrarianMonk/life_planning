@@ -143,9 +143,9 @@ The child should be taught neither revenge nor naïveté.
 
 The proper posture is:
 
-**Forgive without hatred.  
-Remember without bitterness.  
-Restore only with evidence.  
+**Forgive without hatred.
+Remember without bitterness.
+Restore only with evidence.
 Protect the vulnerable without apology.**
 
 ---

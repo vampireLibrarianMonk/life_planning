@@ -3,7 +3,7 @@
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin, require_admin_or_child
@@ -18,7 +18,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 router = APIRouter(prefix="/api/profiles", tags=["profiles"])
 
 
-def _seed_bounties(db: Session, profile_id: int) -> int:
+def _seed_bounties(db: Session, profile_id: int) -> dict:
     """Add or refresh default seeded bounties for a profile without wiping progress."""
     existing = {
         (b.category, b.title): b
@@ -125,11 +125,13 @@ def reseed_milestones(
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    existing_entries = db.query(PillarEntry).filter(
-        PillarEntry.profile_id == profile_id, PillarEntry.is_milestone == 1
-    ).all()
+    existing_entries = (
+        db.query(PillarEntry)
+        .filter(PillarEntry.profile_id == profile_id, PillarEntry.is_milestone == 1)
+        .all()
+    )
     existing = {
-        (e.pillar.value if hasattr(e.pillar, 'value') else e.pillar, e.title): e
+        (e.pillar.value if hasattr(e.pillar, "value") else e.pillar, e.title): e
         for e in existing_entries
     }
 
@@ -139,16 +141,18 @@ def reseed_milestones(
         for m in milestones:
             key = (pillar_key, m["title"])
             if key not in existing:
-                db.add(PillarEntry(
-                    profile_id=profile_id,
-                    pillar=pillar_key,
-                    age_band=m["age_band"],
-                    title=m["title"],
-                    category=m.get("category"),
-                    is_milestone=1,
-                    entry_type="milestone",
-                    status="not_started",
-                ))
+                db.add(
+                    PillarEntry(
+                        profile_id=profile_id,
+                        pillar=pillar_key,
+                        age_band=m["age_band"],
+                        title=m["title"],
+                        category=m.get("category"),
+                        is_milestone=1,
+                        entry_type="milestone",
+                        status="not_started",
+                    )
+                )
                 added += 1
             else:
                 # Correct age_band if seed data has changed (e.g. 0-5 → 0-2/2-3/3-5)
@@ -237,6 +241,7 @@ async def upload_avatar(
 
 # --- Database Backup ---
 
+
 @router.post("/backup", status_code=200)
 def backup_database(_: User = Depends(require_admin)):
     """Create a timestamped backup of the SQLite database."""
@@ -257,7 +262,9 @@ def backup_database(_: User = Depends(require_admin)):
     shutil.copy2(db_path, backup_path)
 
     # Keep only the last 10 backups to prevent disk bloat
-    backups = sorted(backup_dir.glob("life_plan_*.db"), key=lambda p: p.stat().st_mtime, reverse=True)
+    backups = sorted(
+        backup_dir.glob("life_plan_*.db"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
     for old_backup in backups[10:]:
         old_backup.unlink()
 

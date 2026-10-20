@@ -10,10 +10,17 @@ from auth import get_current_user, require_admin, require_admin_or_child
 from database import get_db
 from models import BehaviorIncident, BehaviorScore, Bounty, User, WishlistItem
 from schemas import (
-    BehaviorScoreCreate, BehaviorScoreResponse, BehaviorScoreUpdate,
-    BountyCreate, BountyResponse, BountyUpdate,
-    IncidentCreate, IncidentResponse,
-    WishlistCreate, WishlistResponse, WishlistUpdate,
+    BehaviorScoreCreate,
+    BehaviorScoreResponse,
+    BehaviorScoreUpdate,
+    BountyCreate,
+    BountyResponse,
+    BountyUpdate,
+    IncidentCreate,
+    IncidentResponse,
+    WishlistCreate,
+    WishlistResponse,
+    WishlistUpdate,
 )
 
 router = APIRouter(prefix="/api/profiles/{profile_id}", tags=["economy"])
@@ -22,17 +29,33 @@ TRAITS = ["integrity", "honesty", "responsibility", "respect", "school_effort", 
 
 # --- Behavior Incidents ---
 
+
 @router.get("/incidents", response_model=list[IncidentResponse])
-def list_incidents(profile_id: int, days: int = 30, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_incidents(
+    profile_id: int,
+    days: int = 30,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
-    return db.query(BehaviorIncident).filter(
-        BehaviorIncident.profile_id == profile_id,
-        BehaviorIncident.date >= cutoff,
-    ).order_by(BehaviorIncident.date.desc()).all()
+    return (
+        db.query(BehaviorIncident)
+        .filter(
+            BehaviorIncident.profile_id == profile_id,
+            BehaviorIncident.date >= cutoff,
+        )
+        .order_by(BehaviorIncident.date.desc())
+        .all()
+    )
 
 
 @router.post("/incidents", response_model=IncidentResponse, status_code=201)
-def create_incident(profile_id: int, req: IncidentCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def create_incident(
+    profile_id: int,
+    req: IncidentCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     if req.trait not in TRAITS:
         raise HTTPException(status_code=400, detail=f"Trait must be one of: {TRAITS}")
     incident = BehaviorIncident(profile_id=profile_id, **req.model_dump())
@@ -43,8 +66,17 @@ def create_incident(profile_id: int, req: IncidentCreate, db: Session = Depends(
 
 
 @router.delete("/incidents/{incident_id}", status_code=204)
-def delete_incident(profile_id: int, incident_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
-    inc = db.query(BehaviorIncident).filter(BehaviorIncident.id == incident_id, BehaviorIncident.profile_id == profile_id).first()
+def delete_incident(
+    profile_id: int,
+    incident_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    inc = (
+        db.query(BehaviorIncident)
+        .filter(BehaviorIncident.id == incident_id, BehaviorIncident.profile_id == profile_id)
+        .first()
+    )
     if not inc:
         raise HTTPException(status_code=404, detail="Incident not found")
     db.delete(inc)
@@ -53,13 +85,26 @@ def delete_incident(profile_id: int, incident_id: int, db: Session = Depends(get
 
 # --- Behavior Scores (legacy — kept for backward compat) ---
 
+
 @router.get("/behavior", response_model=list[BehaviorScoreResponse])
-def list_behavior(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    return db.query(BehaviorScore).filter(BehaviorScore.profile_id == profile_id).order_by(BehaviorScore.week_of.desc()).all()
+def list_behavior(
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+):
+    return (
+        db.query(BehaviorScore)
+        .filter(BehaviorScore.profile_id == profile_id)
+        .order_by(BehaviorScore.week_of.desc())
+        .all()
+    )
 
 
 @router.post("/behavior", response_model=BehaviorScoreResponse, status_code=201)
-def create_behavior(profile_id: int, req: BehaviorScoreCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def create_behavior(
+    profile_id: int,
+    req: BehaviorScoreCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     score = BehaviorScore(profile_id=profile_id, **req.model_dump())
     db.add(score)
     db.commit()
@@ -68,8 +113,18 @@ def create_behavior(profile_id: int, req: BehaviorScoreCreate, db: Session = Dep
 
 
 @router.patch("/behavior/{score_id}", response_model=BehaviorScoreResponse)
-def update_behavior(profile_id: int, score_id: int, req: BehaviorScoreUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
-    score = db.query(BehaviorScore).filter(BehaviorScore.id == score_id, BehaviorScore.profile_id == profile_id).first()
+def update_behavior(
+    profile_id: int,
+    score_id: int,
+    req: BehaviorScoreUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    score = (
+        db.query(BehaviorScore)
+        .filter(BehaviorScore.id == score_id, BehaviorScore.profile_id == profile_id)
+        .first()
+    )
     if not score:
         raise HTTPException(status_code=404, detail="Score not found")
     for field, value in req.model_dump(exclude_unset=True).items():
@@ -81,6 +136,7 @@ def update_behavior(profile_id: int, score_id: int, req: BehaviorScoreUpdate, db
 
 # --- Bounties ---
 
+
 def _compute_current_reward(bounty):
     """Calculate the current reward after decay. Resets if reset_days have passed."""
     if not bounty.repeatable or bounty.times_completed == 0:
@@ -89,10 +145,11 @@ def _compute_current_reward(bounty):
     # Check if reset period has elapsed
     if bounty.reset_days and bounty.last_completed_at:
         from datetime import timedelta
+
         if datetime.utcnow() - bounty.last_completed_at >= timedelta(days=bounty.reset_days):
             return bounty.reward_amount  # reset
     divisor = bounty.decay_divisor or 2
-    return max(1, bounty.reward_amount // (divisor ** times))
+    return max(1, bounty.reward_amount // (divisor**times))
 
 
 def _compute_streak_bonus(bounty):
@@ -112,6 +169,7 @@ def _compute_streak_bonus(bounty):
 def _bounty_response(bounty):
     """Convert a Bounty ORM object to a response dict with current_reward."""
     import json
+
     return {
         "id": bounty.id,
         "profile_id": bounty.profile_id,
@@ -142,7 +200,12 @@ def _bounty_response(bounty):
 
 
 @router.get("/bounties", response_model=list[BountyResponse])
-def list_bounties(profile_id: int, pillar: str | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_bounties(
+    profile_id: int,
+    pillar: str | None = None,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     q = db.query(Bounty).filter(Bounty.profile_id == profile_id)
     if pillar:
         q = q.filter(Bounty.pillar == pillar)
@@ -151,19 +214,25 @@ def list_bounties(profile_id: int, pillar: str | None = None, db: Session = Depe
     for b in bounties:
         if b.repeatable and b.reset_days and b.last_completed_at and b.times_completed:
             from datetime import timedelta
+
             elapsed = datetime.utcnow() - b.last_completed_at
             if elapsed >= timedelta(days=b.reset_days):
                 b.times_completed = 0
                 b.streak_count = 0  # streak broken
                 b.last_completed_at = None
-                if b.status == 'paid':
-                    b.status = 'available'
+                if b.status == "paid":
+                    b.status = "available"
     db.commit()
     return [_bounty_response(b) for b in bounties]
 
 
 @router.post("/bounties", response_model=BountyResponse, status_code=201)
-def create_bounty(profile_id: int, req: BountyCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def create_bounty(
+    profile_id: int,
+    req: BountyCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     bounty = Bounty(profile_id=profile_id, **req.model_dump())
     db.add(bounty)
     db.commit()
@@ -172,50 +241,86 @@ def create_bounty(profile_id: int, req: BountyCreate, db: Session = Depends(get_
 
 
 @router.patch("/bounties/{bounty_id}", response_model=BountyResponse)
-def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def update_bounty(
+    profile_id: int,
+    bounty_id: int,
+    req: BountyUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     import json
-    bounty = db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+
+    bounty = (
+        db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+    )
     if not bounty:
         raise HTTPException(status_code=404, detail="Bounty not found")
     # Check prerequisites before allowing claim/advance (skip for admin resets)
     if req.status in ("claimed", "complete", "paid") and bounty.prerequisites:
         prereq_ids = json.loads(bounty.prerequisites)
         if prereq_ids:
-            unmet = db.query(Bounty).filter(Bounty.id.in_(prereq_ids), Bounty.profile_id == profile_id).filter(
-                ~((Bounty.status == "paid") | ((Bounty.repeatable == 1) & (Bounty.times_completed > 0)))
-            ).all()
+            unmet = (
+                db.query(Bounty)
+                .filter(Bounty.id.in_(prereq_ids), Bounty.profile_id == profile_id)
+                .filter(
+                    ~(
+                        (Bounty.status == "paid")
+                        | ((Bounty.repeatable == 1) & (Bounty.times_completed > 0))
+                    )
+                )
+                .all()
+            )
             if unmet:
                 names = [b.title for b in unmet]
-                raise HTTPException(status_code=400, detail=f"Prerequisites not met: {', '.join(names)}")
+                raise HTTPException(
+                    status_code=400, detail=f"Prerequisites not met: {', '.join(names)}"
+                )
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(bounty, field, value)
     # Budget enforcement: block payout if budget cap exceeded
     if req.status == "paid":
-        from models import Profile
         from datetime import timedelta
+
+        from models import Profile
+
         profile = db.query(Profile).filter(Profile.id == profile_id).first()
         if profile:
             now = datetime.utcnow()
+
             def _period_spent(since):
-                paid_bounties = db.query(Bounty).filter(
-                    Bounty.profile_id == profile_id,
-                    Bounty.completed_at >= since,
-                    Bounty.status == "paid"
-                ).all()
+                paid_bounties = (
+                    db.query(Bounty)
+                    .filter(
+                        Bounty.profile_id == profile_id,
+                        Bounty.completed_at >= since,
+                        Bounty.status == "paid",
+                    )
+                    .all()
+                )
                 return sum(b.reward_amount for b in paid_bounties)
+
             if profile.weekly_budget_cents is not None:
                 week_start = now - timedelta(days=now.weekday())
                 week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
                 if _period_spent(week_start) + bounty.reward_amount > profile.weekly_budget_cents:
-                    raise HTTPException(status_code=400, detail=f"Weekly budget cap reached (${profile.weekly_budget_cents/100:.2f}). Bounty stays at 'complete' until next week.")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Weekly budget cap reached (${profile.weekly_budget_cents / 100:.2f}). Bounty stays at 'complete' until next week.",
+                    )
             if profile.monthly_budget_cents is not None:
                 month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
                 if _period_spent(month_start) + bounty.reward_amount > profile.monthly_budget_cents:
-                    raise HTTPException(status_code=400, detail=f"Monthly budget cap reached (${profile.monthly_budget_cents/100:.2f}). Bounty stays at 'complete' until next month.")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Monthly budget cap reached (${profile.monthly_budget_cents / 100:.2f}). Bounty stays at 'complete' until next month.",
+                    )
             if profile.annual_budget_cents is not None:
                 year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
                 if _period_spent(year_start) + bounty.reward_amount > profile.annual_budget_cents:
-                    raise HTTPException(status_code=400, detail=f"Annual budget cap reached (${profile.annual_budget_cents/100:.2f}). Bounty stays at 'complete' until next year.")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Annual budget cap reached (${profile.annual_budget_cents / 100:.2f}). Bounty stays at 'complete' until next year.",
+                    )
     if req.status == "paid" and bounty.repeatable:
         # Repeatable: increment times_completed, update streak, reset to available
         bounty.times_completed = (bounty.times_completed or 0) + 1
@@ -228,27 +333,39 @@ def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Sessio
     elif req.status == "paid" and not bounty.repeatable and bounty.category:
         # Program completion bounty: close out all bounties in this category
         bounty.completed_at = datetime.utcnow()
-        siblings = db.query(Bounty).filter(
-            Bounty.profile_id == profile_id,
-            Bounty.category == bounty.category,
-            Bounty.id != bounty.id,
-        ).all()
+        siblings = (
+            db.query(Bounty)
+            .filter(
+                Bounty.profile_id == profile_id,
+                Bounty.category == bounty.category,
+                Bounty.id != bounty.id,
+            )
+            .all()
+        )
         for sib in siblings:
             sib.status = "retired"
-    elif req.status in ("available", "claimed", "complete") and bounty.category and not bounty.repeatable:
+    elif (
+        req.status in ("available", "claimed", "complete")
+        and bounty.category
+        and not bounty.repeatable
+    ):
         # If un-completing a program completion bounty, un-retire siblings
-        siblings = db.query(Bounty).filter(
-            Bounty.profile_id == profile_id,
-            Bounty.category == bounty.category,
-            Bounty.id != bounty.id,
-            Bounty.status == "retired",
-        ).all()
+        siblings = (
+            db.query(Bounty)
+            .filter(
+                Bounty.profile_id == profile_id,
+                Bounty.category == bounty.category,
+                Bounty.id != bounty.id,
+                Bounty.status == "retired",
+            )
+            .all()
+        )
         for sib in siblings:
             sib.status = "available"
     elif req.status == "complete":
         bounty.completed_at = datetime.utcnow()
     # Allow manual reset of decay via times_completed = 0
-    if hasattr(req, 'times_completed') and req.times_completed is not None:
+    if hasattr(req, "times_completed") and req.times_completed is not None:
         pass  # already set via setattr loop above
     db.commit()
     db.refresh(bounty)
@@ -256,8 +373,15 @@ def update_bounty(profile_id: int, bounty_id: int, req: BountyUpdate, db: Sessio
 
 
 @router.delete("/bounties/{bounty_id}", status_code=204)
-def delete_bounty(profile_id: int, bounty_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
-    bounty = db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+def delete_bounty(
+    profile_id: int,
+    bounty_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    bounty = (
+        db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+    )
     if not bounty:
         raise HTTPException(status_code=404, detail="Bounty not found")
     db.delete(bounty)
@@ -266,27 +390,48 @@ def delete_bounty(profile_id: int, bounty_id: int, db: Session = Depends(get_db)
 
 # --- Bounty Logs ---
 
-from pydantic import BaseModel as _BM
 
-class _BountyLogCreate(_BM):
+class _BountyLogCreate(PydanticBaseModel):
     author: str = "parent"
     entry_type: str = "note"  # note, submission, feedback, evidence
     content: str
 
 
 @router.get("/bounties/{bounty_id}/logs")
-def list_bounty_logs(profile_id: int, bounty_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_bounty_logs(
+    profile_id: int,
+    bounty_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     from models import BountyLog
-    return db.query(BountyLog).filter(BountyLog.bounty_id == bounty_id).order_by(BountyLog.created_at.asc()).all()
+
+    return (
+        db.query(BountyLog)
+        .filter(BountyLog.bounty_id == bounty_id)
+        .order_by(BountyLog.created_at.asc())
+        .all()
+    )
 
 
 @router.post("/bounties/{bounty_id}/logs", status_code=201)
-def create_bounty_log(profile_id: int, bounty_id: int, req: _BountyLogCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def create_bounty_log(
+    profile_id: int,
+    bounty_id: int,
+    req: _BountyLogCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     from models import BountyLog
-    bounty = db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+
+    bounty = (
+        db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+    )
     if not bounty:
         raise HTTPException(status_code=404, detail="Bounty not found")
-    log = BountyLog(bounty_id=bounty_id, author=req.author, entry_type=req.entry_type, content=req.content)
+    log = BountyLog(
+        bounty_id=bounty_id, author=req.author, entry_type=req.entry_type, content=req.content
+    )
     db.add(log)
     db.commit()
     db.refresh(log)
@@ -294,9 +439,18 @@ def create_bounty_log(profile_id: int, bounty_id: int, req: _BountyLogCreate, db
 
 
 @router.delete("/bounties/{bounty_id}/logs/{log_id}", status_code=204)
-def delete_bounty_log(profile_id: int, bounty_id: int, log_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def delete_bounty_log(
+    profile_id: int,
+    bounty_id: int,
+    log_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     from models import BountyLog
-    log = db.query(BountyLog).filter(BountyLog.id == log_id, BountyLog.bounty_id == bounty_id).first()
+
+    log = (
+        db.query(BountyLog).filter(BountyLog.id == log_id, BountyLog.bounty_id == bounty_id).first()
+    )
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     db.delete(log)
@@ -307,15 +461,20 @@ def delete_bounty_log(profile_id: int, bounty_id: int, log_id: int, db: Session 
 def get_research_topics(profile_id: int, _: User = Depends(get_current_user)):
     """Return the topic banks for research bounties."""
     from research_topics import RESEARCH_TOPICS
+
     return RESEARCH_TOPICS
 
 
 @router.get("/programs")
-def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def get_programs(
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+):
     """Return program definitions with progress for this profile."""
     from programs import PROGRAMS
 
-    all_bounties = db.query(Bounty).filter(Bounty.profile_id == profile_id, Bounty.category != None).all()
+    all_bounties = (
+        db.query(Bounty).filter(Bounty.profile_id == profile_id, Bounty.category.isnot(None)).all()
+    )
 
     result = []
     for prog in PROGRAMS:
@@ -323,18 +482,46 @@ def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depen
         prog_bounties = [b for b in all_bounties if b.category in prog["categories"]]
         # For marriage_prep, also filter by title keywords
         if "filter_titles" in prog:
-            prog_bounties = [b for b in all_bounties if b.category in prog["categories"] and any(ft in b.title for ft in prog["filter_titles"])]
+            prog_bounties = [
+                b
+                for b in all_bounties
+                if b.category in prog["categories"]
+                and any(ft in b.title for ft in prog["filter_titles"])
+            ]
             if not prog_bounties:
                 prog_bounties = [b for b in all_bounties if b.category in prog["categories"]]
 
-        TIER_SORT = ['bronze','silver','gold','platinum','diamond','obsidian','legendary','covenant','ooh_shiny','ironforged']
-        prog_bounties.sort(key=lambda b: (TIER_SORT.index(b.tier.value if hasattr(b.tier, 'value') else b.tier) if (b.tier.value if hasattr(b.tier, 'value') else b.tier) in TIER_SORT else 99, -b.reward_amount))
+        TIER_SORT = [
+            "bronze",
+            "silver",
+            "gold",
+            "platinum",
+            "diamond",
+            "obsidian",
+            "legendary",
+            "covenant",
+            "ooh_shiny",
+            "ironforged",
+        ]
+        prog_bounties.sort(
+            key=lambda b: (
+                TIER_SORT.index(b.tier.value if hasattr(b.tier, "value") else b.tier)
+                if (b.tier.value if hasattr(b.tier, "value") else b.tier) in TIER_SORT
+                else 99,
+                -b.reward_amount,
+            )
+        )
 
         from program_phases import PROGRAM_PHASES
+
         phases = PROGRAM_PHASES.get(prog["key"], {})
 
         total = len(prog_bounties)
-        completed = sum(1 for b in prog_bounties if b.status == 'paid' or (b.repeatable and (b.times_completed or 0) > 0))
+        completed = sum(
+            1
+            for b in prog_bounties
+            if b.status == "paid" or (b.repeatable and (b.times_completed or 0) > 0)
+        )
         one_time_reward = sum(b.reward_amount for b in prog_bounties if not b.repeatable)
         repeatable_base = sum(b.reward_amount for b in prog_bounties if b.repeatable)
         total_reward = one_time_reward + repeatable_base
@@ -342,38 +529,47 @@ def get_programs(profile_id: int, db: Session = Depends(get_db), _: User = Depen
         if prog.get("max_one_pathway") and prog_bounties:
             total_reward = max(b.reward_amount for b in prog_bounties)
             repeatable_base = 0
-        result.append({
-            "key": prog["key"],
-            "title": prog["title"],
-            "icon": prog["icon"],
-            "description": prog["description"],
-            "intro": prog.get("intro", ""),
-            "total": total,
-            "completed": completed,
-            "total_reward": total_reward,
-            "has_repeatable": repeatable_base > 0,
-            "phases": phases,
-            "bounties": [_bounty_response(b) for b in prog_bounties],
-        })
+        result.append(
+            {
+                "key": prog["key"],
+                "title": prog["title"],
+                "icon": prog["icon"],
+                "description": prog["description"],
+                "intro": prog.get("intro", ""),
+                "total": total,
+                "completed": completed,
+                "total_reward": total_reward,
+                "has_repeatable": repeatable_base > 0,
+                "phases": phases,
+                "bounties": [_bounty_response(b) for b in prog_bounties],
+            }
+        )
     return result
 
 
 # --- Eligibility Check ---
 
+
 @router.get("/eligibility")
-def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def check_eligibility(
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+):
     """Check bounty tier eligibility based on behavior incidents (last 30 days).
-    
+
     Scoring: For each trait, ratio = positives / (positives + negatives).
     Overall average of all trait ratios determines tier.
-    
+
     >=90% → Platinum | >=70% → Gold | >=50% → Silver | <50% → Bronze
     """
     cutoff = (datetime.utcnow() - timedelta(days=30)).strftime("%Y-%m-%d")
-    incidents = db.query(BehaviorIncident).filter(
-        BehaviorIncident.profile_id == profile_id,
-        BehaviorIncident.date >= cutoff,
-    ).all()
+    incidents = (
+        db.query(BehaviorIncident)
+        .filter(
+            BehaviorIncident.profile_id == profile_id,
+            BehaviorIncident.date >= cutoff,
+        )
+        .all()
+    )
 
     if not incidents:
         # No incidents recorded — start at Bronze, must earn higher tiers
@@ -389,7 +585,11 @@ def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = 
     for trait in TRAITS:
         trait_incidents = [i for i in incidents if i.trait == trait]
         if not trait_incidents:
-            trait_scores[trait] = {"positive": 0, "negative": 0, "ratio": 0}  # no incidents = unproven
+            trait_scores[trait] = {
+                "positive": 0,
+                "negative": 0,
+                "ratio": 0,
+            }  # no incidents = unproven
             continue
         pos = sum(1 for i in trait_incidents if i.positive)
         neg = sum(1 for i in trait_incidents if not i.positive)
@@ -412,6 +612,7 @@ def check_eligibility(profile_id: int, db: Session = Depends(get_db), _: User = 
 
 # --- Budget ---
 
+
 class BudgetUpdate(PydanticBaseModel):
     weekly_budget_cents: int | None = None
     monthly_budget_cents: int | None = None
@@ -421,8 +622,9 @@ class BudgetUpdate(PydanticBaseModel):
 @router.get("/budget")
 def get_budget(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     """Return budget caps and current spend for this period."""
-    from models import Profile
     from datetime import timedelta
+
+    from models import Profile
 
     profile = db.query(Profile).filter(Profile.id == profile_id).first()
     if not profile:
@@ -444,7 +646,12 @@ def get_budget(profile_id: int, db: Session = Depends(get_db), _: User = Depends
             if b.status == "paid" and b.completed_at and b.completed_at >= since:
                 total += b.reward_amount
             # For repeatable bounties, use last_completed_at as proxy for most recent payout
-            if b.repeatable and b.last_completed_at and b.last_completed_at >= since and (b.times_completed or 0) > 0:
+            if (
+                b.repeatable
+                and b.last_completed_at
+                and b.last_completed_at >= since
+                and (b.times_completed or 0) > 0
+            ):
                 # Estimate last payout amount (decayed)
                 divisor = b.decay_divisor or 2
                 times = b.times_completed or 1
@@ -462,21 +669,42 @@ def get_budget(profile_id: int, db: Session = Depends(get_db), _: User = Depends
         "weekly_spent_cents": weekly_spent,
         "monthly_spent_cents": monthly_spent,
         "annual_spent_cents": annual_spent,
-        "weekly_remaining_cents": (profile.weekly_budget_cents - weekly_spent) if profile.weekly_budget_cents else None,
-        "monthly_remaining_cents": (profile.monthly_budget_cents - monthly_spent) if profile.monthly_budget_cents else None,
-        "annual_remaining_cents": (profile.annual_budget_cents - annual_spent) if profile.annual_budget_cents else None,
+        "weekly_remaining_cents": (profile.weekly_budget_cents - weekly_spent)
+        if profile.weekly_budget_cents
+        else None,
+        "monthly_remaining_cents": (profile.monthly_budget_cents - monthly_spent)
+        if profile.monthly_budget_cents
+        else None,
+        "annual_remaining_cents": (profile.annual_budget_cents - annual_spent)
+        if profile.annual_budget_cents
+        else None,
         "budget_exceeded": (
-            (profile.weekly_budget_cents is not None and weekly_spent >= profile.weekly_budget_cents) or
-            (profile.monthly_budget_cents is not None and monthly_spent >= profile.monthly_budget_cents) or
-            (profile.annual_budget_cents is not None and annual_spent >= profile.annual_budget_cents)
+            (
+                profile.weekly_budget_cents is not None
+                and weekly_spent >= profile.weekly_budget_cents
+            )
+            or (
+                profile.monthly_budget_cents is not None
+                and monthly_spent >= profile.monthly_budget_cents
+            )
+            or (
+                profile.annual_budget_cents is not None
+                and annual_spent >= profile.annual_budget_cents
+            )
         ),
     }
 
 
 @router.patch("/budget")
-def update_budget(profile_id: int, req: BudgetUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def update_budget(
+    profile_id: int,
+    req: BudgetUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     """Update budget caps for a profile (admin only)."""
     from models import Profile
+
     profile = db.query(Profile).filter(Profile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -493,8 +721,11 @@ def update_budget(profile_id: int, req: BudgetUpdate, db: Session = Depends(get_
 
 # --- Earnings Summary ---
 
+
 @router.get("/earnings")
-def earnings_summary(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def earnings_summary(
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+):
     """Summary of earned money from completed bounties.
 
     For repeatable bounties (which reset to 'available' after payout), earnings are
@@ -513,7 +744,7 @@ def earnings_summary(profile_id: int, db: Session = Depends(get_db), _: User = D
             # Reconstruct what was earned across all completions (including decay)
             divisor = b.decay_divisor or 2
             for i in range(b.times_completed):
-                base = max(1, b.reward_amount // (divisor ** i))
+                base = max(1, b.reward_amount // (divisor**i))
                 # Streak bonus: +2× base at streak 4, +5× at 12, +20× at 52
                 streak_at = i + 1  # streaks count from 1
                 if streak_at >= 52:
@@ -546,13 +777,26 @@ def earnings_summary(profile_id: int, db: Session = Depends(get_db), _: User = D
 
 # --- Wishlist ---
 
+
 @router.get("/wishlist", response_model=list[WishlistResponse])
-def list_wishlist(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    return db.query(WishlistItem).filter(WishlistItem.profile_id == profile_id).order_by(WishlistItem.priority.desc(), WishlistItem.created_at).all()
+def list_wishlist(
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+):
+    return (
+        db.query(WishlistItem)
+        .filter(WishlistItem.profile_id == profile_id)
+        .order_by(WishlistItem.priority.desc(), WishlistItem.created_at)
+        .all()
+    )
 
 
 @router.post("/wishlist", response_model=WishlistResponse, status_code=201)
-def create_wishlist_item(profile_id: int, req: WishlistCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def create_wishlist_item(
+    profile_id: int,
+    req: WishlistCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     item = WishlistItem(profile_id=profile_id, **req.model_dump())
     db.add(item)
     db.commit()
@@ -561,8 +805,18 @@ def create_wishlist_item(profile_id: int, req: WishlistCreate, db: Session = Dep
 
 
 @router.patch("/wishlist/{item_id}", response_model=WishlistResponse)
-def update_wishlist_item(profile_id: int, item_id: int, req: WishlistUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
-    item = db.query(WishlistItem).filter(WishlistItem.id == item_id, WishlistItem.profile_id == profile_id).first()
+def update_wishlist_item(
+    profile_id: int,
+    item_id: int,
+    req: WishlistUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    item = (
+        db.query(WishlistItem)
+        .filter(WishlistItem.id == item_id, WishlistItem.profile_id == profile_id)
+        .first()
+    )
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     for field, value in req.model_dump(exclude_unset=True).items():
@@ -573,8 +827,17 @@ def update_wishlist_item(profile_id: int, item_id: int, req: WishlistUpdate, db:
 
 
 @router.delete("/wishlist/{item_id}", status_code=204)
-def delete_wishlist_item(profile_id: int, item_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
-    item = db.query(WishlistItem).filter(WishlistItem.id == item_id, WishlistItem.profile_id == profile_id).first()
+def delete_wishlist_item(
+    profile_id: int,
+    item_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    item = (
+        db.query(WishlistItem)
+        .filter(WishlistItem.id == item_id, WishlistItem.profile_id == profile_id)
+        .first()
+    )
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     db.delete(item)

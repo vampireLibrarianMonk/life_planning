@@ -1,0 +1,113 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+      - id: check-json
+        exclude: 'tsconfig\..+\.json$'
+      - id: check-toml
+      - id: check-ast
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+        # The pre-loaded seed data and the rendered diagrams are legitimately large.
+        exclude: '(^app/backend/seed_data\.py$|^diagrams/.*\.(png|svg)$|^docs/.*\.pdf$|^deploy/.*\.png$|^reference_images/)'
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: check-case-conflict
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.12
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^app/backend/.*\.py$
+      - id: ruff-format
+        files: ^app/backend/.*\.py$
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.0
+        args: [--ignore-missing-imports]
+        pass_filenames: false
+        entry: mypy app/backend/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        name: bandit (python code security)
+        args: ["-ll", "-r", "app/backend"]
+        pass_filenames: false
+
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.7.3
+    hooks:
+      - id: pip-audit
+        name: pip-audit (python dependency CVEs)
+        # Scan the backend production dependency set; fails on a known CVE with a
+        # fix. The --ignore-vuln entries below are residual advisories that have
+        # NO fix compatible with the current framework stack and are reviewed:
+        #   starlette PYSEC-2026-161/248/249/1942/2280/2281 — fixes require
+        #     starlette >=1.x, a breaking major fastapi (0.118) does not support.
+        #   python-jose PYSEC-2026-4298 + ecdsa PYSEC-2026-1325 — crypto deps of
+        #     python-jose; no fixed release; low exposure (HS256 in use, not ECDSA).
+        #   pyasn1 PYSEC-2026-2263/3455/3456/3457 — fix (0.6.x) conflicts with
+        #     python-jose's pyasn1<0.5 constraint; cannot upgrade without replacing
+        #     python-jose. Revisit when python-jose relaxes the pin or is replaced.
+        # Re-evaluate quarterly (and before each deploy); remove IDs as fixes land.
+        args:
+          - "-r"
+          - "app/backend/requirements.txt"
+          - "--ignore-vuln=PYSEC-2026-161"
+          - "--ignore-vuln=PYSEC-2026-248"
+          - "--ignore-vuln=PYSEC-2026-249"
+          - "--ignore-vuln=PYSEC-2026-1942"
+          - "--ignore-vuln=PYSEC-2026-2280"
+          - "--ignore-vuln=PYSEC-2026-2281"
+          - "--ignore-vuln=PYSEC-2026-4298"
+          - "--ignore-vuln=PYSEC-2026-1325"
+          - "--ignore-vuln=PYSEC-2026-2263"
+          - "--ignore-vuln=PYSEC-2026-3455"
+          - "--ignore-vuln=PYSEC-2026-3456"
+          - "--ignore-vuln=PYSEC-2026-3457"
+        pass_filenames: false
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.13.1-beta
+    hooks:
+      - id: hadolint-docker
+        name: hadolint (Dockerfile hardening)
+        files: '(^|/)Dockerfile[^/]*$'
+
+  - repo: local
+    hooks:
+      - id: npm-audit
+        name: npm audit (frontend production deps)
+        language: system
+        # Only the SHIPPED deps (--omit=dev); dev-toolchain advisories are
+        # tracked separately and never reach the built app.
+        entry: bash -c 'cd app/frontend && npm audit --omit=dev --audit-level=high'
+        files: ^app/frontend/package(-lock)?\.json$
+        pass_filenames: false
+
+# --------------------------------------------------------------------------
+# NOT wired as hooks (too heavy / need built artifacts) — run on demand:
+#   frontend e2e + a11y:   cd app/frontend && npm test   (needs running server)
+#   container image CVEs:  docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+#                            aquasec/trivy image --severity HIGH,CRITICAL <image>
+# See deploy/DEPLOYMENT_STEPS.md.
+# --------------------------------------------------------------------------

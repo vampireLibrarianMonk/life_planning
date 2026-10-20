@@ -1,6 +1,6 @@
 """Program definitions — structured bounty tracks."""
 
-PROGRAMS = [
+PROGRAMS: list[dict] = [
     {
         "key": "military_prep",
         "title": "Military Preparation",
@@ -23,7 +23,15 @@ PROGRAMS = [
         "icon": "🧠",
         "description": "Cross-cutting fact sheets and visual-map bounties: Life Cards, Breadth of Belonging, systems maintenance, mythic order of battle, return/restoration, society fabric, books, institutions, moral patterns.",
         "intro": "This is the program where you study how the world actually works beneath the surface. You will map your expanding circles of belonging, study how civilizations maintain themselves or collapse, analyze mythic and spiritual conflicts for moral patterns, examine how people wander and return, and review how society handles forgiveness, sacrifice, and justice. Each study produces a fact sheet that becomes part of your permanent formation library.",
-        "categories": ["formation_study", "breadth_of_belonging", "life_cards", "systems_maintenance", "mythic_order_of_battle", "return_restoration_breakaway", "society_fabric"],
+        "categories": [
+            "formation_study",
+            "breadth_of_belonging",
+            "life_cards",
+            "systems_maintenance",
+            "mythic_order_of_battle",
+            "return_restoration_breakaway",
+            "society_fabric",
+        ],
     },
     {
         "key": "marriage_catholic",
@@ -119,7 +127,11 @@ PROGRAMS = [
         "icon": "✍️",
         "description": "Creative writing programs that explore decision-making, cause-and-effect, and moral reasoning through fiction. Two tracks: historical what-if and technology consequences.",
         "intro": "This program uses creative writing to train your mind in ways that textbooks cannot. You will not just study consequences, you will build worlds where consequences unfold from the decisions you write. Track one places a modern force into ancient Rome and asks: what would you actually do when your advantages run out and you must negotiate with a civilization of millions? Track two asks you to invent a technology that starts helpful and becomes dangerous, then write the story of what it does to people. Both tracks demand the same discipline: every decision you write must have a believable reason and a believable consequence. You cannot rescue your characters with magic. You must think through what actually happens next. The stories you produce are not graded for literary quality. They are evaluated for how honestly you confront the second and third order effects of the choices your characters make.",
-        "categories": ["creative_writing_rome", "creative_writing_blackmirror", "creative_writing_temple"],
+        "categories": [
+            "creative_writing_rome",
+            "creative_writing_blackmirror",
+            "creative_writing_temple",
+        ],
     },
     {
         "key": "just_war",

@@ -67,8 +67,8 @@ Template fields:
 - One family discussion question
 - One-sentence lesson
 
-**Recommended bounty category:** `breadth_of_belonging`  
-**Recommended program:** Formation Study  
+**Recommended bounty category:** `breadth_of_belonging`
+**Recommended program:** Formation Study
 **Reference doc:** `docs/19_life_cards_life_maps.md`
 
 ---
@@ -101,10 +101,10 @@ Repeatable civic-literacy bounties where the child reviews a controversial court
 
 **Recommended placement:** Civic pillar → Civic Literacy Bounties → Jury Duty & Controversial Case Review. Large versions also appear under **Summer Capstone Projects**.
 
-**Internal category:** `jury_case_review`  
-**Suggested bounty type:** `civic_literacy`  
-**Special classification:** `summer_capstone` for the 4–8 week version  
-**Repeat rule:** repeatable, including repeat review of the same case at an older maturity level  
+**Internal category:** `jury_case_review`
+**Suggested bounty type:** `civic_literacy`
+**Special classification:** `summer_capstone` for the 4–8 week version
+**Repeat rule:** repeatable, including repeat review of the same case at an older maturity level
 **Decay rule:** no decay; in the current seeded bounty model this is represented by `repeatable = 1`, `decay_divisor = 1`, and `reset_days = None`
 
 Core questions:

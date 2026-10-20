@@ -1,4 +1,4 @@
-# Life Chart Card & Expanding Breadth of Belonging  
+# Life Chart Card & Expanding Breadth of Belonging
 ## Integration Notes for the Life Planning App
 
 This document consolidates the specific planning ideas developed in today’s discussion for later integration into the Life Planning application.
@@ -18,8 +18,8 @@ The goal is to keep these concepts simple enough for a child to understand, but 
 
 The Life Chart Card helps a child see that their life is not an isolated event.
 
-They came from a story that began before them.  
-They are living their part of the story now.  
+They came from a story that began before them.
+They are living their part of the story now.
 One day, other people will inherit the consequences of what they helped build, repair, protect, or damage.
 
 This card is **not meant to force belief** about heaven, hell, reincarnation, or any specific afterlife doctrine.

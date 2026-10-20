@@ -203,11 +203,11 @@ The child should learn:
 
 A mature family teaches the child to ask:
 
-**What did they know?  
-What did they fail to see?  
-What did they preserve?  
-What did they damage?  
-What must I carry forward?  
+**What did they know?
+What did they fail to see?
+What did they preserve?
+What did they damage?
+What must I carry forward?
 What must end with me?**
 
 ---

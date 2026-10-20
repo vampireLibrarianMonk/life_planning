@@ -61,22 +61,29 @@ def list_funds(profile_id: int, db: Session = Depends(get_db), _: User = Depends
     results = []
     for f in funds:
         total_disbursed = sum(t.amount for t in f.transactions)
-        results.append({
-            "id": f.id,
-            "profile_id": f.profile_id,
-            "name": f.name,
-            "description": f.description,
-            "starting_balance": f.starting_balance,
-            "current_balance": f.starting_balance - total_disbursed,
-            "total_disbursed": total_disbursed,
-            "transaction_count": len(f.transactions),
-            "created_at": str(f.created_at) if f.created_at else None,
-        })
+        results.append(
+            {
+                "id": f.id,
+                "profile_id": f.profile_id,
+                "name": f.name,
+                "description": f.description,
+                "starting_balance": f.starting_balance,
+                "current_balance": f.starting_balance - total_disbursed,
+                "total_disbursed": total_disbursed,
+                "transaction_count": len(f.transactions),
+                "created_at": str(f.created_at) if f.created_at else None,
+            }
+        )
     return results
 
 
 @router.post("/", response_model=FundResponse, status_code=201)
-def create_fund(profile_id: int, req: FundCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def create_fund(
+    profile_id: int,
+    req: FundCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     """Create a new fund (e.g., Earn Your Car Insurance Fund)."""
     fund = Fund(profile_id=profile_id, **req.model_dump())
     db.add(fund)
@@ -96,7 +103,12 @@ def create_fund(profile_id: int, req: FundCreate, db: Session = Depends(get_db),
 
 
 @router.delete("/{fund_id}", status_code=204)
-def delete_fund(profile_id: int, fund_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def delete_fund(
+    profile_id: int,
+    fund_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     """Delete a fund and all its transactions."""
     fund = db.query(Fund).filter(Fund.id == fund_id, Fund.profile_id == profile_id).first()
     if not fund:
@@ -106,30 +118,48 @@ def delete_fund(profile_id: int, fund_id: int, db: Session = Depends(get_db), _:
 
 
 @router.get("/{fund_id}/transactions", response_model=list[TransactionResponse])
-def list_transactions(profile_id: int, fund_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_transactions(
+    profile_id: int,
+    fund_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
     """List all transactions for a fund with running balance."""
     fund = db.query(Fund).filter(Fund.id == fund_id, Fund.profile_id == profile_id).first()
     if not fund:
         raise HTTPException(status_code=404, detail="Fund not found")
-    transactions = db.query(FundTransaction).filter(FundTransaction.fund_id == fund_id).order_by(FundTransaction.created_at).all()
+    transactions = (
+        db.query(FundTransaction)
+        .filter(FundTransaction.fund_id == fund_id)
+        .order_by(FundTransaction.created_at)
+        .all()
+    )
     results = []
     running = fund.starting_balance
     for t in transactions:
         running -= t.amount
-        results.append({
-            "id": t.id,
-            "fund_id": t.fund_id,
-            "amount": t.amount,
-            "description": t.description,
-            "date": t.date,
-            "balance_after": running,
-            "created_at": str(t.created_at) if t.created_at else None,
-        })
+        results.append(
+            {
+                "id": t.id,
+                "fund_id": t.fund_id,
+                "amount": t.amount,
+                "description": t.description,
+                "date": t.date,
+                "balance_after": running,
+                "created_at": str(t.created_at) if t.created_at else None,
+            }
+        )
     return results
 
 
 @router.post("/{fund_id}/transactions", response_model=TransactionResponse, status_code=201)
-def create_transaction(profile_id: int, fund_id: int, req: TransactionCreate, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def create_transaction(
+    profile_id: int,
+    fund_id: int,
+    req: TransactionCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     """Record a disbursement from the fund."""
     fund = db.query(Fund).filter(Fund.id == fund_id, Fund.profile_id == profile_id).first()
     if not fund:
@@ -138,7 +168,10 @@ def create_transaction(profile_id: int, fund_id: int, req: TransactionCreate, db
     total_disbursed = sum(t.amount for t in fund.transactions)
     current_balance = fund.starting_balance - total_disbursed
     if req.amount > current_balance:
-        raise HTTPException(status_code=400, detail=f"Insufficient fund balance. Available: ${current_balance / 100:.2f}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient fund balance. Available: ${current_balance / 100:.2f}",
+        )
     txn = FundTransaction(fund_id=fund_id, **req.model_dump())
     db.add(txn)
     db.commit()
@@ -155,9 +188,19 @@ def create_transaction(profile_id: int, fund_id: int, req: TransactionCreate, db
 
 
 @router.delete("/{fund_id}/transactions/{txn_id}", status_code=204)
-def delete_transaction(profile_id: int, fund_id: int, txn_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin_or_child)):
+def delete_transaction(
+    profile_id: int,
+    fund_id: int,
+    txn_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
     """Delete a transaction (reverses the disbursement)."""
-    txn = db.query(FundTransaction).filter(FundTransaction.id == txn_id, FundTransaction.fund_id == fund_id).first()
+    txn = (
+        db.query(FundTransaction)
+        .filter(FundTransaction.id == txn_id, FundTransaction.fund_id == fund_id)
+        .first()
+    )
     if not txn:
         raise HTTPException(status_code=404, detail="Transaction not found")
     db.delete(txn)

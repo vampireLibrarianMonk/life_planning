@@ -1,0 +1,18 @@
+# Build context excludes — keep the image small and avoid leaking local state.
+**/__pycache__/
+**/*.pyc
+.venv/
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/playwright-report/
+app/frontend/test-results/
+app/backend/life_plan.db
+app/backend/uploads/
+app/backend/.env
+.git/
+.idea/
+.kiro/
+diagrams/
+docs/
+transcripts/
+reference_images/

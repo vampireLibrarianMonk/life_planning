@@ -1,0 +1,100 @@
+@startuml life_plan_aws_architecture
+' Dual-region, active-passive deployment for the Life Plan Tracker.
+' Self-contained (no network includes) so it renders offline.
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam ArrowColor #37474F
+skinparam rectangle {
+  BorderColor #546E7A
+  BackgroundColor #ECEFF1
+  FontColor #263238
+}
+skinparam cloud {
+  BorderColor #FF9900
+  BackgroundColor #FFF8E1
+  FontColor #263238
+}
+skinparam database {
+  BorderColor #3F51B5
+  BackgroundColor #E8EAF6
+}
+skinparam queue {
+  BorderColor #00796B
+  BackgroundColor #E0F2F1
+}
+
+title Life Plan Tracker — Dual-Region Active/Passive on AWS\n(life-planning.my-deployment.com)
+
+actor "Family\n(browser / phone)" as user
+
+cloud "Route 53\nmy-deployment.com (public hosted zone)" as r53 {
+  rectangle "Failover alias records\nlife-planning.my-deployment.com\n+ 2 health checks on /health\n(TTL <= 60s)" as dns
+}
+
+package "PRIMARY — us-east-1 (active)" as primary #E3F2FD {
+  rectangle "AWS WAF\n(regional web ACL)\nrate-limit login +\nCommon/BadInputs/IpRep\n/health allow-listed" as waf1
+  rectangle "App Runner service\nFastAPI + React SPA\n(managed TLS, autoscale, /health)" as app1
+  queue "Litestream sidecar\nWAL stream <= 1s" as ls1
+  database "SQLite\n(life_plan.db)\non instance FS" as db1
+  rectangle "S3: db-stream bucket\n(SSE-KMS MRK, BPA, TLS-only)" as s3db1
+  rectangle "S3: uploads bucket\n(SSE-KMS MRK, BPA, TLS-only)" as s3up1
+}
+
+package "STANDBY — us-west-2 (warm)" as standby #F3E5F5 {
+  rectangle "AWS WAF\n(regional web ACL)" as waf2
+  rectangle "App Runner service\nsame image, min-instances=1\nLitestream continuous replay" as app2
+  database "SQLite replica\n(continuously restored)" as db2
+  rectangle "S3: db-stream replica\n(SSE-KMS MRK replica)" as s3db2
+  rectangle "S3: uploads replica\n(SSE-KMS MRK replica)" as s3up2
+}
+
+package "Global / shared controls" as shared #FFFDE7 {
+  rectangle "Secrets Manager\nJWT secret (HS256 >=256-bit)\n+ admin cred\n(multi-region replica)" as secrets
+  rectangle "KMS multi-region key\nprimary us-east-1 /\nreplica us-west-2" as kms
+  rectangle "Least-privilege\nper-region task roles" as iam
+}
+
+' Request path
+user --> dns : HTTPS
+dns --> waf1 : primary healthy
+dns ..> waf2 : failover (primary /health down)
+waf1 --> app1
+waf2 --> app2
+
+' App to state (primary)
+app1 --> db1 : read/write
+db1 --> ls1
+ls1 --> s3db1 : WAL (RPO ~5s)
+app1 --> s3up1 : put/presigned-get
+
+' Cross-region replication
+s3db1 --> s3db2 : S3 CRR
+s3up1 --> s3up2 : S3 CRR
+
+' Standby reconstruction
+s3db2 --> db2 : Litestream replay
+app2 --> db2 : read/write (after promote)
+app2 --> s3up2 : put/presigned-get
+
+' Shared controls wiring
+secrets ..> app1
+secrets ..> app2
+kms ..> s3db1
+kms ..> s3up1
+kms ..> s3db2
+kms ..> s3up2
+iam ..> app1
+iam ..> app2
+
+legend right
+  | Property | Value |
+  | Model | Active / passive, single-writer |
+  | RTO | ~90-150s (automated DNS failover) |
+  | RPO | ~5s (Litestream WAL) |
+  | Est. cost | ~$35-50 / month |
+  | Edge | WAF on App Runner (no ALB, no CloudFront) |
+endlegend
+
+@enduml

@@ -11,6 +11,7 @@ from database import get_db
 from models import Bounty, BountyTier, Pillar, PillarEntry, Profile, ProfileAccess, User
 from schemas import ProfileAccessCreate, ProfileCreate, ProfileResponse
 from seed_data import BOUNTIES, MILESTONES
+from storage import get_storage
 
 UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -210,27 +211,25 @@ async def upload_avatar(
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
+    storage = get_storage()
+
     # Save original (full photo for gallery)
     orig_ext = Path(original.filename).suffix
     orig_name = f"avatar_orig_{profile_id}_{uuid.uuid4().hex}{orig_ext}"
     orig_content = await original.read()
-    (UPLOAD_DIR / orig_name).write_bytes(orig_content)
+    storage.save(orig_name, orig_content, original.content_type or "application/octet-stream")
 
     # Save cropped version
     crop_ext = Path(cropped.filename).suffix or ".png"
     crop_name = f"avatar_{profile_id}_{uuid.uuid4().hex}{crop_ext}"
     crop_content = await cropped.read()
-    (UPLOAD_DIR / crop_name).write_bytes(crop_content)
+    storage.save(crop_name, crop_content, cropped.content_type or "image/png")
 
     # Remove old files if they exist
     if profile.avatar:
-        old = UPLOAD_DIR / profile.avatar
-        if old.exists():
-            old.unlink()
+        storage.delete(profile.avatar)
     if profile.avatar_original:
-        old = UPLOAD_DIR / profile.avatar_original
-        if old.exists():
-            old.unlink()
+        storage.delete(profile.avatar_original)
 
     profile.avatar = crop_name
     profile.avatar_original = orig_name

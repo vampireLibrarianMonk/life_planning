@@ -136,6 +136,22 @@ i.e., a standby that boots but can't read its own state. The fix, baked into the
 plan, is a **KMS multi-region key**: primary in `us-east-1`, replica in
 `us-west-2`, identical key material, key policy valid in both regions.
 
+> **Phase-1 status (live):** the deployed key
+> `alias/life-planning` (`...key/5fde3a41-...`) is currently **single-region**
+> (`MultiRegion: false`) — correct and sufficient for the single-region phase 1.
+> **Before the phase-2 us-west-2 standby, this must be upgraded to a
+> multi-region key** (recreate as MRK + re-encrypt existing objects, or add a
+> replica with a key rotation). Tracked here and in `.arn-env`.
+
+### Bucket naming convention (security)
+
+The uploads bucket uses a **securely-random hex suffix**
+(`life-planning-uploads-<24 hex chars>`) rather than a predictable name like the
+account id. This removes a reconnaissance signal (bucket names are globally
+visible namespace). The real name is recorded in the git-ignored `.arn-env` and
+sourced by every deploy/monitor command (`set -a; . ./.arn-env; set +a`), so no
+step hardcodes it.
+
 ---
 
 ## Required code change (before any cloud work)

@@ -12,6 +12,12 @@ Already provisioned:
 - Admin credential secret:
   `arn:aws:secretsmanager:us-east-1:809784555426:secret:life-planning/admin-credentials-dPvvor`
 
+> **ARN convention:** every step that creates a resource prints an ARN/ID.
+> **Record each one in the git-ignored `.arn-env` file** immediately, then
+> source it (`set -a; . ./.arn-env; set +a`) so later steps and
+> `monitor.sh` reference resources by variable, never by a hardcoded value.
+> `.arn-env` is the single source of truth for this deployment's resources.
+
 ---
 
 ## 1. JWT secret (Secrets Manager)
@@ -23,7 +29,7 @@ aws secretsmanager create-secret \
   --secret-string "file:///tmp/jwt.txt" \
   --region us-east-1
 shred -u /tmp/jwt.txt
-# Record the returned ARN -> JWT_SECRET_ARN
+# -> record ARN as JWT_SECRET_ARN in .arn-env
 ```
 
 ## 2. KMS key (single-region now; convert to multi-region in phase 2)
@@ -33,19 +39,22 @@ aws kms create-key --description "life-planning uploads" \
   --region us-east-1 --query KeyMetadata.KeyId --output text
 aws kms create-alias --alias-name alias/life-planning \
   --target-key-id <KEY_ID> --region us-east-1
+# -> record the key ARN as KMS_KEY_ARN in .arn-env (NOTE: single-region for phase 1)
 ```
 
 ## 3. Uploads bucket (private, encrypted, versioned)
 
 ```bash
-BUCKET=life-planning-uploads-809784555426
-aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
-aws s3api put-public-access-block --bucket "$BUCKET" \
+# Bucket name uses a securely-random suffix (not the account id) so it is not
+# guessable. The real name lives in .arn-env; source it:
+set -a; . ./.arn-env; set +a
+aws s3api create-bucket --bucket "$UPLOADS_BUCKET" --region us-east-1
+aws s3api put-public-access-block --bucket "$UPLOADS_BUCKET" \
   --public-access-block-configuration \
   BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
-aws s3api put-bucket-versioning --bucket "$BUCKET" \
+aws s3api put-bucket-versioning --bucket "$UPLOADS_BUCKET" \
   --versioning-configuration Status=Enabled
-aws s3api put-bucket-encryption --bucket "$BUCKET" \
+aws s3api put-bucket-encryption --bucket "$UPLOADS_BUCKET" \
   --server-side-encryption-configuration \
   '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"aws:kms","KMSMasterKeyID":"alias/life-planning"}}]}'
 # Add a TLS-only bucket policy (deny aws:SecureTransport=false).
@@ -55,7 +64,7 @@ aws s3api put-bucket-encryption --bucket "$BUCKET" \
 
 Trust policy: `tasks.apprunner.amazonaws.com`. Permissions (scoped to ARNs):
 - `secretsmanager:GetSecretValue` on the admin + jwt secret ARNs
-- `s3:GetObject,PutObject,DeleteObject` on `arn:aws:s3:::$BUCKET/*`
+- `s3:GetObject,PutObject,DeleteObject` on `arn:aws:s3:::$UPLOADS_BUCKET/*`
 - `kms:Decrypt,Encrypt,GenerateDataKey` on the KMS key ARN
 
 ## 5. App Runner service (builds from GitHub)
@@ -71,7 +80,7 @@ Trust policy: `tasks.apprunner.amazonaws.com`. Permissions (scoped to ARNs):
    | `AWS_REGION` | `us-east-1` |
    | `ADMIN_SECRET_ARN` | `...:life-planning/admin-credentials-dPvvor` |
    | `JWT_SECRET_ARN` | *(from step 1)* |
-   | `UPLOADS_BUCKET` | `life-planning-uploads-809784555426` |
+   | `UPLOADS_BUCKET` | *(from `.arn-env` — random-suffix name)* |
    | `PRESIGN_TTL_SECONDS` | `900` |
 6. Deploy. Note the service's `*.awsapprunner.com` URL.
 

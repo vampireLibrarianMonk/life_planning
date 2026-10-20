@@ -48,7 +48,7 @@ Nothing here has been run yet — these are the gates we will walk together.
   protects against accidental/malicious overwrite.
 - **Verify (all four must pass):**
   ```bash
-  B=life-planning-uploads-809784555426
+  set -a; . ./.arn-env; set +a; B="$UPLOADS_BUCKET"
   aws s3api get-public-access-block --bucket $B \
     --query 'PublicAccessBlockConfiguration'      # all four = true
   aws s3api get-bucket-encryption --bucket $B \

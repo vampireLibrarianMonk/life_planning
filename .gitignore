@@ -42,3 +42,6 @@ later_inclusion/
 # Secrets
 .env
 *.key
+
+# Deployment ARNs / local deploy state (resource identifiers, not committed)
+.arn-env

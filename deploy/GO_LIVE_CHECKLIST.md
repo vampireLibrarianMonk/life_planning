@@ -22,7 +22,7 @@ Monitor helper: `./deploy/monitor.sh {status|health|logs|dns|watch|smoke|all}`
 
 ## 2. Storage & IAM (CLI, ~5 min)
 
-- [ ] S3 bucket `life-planning-uploads-809784555426`: BPA on, versioning on,
+- [ ] S3 bucket `$UPLOADS_BUCKET` (random-suffix name in `.arn-env`): BPA on, versioning on,
       SSE-KMS default, TLS-only policy  (§3)
 - [ ] App Runner instance role with scoped secrets/S3/KMS permissions  (§4)
 

@@ -3,22 +3,28 @@
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin_or_child
 from database import get_db
 from models import EventAttachment, PillarEntry, User
 from schemas import AttachmentResponse
+from storage import get_storage
 
-UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+ALLOWED_MIME_PREFIXES = (
+    "image/",
+    "video/",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats",
+    "text/",
+)
 
-ALLOWED_MIME_PREFIXES = ("image/", "video/", "application/pdf", "application/msword",
-                         "application/vnd.openxmlformats", "text/")
-
-router = APIRouter(prefix="/api/profiles/{profile_id}/entries/{entry_id}/attachments", tags=["events"])
+router = APIRouter(
+    prefix="/api/profiles/{profile_id}/entries/{entry_id}/attachments", tags=["events"]
+)
 
 
 @router.post("/", response_model=list[AttachmentResponse], status_code=201)
@@ -29,9 +35,11 @@ async def upload_attachments(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_or_child),
 ):
-    entry = db.query(PillarEntry).filter(
-        PillarEntry.id == entry_id, PillarEntry.profile_id == profile_id
-    ).first()
+    entry = (
+        db.query(PillarEntry)
+        .filter(PillarEntry.id == entry_id, PillarEntry.profile_id == profile_id)
+        .first()
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 
@@ -41,9 +49,8 @@ async def upload_attachments(
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {f.content_type}")
         ext = Path(f.filename).suffix
         stored_name = f"{uuid.uuid4().hex}{ext}"
-        dest = UPLOAD_DIR / stored_name
         content = await f.read()
-        dest.write_bytes(content)
+        get_storage().save(stored_name, content, f.content_type)
         att = EventAttachment(
             entry_id=entry_id,
             filename=stored_name,
@@ -66,9 +73,11 @@ def list_attachments(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    entry = db.query(PillarEntry).filter(
-        PillarEntry.id == entry_id, PillarEntry.profile_id == profile_id
-    ).first()
+    entry = (
+        db.query(PillarEntry)
+        .filter(PillarEntry.id == entry_id, PillarEntry.profile_id == profile_id)
+        .first()
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
     return db.query(EventAttachment).filter(EventAttachment.entry_id == entry_id).all()
@@ -82,14 +91,14 @@ def delete_attachment(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin_or_child),
 ):
-    att = db.query(EventAttachment).filter(
-        EventAttachment.id == attachment_id, EventAttachment.entry_id == entry_id
-    ).first()
+    att = (
+        db.query(EventAttachment)
+        .filter(EventAttachment.id == attachment_id, EventAttachment.entry_id == entry_id)
+        .first()
+    )
     if not att:
         raise HTTPException(status_code=404, detail="Attachment not found")
-    file_path = UPLOAD_DIR / att.filename
-    if file_path.exists():
-        file_path.unlink()
+    get_storage().delete(att.filename)
     db.delete(att)
     db.commit()
 
@@ -100,7 +109,15 @@ file_router = APIRouter(prefix="/api/uploads", tags=["events"])
 
 @file_router.get("/{filename}")
 def serve_upload(filename: str):
-    file_path = UPLOAD_DIR / filename
-    if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path)
+    """Serve an attachment.
+
+    Local mode: stream the file from disk.
+    AWS mode: redirect to a short-lived presigned S3 URL.
+    The frontend always calls /api/uploads/{filename} regardless of mode.
+    """
+    storage = get_storage()
+    local_path = storage.open_local(filename)
+    if local_path is not None:
+        return FileResponse(local_path)
+    # Non-local backend (S3): redirect to a presigned URL.
+    return RedirectResponse(url=storage.url_for(filename), status_code=307)

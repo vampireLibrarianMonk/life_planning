@@ -1,7 +1,6 @@
 """JWT authentication and role-based access control."""
 
-import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from fastapi import Depends, HTTPException, status
@@ -9,10 +8,11 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
+import config
 from database import get_db
 from models import Role, User
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production-use-openssl-rand-hex-32")
+SECRET_KEY = config.get_jwt_secret()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 
@@ -29,13 +29,11 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    to_encode["exp"] = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode["exp"] = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid credentials",
@@ -70,5 +68,7 @@ def require_admin_or_child(current_user: User = Depends(get_current_user)) -> Us
 def require_write_access(current_user: User = Depends(get_current_user)) -> User:
     """Block readonly users from any write operation."""
     if current_user.role == Role.readonly:
-        raise HTTPException(status_code=403, detail="Read-only access — write operations are not permitted")
+        raise HTTPException(
+            status_code=403, detail="Read-only access — write operations are not permitted"
+        )
     return current_user

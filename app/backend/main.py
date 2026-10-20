@@ -4,14 +4,24 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
+from auth import hash_password
 from database import Base, engine
 from models import User
-from auth import hash_password
-from routes import users, profiles, pillars, economy, events, docs, discernment, discernments, lessons
-from routes import funds
+from routes import (
+    discernment,
+    discernments,
+    docs,
+    economy,
+    events,
+    funds,
+    lessons,
+    pillars,
+    profiles,
+    users,
+)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -41,25 +51,51 @@ app.include_router(funds.router)
 
 @app.on_event("startup")
 def seed_admin():
-    """Create default admin user if none exists."""
+    """Create/align the default admin user from the active config mode.
+
+    Local mode: uses dev defaults (admin/changeme) for frictionless local work.
+    AWS mode: pulls admin credentials from Secrets Manager and refuses to boot
+    on the insecure default, so the app is never publicly exposed with
+    admin/changeme.
+    """
+    import config
     from database import SessionLocal
 
-    db = SessionLocal()
-    if not db.query(User).filter(User.role == "admin").first():
-        admin = User(
-            username="admin",
-            hashed_password=hash_password("changeme"),
-            display_name="Administrator",
-            role="admin",
+    admin_username, admin_password = config.get_admin_credentials()
+
+    if config.IS_AWS and (admin_username == "admin" and admin_password == "changeme"):
+        raise RuntimeError(
+            "Refusing to start in AWS mode with default admin/changeme credentials. "
+            "Set a strong credential in Secrets Manager (ADMIN_SECRET_ARN)."
         )
-        db.add(admin)
-        db.commit()
-    db.close()
+
+    db = SessionLocal()
+    try:
+        existing = db.query(User).filter(User.role == "admin").first()
+        if not existing:
+            admin = User(
+                username=admin_username,
+                hashed_password=hash_password(admin_password),
+                display_name="Administrator",
+                role="admin",
+            )
+            db.add(admin)
+            db.commit()
+        elif config.IS_AWS:
+            # In AWS mode, keep the admin credential in sync with the secret so
+            # rotating the secret rotates the login (idempotent on each boot).
+            existing.username = admin_username
+            existing.hashed_password = hash_password(admin_password)
+            db.commit()
+    finally:
+        db.close()
 
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    import config
+
+    return {"status": "ok", "config": config.summary()}
 
 
 # Serve frontend - must be AFTER api routes
@@ -76,6 +112,7 @@ if FRONTEND_DIR.exists():
             return FileResponse(file_path)
         return FileResponse(FRONTEND_DIR / "index.html")
 else:
+
     @app.get("/")
     def no_frontend():
         return {

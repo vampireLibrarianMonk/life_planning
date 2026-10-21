@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
+import Setup from './pages/Setup'
 import RegionFailoverBanner from './components/RegionFailoverBanner'
 import { getToken, setToken as saveToken } from './services/auth'
 
@@ -12,6 +13,16 @@ export default function App() {
   const handleLogin = (t) => {
     saveToken(t)
     setTokenState(t)
+  }
+
+  // The setup page is reachable WITHOUT a login (new users have no password yet).
+  if (window.location.pathname === '/setup') {
+    return (
+      <>
+        <RegionFailoverBanner />
+        <Setup />
+      </>
+    )
   }
 
   if (!token) {

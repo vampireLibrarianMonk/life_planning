@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 import config as app_config
 from auth import hash_password
-from database import Base, engine
+from database import Base, engine, ensure_columns
 from models import User
 from routes import (
     discernment,
@@ -26,6 +26,7 @@ from routes import (
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+ensure_columns()  # additive SQLite migration for new User columns
 
 # In AWS (public) mode, do not expose the interactive API explorer / schema.
 # Keep them in local dev for convenience.

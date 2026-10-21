@@ -22,3 +22,26 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_columns():
+    """Idempotent, additive SQLite migration: add any missing columns.
+
+    SQLAlchemy's create_all() creates missing tables but never alters existing
+    ones, so new nullable columns on an existing DB must be added here. Safe to
+    run on every boot — each ALTER only fires if the column is absent.
+    """
+    from sqlalchemy import text
+
+    # column_name -> ALTER TABLE ... ADD COLUMN clause
+    wanted = {
+        "email": "email VARCHAR(255)",
+        "must_change_password": "must_change_password INTEGER NOT NULL DEFAULT 0",
+        "setup_token_hash": "setup_token_hash VARCHAR(255)",
+        "setup_token_expires": "setup_token_expires DATETIME",
+    }
+    with engine.begin() as conn:
+        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
+        for col, clause in wanted.items():
+            if col not in existing:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {clause}"))

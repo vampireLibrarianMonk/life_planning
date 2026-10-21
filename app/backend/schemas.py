@@ -58,6 +58,23 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SetupTokenRequest(BaseModel):
+    email: str | None = None
+    expires_hours: int = 24
+
+
+class SetupTokenResponse(BaseModel):
+    username: str
+    role: Role
+    setup_token: str  # raw one-time token (returned to the admin CLI only)
+    expires_at: datetime
+
+
+class SetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
 # Profiles
 class ProfileCreate(BaseModel):
     name: str

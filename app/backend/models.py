@@ -55,6 +55,14 @@ class User(Base):
     role = Column(Enum(Role), nullable=False, default=Role.readonly)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Contact/delivery address — NOT a login id (login stays username-based).
+    email = Column(String(255), nullable=True)
+    # Forces a password reset at next login (used for setup-link provisioning).
+    must_change_password = Column(Integer, nullable=False, default=0)
+    # One-time setup link: store only the SHA-256 hash of the token + expiry.
+    setup_token_hash = Column(String(255), nullable=True)
+    setup_token_expires = Column(DateTime, nullable=True)
+
     # A child user links to their profile
     profile = relationship("Profile", back_populates="user", uselist=False)
     # Admin/readonly users can be granted access to profiles

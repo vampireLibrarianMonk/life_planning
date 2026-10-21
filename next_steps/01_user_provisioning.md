@@ -87,15 +87,20 @@ Add to `users`:
   No `auth.py` change needed — this is CLI policy over existing roles.
 
 ### Email transport
-- **Now:** Gmail SMTP behind a single `send_email(to, subject, body)` seam;
-  creds from env (`SMTP_HOST/PORT/USER/PASS`), never hardcoded, never logged.
-- **Later (optional):** swap to SES + SPF/DKIM via the same seam.
+- **AWS SES** (not app SMTP). The provisioning **CLI** sends via SES using the
+  admin's ambient AWS credentials; the running web app **never sends email**, so
+  there is no public email-send surface to abuse. No SMTP password is stored
+  anywhere.
+- Requires: `SES_SENDER` = a verified SES identity to send from; `AWS_REGION`.
+  SES is in **sandbox** (can only send to verified addresses) — fine for the
+  test case because `<owner-email>` is already a verified identity. Production
+  access (sending to arbitrary addresses) is a later, optional request.
+- Fallback: `--no-email` prints the one-time setup link to the admin's terminal
+  for out-of-band delivery.
 - **Email contains:** friendly greeting, the **username**, the role in plain
   terms, the app URL, and the one-time setup link + its expiry.
 - **Email omits:** any password/token (except inside the single-use link) and
-  **any child PII** (no child name, DOB, milestones, journals). For a child
-  account the parent is told only "a login for your child's record was created"
-  + the link.
+  **any child PII** (no child name, DOB, milestones, journals).
 
 ### New endpoints
 - `POST /api/auth/setup-token/{username}` (admin-only): set email + issue a

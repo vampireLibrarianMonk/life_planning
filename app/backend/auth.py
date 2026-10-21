@@ -14,7 +14,7 @@ from models import Role, User
 
 SECRET_KEY = config.get_jwt_secret()
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours (short-lived; re-login as needed)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 

@@ -9,6 +9,10 @@ app/frontend/test-results/
 app/backend/life_plan.db
 app/backend/uploads/
 app/backend/.env
+# Non-runtime files — keep the image to code the running app actually needs.
+app/backend/.env.example
+app/backend/tests/
+app/backend/provision_user.py
 .git/
 .idea/
 .kiro/

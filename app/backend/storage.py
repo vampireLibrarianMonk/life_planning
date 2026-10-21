@@ -70,8 +70,15 @@ class LocalStorage(Storage):
 class S3Storage(Storage):
     def __init__(self) -> None:
         import boto3  # lazy: only in AWS mode
+        from botocore.config import Config
 
-        self._s3 = boto3.client("s3", region_name=config.AWS_REGION)
+        # SigV4 is REQUIRED for presigned URLs against a KMS-encrypted bucket
+        # (S3 rejects SigV2 with InvalidArgument otherwise). Pin it explicitly.
+        self._s3 = boto3.client(
+            "s3",
+            region_name=config.AWS_REGION,
+            config=Config(signature_version="s3v4"),
+        )
         self._bucket = config.UPLOADS_BUCKET
         if not self._bucket:
             raise RuntimeError("DEPLOY_MODE=aws requires UPLOADS_BUCKET to be set")

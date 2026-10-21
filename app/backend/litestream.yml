@@ -1,0 +1,11 @@
+# Litestream configuration — continuously replicate the SQLite DB to S3.
+# The replica bucket is supplied at runtime via the DB_REPLICA_BUCKET env var
+# (set by App Runner from .arn-env). Access uses the App Runner instance role
+# (no static keys). SSE-KMS is applied by the bucket's default encryption.
+dbs:
+  - path: /app/backend/life_plan.db
+    replicas:
+      - type: s3
+        bucket: ${DB_REPLICA_BUCKET}
+        path: life_plan.db
+        region: ${AWS_REGION}

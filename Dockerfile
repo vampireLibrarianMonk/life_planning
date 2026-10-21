@@ -27,6 +27,11 @@ WORKDIR /app/backend
 COPY app/backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Litestream (SQLite -> S3 continuous replication) so the DB survives
+# App Runner's ephemeral container filesystem across redeploys.
+ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz /tmp/litestream.tar.gz
+RUN tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz && rm /tmp/litestream.tar.gz
+
 # Copy backend source.
 COPY app/backend/ ./
 
@@ -34,7 +39,11 @@ COPY app/backend/ ./
 # (FRONTEND_DIR = app/frontend/dist relative to the backend).
 COPY --from=frontend /build/frontend/dist /app/frontend/dist
 
+RUN chmod +x /app/backend/entrypoint.sh
+
 EXPOSE 8000
 
+# Entrypoint restores the DB from S3 (if DB_REPLICA_BUCKET set) and runs the
+# app under Litestream replication; falls back to plain uvicorn locally.
 # App Runner health check should target /api/health.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/backend/entrypoint.sh"]

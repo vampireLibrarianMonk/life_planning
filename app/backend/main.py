@@ -146,6 +146,18 @@ def health():
     return {"status": "ok", "config": config.summary()}
 
 
+@app.get("/api/alive")
+def alive():
+    """Liveness probe for App Runner's deployment health check ONLY.
+
+    Always 200 while the process is up — unaffected by HEALTH_FORCE_FAIL — so a
+    failover drill (which makes /api/health 503) does not cause App Runner to
+    roll the deployment back. Route 53 + the browser banner watch /api/health;
+    App Runner's service health check watches /api/alive.
+    """
+    return {"status": "alive"}
+
+
 # Serve frontend - must be AFTER api routes
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend" / "dist"
 

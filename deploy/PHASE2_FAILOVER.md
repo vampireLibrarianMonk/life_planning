@@ -32,13 +32,12 @@ avatars, the SQLite replica), re-encryption is a quick copy, not a migration.
 
 ## Build order (failover flipped LAST)
 
-> **Progress:** Steps 1–7 DONE & verified (2026-10-21). MRK in both regions;
-> data re-encrypted; west S3 buckets + CRR (backfilled); secrets replicated to
-> west; ECR registry replication; west App Runner `life-planning-west`
-> (`kwc6vqrvy9.us-west-2.awsapprunner.com`) RUNNING, MaxSize=1. **Verified: the
-> west standby restored the DB from the west replica and serves "Robert
-> Flanigan" — full cross-region chain works.** Step 8 (Route 53 failover) is the
-> only remaining step and is the one that changes live routing.
+> **Progress:** ALL STEPS DONE & verified (2026-10-21). MRK in both regions;
+> data re-encrypted; west S3 + CRR (backfilled); secrets replicated to west;
+> ECR registry replication; west App Runner standby RUNNING + MaxSize=1 + custom
+> domain (own ACM cert); Route 53 **failover pair** live (PRIMARY east /
+> SECONDARY west, each with its own health check). **Failover drill PASSED** —
+> see the game-day section. Phase 2 is complete and operational.
 
 > **⚠️ Split-brain / fail-back caveat to resolve in Step 8 design:** both
 > services run Litestream. CRR writes east→west into the DB bucket while the
@@ -116,15 +115,29 @@ data. Run this as a scheduled quarterly game-day; a failed run blocks relying on
 the standby.
 
 ### Inducing a failure (so Route 53 fails the primary health check)
+
+> **DRILL RESULT (2026-10-21): PASS.** Full cycle verified — east (primary) →
+> east health check forced unhealthy → **auto-failover to west** (domain served
+> `region: us-west-2`, standby had the real data) → east health check restored →
+> **auto-fail-back to east**. RTO ~90–120s each direction (detection + 60s TTL),
+> matching target. Live users unaffected (the east app kept running; only the
+> health-check *path* was flipped).
+>
+> **Important lesson — the SPA catch-all returns HTTP 200 for ANY unknown path**
+> (unknown `/api/*` included; it serves index.html). So a "point the health
+> check at a fake path" drill does NOT fail. Use a path that genuinely returns
+> non-2xx: `/api/profiles/` returns **401** unauthenticated and is the reliable
+> drill trigger. (Cleaner future option: add a `HEALTH_FORCE_FAIL=1` env toggle
+> that makes `/api/health` return 503 on demand.)
+
 We need the primary `/api/health` to start failing WITHOUT deleting anything.
 Options, least-destructive first:
 
-1. **Health-check target flip (safest, fully reversible):** temporarily point
-   the Route 53 health check at a path the app returns non-200 for (e.g.
-   `/api/health-FORCE-FAIL`). The primary app stays up and serving real users;
-   only the *health check* fails, so Route 53 fails over to the standby. Revert
-   the path to restore. **This is the recommended drill mechanism** — zero impact
-   on the running primary, instantly reversible.
+1. **Health-check target flip (safest, fully reversible, USED):** temporarily
+   point the primary's Route 53 health check at a path that returns non-2xx —
+   use `/api/profiles/` (401), NOT a made-up path (which returns 200 via the SPA
+   fallback). The primary app keeps serving real users; only the *health check*
+   fails, so Route 53 fails over to west. Revert to `/api/health` to fail back.
 2. **Add a WAF block rule on `/api/health` (primary only):** block the health
    path at the edge so the checker gets 403. Reversible by deleting the rule.
 3. **Pause the primary App Runner service:** `aws apprunner pause-service` —

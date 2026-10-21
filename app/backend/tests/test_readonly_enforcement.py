@@ -153,3 +153,59 @@ def test_child_cannot_mark_bounty_paid(backend, monkeypatch):
             current_user=_ChildUser(),
         )
     assert exc.value.status_code == 403
+
+
+# --- Sensitive-read privacy (behavior log, journals, financial totals) -------
+
+# These READ routes expose data that is private to the child + admin; family
+# readonly viewers must be blocked. Paths are the registered FastAPI paths.
+PRIVATE_READ_ROUTES = {
+    ("GET", "/api/profiles/{profile_id}/incidents"),
+    ("GET", "/api/profiles/{profile_id}/behavior"),
+    ("GET", "/api/profiles/{profile_id}/earnings"),
+    ("GET", "/api/profiles/{profile_id}/discernment/"),
+    ("GET", "/api/profiles/{profile_id}/funds/"),
+    ("GET", "/api/profiles/{profile_id}/funds/{fund_id}/transactions"),
+}
+
+
+def test_sensitive_reads_are_private(backend):
+    """Each private read route must depend on require_private_access (admin +
+    child only; readonly blocked)."""
+    main, _auth, _models = backend
+    found = {}
+    for route in main.app.routes:
+        methods = getattr(route, "methods", None) or set()
+        path = getattr(route, "path", "")
+        for method in methods:
+            if (method, path) in PRIVATE_READ_ROUTES:
+                found[(method, path)] = _dependency_callables(route)
+
+    missing = PRIVATE_READ_ROUTES - set(found)
+    assert not missing, f"private read routes not found (renamed?): {sorted(missing)}"
+    offenders = [
+        f"{m} {p} deps={sorted(deps)}"
+        for (m, p), deps in found.items()
+        if "require_private_access" not in deps
+    ]
+    assert not offenders, "these reads must be gated by require_private_access:\n" + "\n".join(
+        offenders
+    )
+
+
+def test_require_private_access_role_matrix(backend):
+    """require_private_access: admin + child pass, readonly is 403'd."""
+    _main, auth, models = backend
+
+    class _U:
+        def __init__(self, role):
+            self.role = role
+
+    # admin + child pass through unchanged
+    for role in (models.Role.admin, models.Role.child):
+        assert auth.require_private_access(current_user=_U(role)).role == role
+
+    # readonly is rejected
+    with pytest.raises(HTTPException) as exc:
+        auth.require_private_access(current_user=_U(models.Role.readonly))
+    assert exc.value.status_code == 403

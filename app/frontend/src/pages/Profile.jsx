@@ -932,7 +932,9 @@ export default function Profile() {
     const catMeta = { health: { icon: '🫀', title: 'Health', question: 'What is my body doing and what does it need?' }, math: { icon: '📐', title: 'Math', question: 'What mathematical patterns govern the decisions I\'m making?' }, science: { icon: '🔬', title: 'Science', question: 'How do I know what I think I know?' }, civics: { icon: '🏛️', title: 'Civics', question: 'What systems am I participating in?' }, relationships: { icon: '🤝', title: 'Relationships', question: 'Who am I becoming because of the people around me?' }, faith: { icon: '🕯️', title: 'Faith', question: 'What do I believe about what I cannot see?' }, tradition: { icon: '⚓', title: 'Tradition', question: 'What was built before me, why was it built, and what breaks if I tear it down?' }, law: { icon: '⚖️', title: 'Law', question: 'What rules bind me, who made them, and what is the difference between legal and just?' }, network: { icon: '🕸️', title: 'Network', question: 'What holds this group together, what happens if I dissent, and can I survive alone if I must?' }, calling: { icon: '📣', title: 'Calling', question: 'What is pulling me toward this path, who benefits from my decision, and what does the full picture look like?' } }
     const meta = catMeta[activeDiscern] || {}
     const loadDiscern = () => fetchDiscernmentEntries(id, activeDiscern).then(d => Array.isArray(d) && setDiscernEntries(d))
-    if (!discernEntries.length || (discernEntries[0] && discernEntries[0].category !== activeDiscern)) loadDiscern()
+    // Journal reflections are private to the child + admin. Skip the fetch for
+    // readonly (family) viewers so the 403 toast doesn't fire.
+    if (canWrite && (!discernEntries.length || (discernEntries[0] && discernEntries[0].category !== activeDiscern))) loadDiscern()
 
     const discernBounties = pillarBounties.filter(b => b.category === activeDiscern)
     const cleanBountyTitle = (title = '') => title.replace(/^[a-z ]+\s+(reflection|assessment):\s*/i, '').trim()
@@ -1003,9 +1005,15 @@ export default function Profile() {
         </form>
         )}
 
-        {discernEntries.length === 0 && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
+        {!canWrite && (
+          <p style={{ color: '#595959', textAlign: 'center', padding: 20, fontStyle: 'italic' }}>
+            🔒 Journal reflections are private to {profile ? profile.name : 'the child'} and their parents.
+          </p>
+        )}
 
-        {discernEntries.map(entry => (
+        {canWrite && discernEntries.length === 0 && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
+
+        {canWrite && discernEntries.map(entry => (
           <div key={entry.id} style={{ padding: '16px', background: '#fff', borderRadius: 10, marginBottom: 12, borderLeft: '3px solid #9b59b6' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>

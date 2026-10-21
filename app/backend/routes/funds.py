@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin_or_child
+from auth import require_admin_or_child, require_private_access
 from database import get_db
 from models import Fund, FundTransaction, User
 
@@ -55,7 +55,9 @@ class TransactionResponse(BaseModel):
 
 
 @router.get("/", response_model=list[FundResponse])
-def list_funds(profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_funds(
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(require_private_access)
+):
     """List all funds for a profile with current balances."""
     funds = db.query(Fund).filter(Fund.profile_id == profile_id).all()
     results = []
@@ -122,7 +124,7 @@ def list_transactions(
     profile_id: int,
     fund_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_private_access),
 ):
     """List all transactions for a fund with running balance."""
     fund = db.query(Fund).filter(Fund.id == fund_id, Fund.profile_id == profile_id).first()

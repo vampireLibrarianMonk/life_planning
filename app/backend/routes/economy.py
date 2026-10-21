@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin, require_admin_or_child
+from auth import (
+    get_current_user,
+    require_admin,
+    require_admin_or_child,
+    require_private_access,
+)
 from database import get_db
 from models import BehaviorIncident, BehaviorScore, Bounty, Role, User, WishlistItem
 from schemas import (
@@ -35,7 +40,7 @@ def list_incidents(
     profile_id: int,
     days: int = 30,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_private_access),
 ):
     cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
     return (
@@ -88,7 +93,7 @@ def delete_incident(
 
 @router.get("/behavior", response_model=list[BehaviorScoreResponse])
 def list_behavior(
-    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(require_private_access)
 ):
     return (
         db.query(BehaviorScore)
@@ -560,7 +565,9 @@ def get_programs(
 
 @router.get("/eligibility")
 def check_eligibility(
-    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+    profile_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Check bounty tier eligibility based on behavior incidents (last 30 days).
 
@@ -581,6 +588,8 @@ def check_eligibility(
 
     if not incidents:
         # No incidents recorded — start at Bronze, must earn higher tiers
+        if current_user.role == Role.readonly:
+            return {"eligible_tier": "bronze"}
         return {
             "eligible_tier": "bronze",
             "percentage": 0,
@@ -614,6 +623,11 @@ def check_eligibility(
         tier = "silver"
     else:
         tier = "bronze"
+
+    # Readonly (family) viewers get only the tier label — the per-trait
+    # positive/negative breakdown is part of the private behavior picture.
+    if current_user.role == Role.readonly:
+        return {"eligible_tier": tier}
 
     return {"eligible_tier": tier, "percentage": overall, "trait_scores": trait_scores}
 
@@ -732,7 +746,7 @@ def update_budget(
 
 @router.get("/earnings")
 def earnings_summary(
-    profile_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)
+    profile_id: int, db: Session = Depends(get_db), _: User = Depends(require_private_access)
 ):
     """Summary of earned money from completed bounties.
 

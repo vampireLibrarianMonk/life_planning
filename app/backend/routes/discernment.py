@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin_or_child
+from auth import get_current_user, require_admin_or_child, require_private_access
 from database import get_db
 from models import DiscernmentJournal, User
 
@@ -104,7 +104,7 @@ def list_entries(
     profile_id: int,
     category: str | None = None,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_private_access),
 ):
     """List discernment journal entries, optionally filtered by category."""
     q = db.query(DiscernmentJournal).filter(DiscernmentJournal.profile_id == profile_id)

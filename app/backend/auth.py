@@ -72,3 +72,19 @@ def require_write_access(current_user: User = Depends(get_current_user)) -> User
             status_code=403, detail="Read-only access — write operations are not permitted"
         )
     return current_user
+
+
+def require_private_access(current_user: User = Depends(get_current_user)) -> User:
+    """Gate SENSITIVE reads to admin + the child themselves (readonly excluded).
+
+    Used for the behavior-incident log, private discernment journals, and
+    aggregate financial totals. A child user is already scoped to their own
+    profile, so this yields "the child sees their own private data, a parent/
+    admin sees it, and family readonly viewers do not."
+    """
+    if current_user.role not in (Role.admin, Role.child):
+        raise HTTPException(
+            status_code=403,
+            detail="This information is private to the child and parents.",
+        )
+    return current_user

@@ -28,6 +28,10 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
   // not score their own behavior or pay themselves). The backend enforces this;
   // we also hide the controls so a child isn't shown actions that will 403.
   const isAdminUser = isAdmin()
+  // Behavior log, earnings totals, and fund ledgers are private to the child +
+  // admin (family readonly viewers must not see them). Child is scoped to their
+  // own profile, so this is "own child + parents only".
+  const canSeePrivate = !isReadonly()
   const [eligibility, setEligibility] = useState(null)
   const [incidents, setIncidents] = useState([])
   const [bounties, setBounties] = useState([])
@@ -58,12 +62,16 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
 
   const load = () => {
     fetchEligibility(profileId).then(setEligibility)
-    fetchIncidents(profileId).then(d => Array.isArray(d) && setIncidents(d))
     fetchBounties(profileId).then(d => Array.isArray(d) && setBounties(d))
-    fetchEarnings(profileId).then(setEarnings)
     fetchBudget(profileId).then(setBudget)
     fetchWishlist(profileId).then(d => Array.isArray(d) && setWishlist(d))
-    fetchFunds(profileId).then(d => Array.isArray(d) && setFunds(d))
+    // Private-to-child-and-admin data: behavior log, earnings totals, fund
+    // ledgers. Skip the fetches for readonly so we don't trip the 403 toast.
+    if (canSeePrivate) {
+      fetchIncidents(profileId).then(d => Array.isArray(d) && setIncidents(d))
+      fetchEarnings(profileId).then(setEarnings)
+      fetchFunds(profileId).then(d => Array.isArray(d) && setFunds(d))
+    }
   }
 
   useEffect(() => { load(); fetchResearchTopics(profileId).then(setResearchTopics) }, [profileId])
@@ -286,10 +294,12 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
             <span style={{ fontSize: 12, color: '#595959', textTransform: 'uppercase' }}>Current Eligibility</span>
             <h3 style={{ margin: '4px 0 0', color: TIER_TEXT_COLORS[eligibility.eligible_tier], textTransform: 'capitalize' }}>{eligibility.eligible_tier} Tier</h3>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: 12, color: '#595959' }}>Overall Score</span>
-            <h3 style={{ margin: '4px 0 0' }}>{eligibility.percentage}%</h3>
-          </div>
+          {eligibility.percentage != null && (
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: 12, color: '#595959' }}>Overall Score</span>
+              <h3 style={{ margin: '4px 0 0' }}>{eligibility.percentage}%</h3>
+            </div>
+          )}
         </div>
       )}
 
@@ -341,8 +351,8 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
         </p>
       </details>
 
-      {/* Earnings Summary */}
-      {earnings && (
+      {/* Earnings Summary (financial totals — private to child + admin) */}
+      {canSeePrivate && earnings && (
         <div style={st.earningsRow}>
           <div style={st.earnCard}><span style={st.earnLabel}>Total Earned</span><span style={st.earnValue}>{earnings.total_earned}</span></div>
           <div style={st.earnCard}><span style={st.earnLabel}>Paid Out</span><span style={st.earnValue}>{earnings.paid_out}</span></div>
@@ -351,8 +361,8 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
         </div>
       )}
 
-      {/* Budget Status */}
-      {budget && (budget.weekly_budget_cents || budget.monthly_budget_cents || budget.annual_budget_cents) && (
+      {/* Budget Status (financial totals — private to child + admin) */}
+      {canSeePrivate && budget && (budget.weekly_budget_cents || budget.monthly_budget_cents || budget.annual_budget_cents) && (
         <div style={{ background: budget.budget_exceeded ? '#fff0f0' : '#f0faf0', border: `1px solid ${budget.budget_exceeded ? '#f5c6c6' : '#c6e6c6'}`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <strong style={{ fontSize: 13, color: budget.budget_exceeded ? '#c0392b' : '#15803d' }}>{budget.budget_exceeded ? '⚠️ Budget Cap Reached' : '💰 Budget Status'}</strong>
@@ -372,12 +382,15 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
       )}
 
       {/* Behavior Incidents */}
+      {/* Behavior Incidents (private to child + admin; readonly cannot see) */}
+      {canSeePrivate && (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 12px' }}>
         <h3 style={{ margin: 0 }}>Behavior Log</h3>
         {isAdminUser && <button onClick={() => setShowIncidentForm(!showIncidentForm)} style={st.btn}>{showIncidentForm ? 'Cancel' : '+ Record Incident'}</button>}
       </div>
+      )}
 
-      {isAdminUser && showIncidentForm && (
+      {canSeePrivate && isAdminUser && showIncidentForm && (
         <form onSubmit={handleIncidentSubmit} style={st.form}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={incForm.trait} onChange={e => setIncForm({ ...incForm, trait: e.target.value })} style={{ ...st.input, maxWidth: 160 }}>
@@ -634,11 +647,13 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
         </div>
       ))}
 
-      {/* Fund Tracker */}
+      {/* Fund Tracker (financial ledgers — private to child + admin) */}
+      {canSeePrivate && (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 12px' }}>
         <h3 style={{ margin: 0 }}>💰 Fund Tracker</h3>
         {canWrite && <button onClick={() => setShowFundForm(!showFundForm)} style={{ ...st.btn, background: '#15803d' }}>{showFundForm ? 'Cancel' : '+ New Fund'}</button>}
       </div>
+      )}
       {canWrite && showFundForm && (
         <form onSubmit={async (e) => { e.preventDefault(); if (!fundForm.name.trim() || !fundForm.starting_balance) return; await createFund(profileId, { name: fundForm.name.trim(), description: fundForm.description.trim() || null, starting_balance: Math.round(parseFloat(fundForm.starting_balance) * 100) }); setFundForm({ name: '', description: '', starting_balance: '' }); setShowFundForm(false); load() }} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           <input placeholder="Fund name (e.g. Insurance Fund)" value={fundForm.name} onChange={e => setFundForm({ ...fundForm, name: e.target.value })} style={{ ...st.input, flex: 1 }} />

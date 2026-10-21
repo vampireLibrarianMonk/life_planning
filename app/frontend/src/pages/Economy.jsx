@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog, fetchFunds, createFund, deleteFund, fetchFundTransactions, createFundTransaction, deleteFundTransaction, fetchBudget, updateBudget } from '../services/api'
 import MiniMarkdown from '../components/MiniMarkdown'
+import { isReadonly } from '../services/auth'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
 const TRAIT_LABELS = { integrity: 'Integrity', honesty: 'Honesty', responsibility: 'Responsibility', respect: 'Respect', school_effort: 'School Effort', citizenship: 'Citizenship' }
@@ -22,6 +23,7 @@ function getVisibleTiers(eligibleTier, isAdmin) {
 }
 
 export default function Economy({ profileId, isAdmin = true, wishlistOnly = false }) {
+  const canWrite = !isReadonly()
   const [eligibility, setEligibility] = useState(null)
   const [incidents, setIncidents] = useState([])
   const [bounties, setBounties] = useState([])
@@ -206,7 +208,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
   if (wishlistOnly) {
     return (
       <div>
-        {showWishForm && (
+        {canWrite && showWishForm && (
           <form onSubmit={handleWishSubmit} style={st.form}>
             <input placeholder="What do you want?" value={wishForm.title} onChange={e => setWishForm({ ...wishForm, title: e.target.value })} style={st.input} autoFocus />
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -222,19 +224,28 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
             <button type="submit" style={{ ...st.submitBtn, background: '#8e44ad' }}>Add to Wishlist</button>
           </form>
         )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <button onClick={() => setShowWishForm(!showWishForm)} style={{ ...st.btn, background: '#8e44ad' }}>{showWishForm ? 'Cancel' : '+ Add Item'}</button>
-        </div>
+        {canWrite && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <button onClick={() => setShowWishForm(!showWishForm)} style={{ ...st.btn, background: '#8e44ad' }}>{showWishForm ? 'Cancel' : '+ Add Item'}</button>
+          </div>
+        )}
         {wishlist.length === 0 && !showWishForm && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No wishlist items yet. What are you saving toward?</p>}
         {wishlist.map(item => {
           const earned = earnings ? earnings.total_earned_cents : 0
           const pct = item.cost_cents > 0 ? Math.min(100, Math.round((earned / item.cost_cents) * 100)) : 0
           const priorityLabel = { 1: '⭐', 2: '⭐⭐', 3: '⭐⭐⭐' }[item.priority] || ''
+          const wishIcon = item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'
           return (
             <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#15803d' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
-              <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
-                <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
-              </button>
+              {canWrite ? (
+                <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
+                  <span style={{ fontSize: 16 }}>{wishIcon}</span>
+                </button>
+              ) : (
+                <span style={{ ...st.statusDot, cursor: 'default' }} title={item.status}>
+                  <span style={{ fontSize: 16 }}>{wishIcon}</span>
+                </span>
+              )}
               <div style={{ flex: 1 }}>
                 <span style={{ textDecoration: item.status === 'purchased' ? 'line-through' : 'none' }}>{item.title}</span>
                 <span style={{ fontSize: 11, marginLeft: 6 }}>{priorityLabel}</span>
@@ -249,7 +260,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                 )}
               </div>
               {item.cost_cents > 0 && <span style={{ fontWeight: 600, fontSize: 14 }}>${(item.cost_cents / 100).toFixed(2)}</span>}
-              <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>
+              {canWrite && <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>}
             </div>
           )
         })}
@@ -354,10 +365,10 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {/* Behavior Incidents */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 12px' }}>
         <h3 style={{ margin: 0 }}>Behavior Log</h3>
-        <button onClick={() => setShowIncidentForm(!showIncidentForm)} style={st.btn}>{showIncidentForm ? 'Cancel' : '+ Record Incident'}</button>
+        {canWrite && <button onClick={() => setShowIncidentForm(!showIncidentForm)} style={st.btn}>{showIncidentForm ? 'Cancel' : '+ Record Incident'}</button>}
       </div>
 
-      {showIncidentForm && (
+      {canWrite && showIncidentForm && (
         <form onSubmit={handleIncidentSubmit} style={st.form}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={incForm.trait} onChange={e => setIncForm({ ...incForm, trait: e.target.value })} style={{ ...st.input, maxWidth: 160 }}>
@@ -386,7 +397,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
               <span style={{ fontSize: 11, color: '#595959', minWidth: 70 }}>{TRAIT_LABELS[inc.trait]?.slice(0, 8)}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{inc.description}</span>
               <span style={{ fontSize: 11, color: '#595959' }}>{inc.date}</span>
-              <button onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>
+              {canWrite && <button onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>}
             </div>
           ))}
         </div>
@@ -395,10 +406,10 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {/* Bounties */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 12px' }}>
         <h3 style={{ margin: 0 }}>Bounties</h3>
-        <button onClick={() => setShowBountyForm(!showBountyForm)} style={st.btn}>{showBountyForm ? 'Cancel' : '+ New Bounty'}</button>
+        {canWrite && <button onClick={() => setShowBountyForm(!showBountyForm)} style={st.btn}>{showBountyForm ? 'Cancel' : '+ New Bounty'}</button>}
       </div>
 
-      {showBountyForm && (
+      {canWrite && showBountyForm && (
         <form onSubmit={handleBountySubmit} style={st.form}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <select value={bountyForm.tier} onChange={e => setBountyForm({ ...bountyForm, tier: e.target.value })} style={{ ...st.input, maxWidth: 140 }}>
@@ -446,7 +457,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       )}
 
       {/* Topic picker for research bounties */}
-      {claimingBounty && (
+      {canWrite && claimingBounty && (
         <div style={{ padding: 20, background: '#fffbf0', border: '1px solid #f0e6d0', borderRadius: 12, marginBottom: 20 }}>
           <h4 style={{ margin: '0 0 12px', fontSize: 15 }}>📋 Claim: {claimingBounty.title}</h4>
           <p style={{ margin: '0 0 12px', fontSize: 13, color: '#666' }}>Pick a topic from the list, or find your own for bonus credit.</p>
@@ -539,11 +550,19 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                   </div>
                 ) : (
                   <>
-                    <button onClick={() => cycleBountyStatus(b)} style={st.statusDot} title={`${b.status} — click to advance`}>
-                      <span style={{ color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#a86b00' : '#767676', fontSize: 16 }}>
-                        {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
+                    {canWrite ? (
+                      <button onClick={() => cycleBountyStatus(b)} style={st.statusDot} title={`${b.status} — click to advance`}>
+                        <span style={{ color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#a86b00' : '#767676', fontSize: 16 }}>
+                          {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
+                        </span>
+                      </button>
+                    ) : (
+                      <span style={{ ...st.statusDot, cursor: 'default' }} title={b.status}>
+                        <span style={{ color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#a86b00' : '#767676', fontSize: 16 }}>
+                          {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
+                        </span>
                       </span>
-                    </button>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none', color: b.status === 'paid' ? '#595959' : '#1a1a1a' }}>{b.title}</span>
                       {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#595959' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 52 ? '#c23600' : b.streak_count >= 12 ? '#8a6f00' : b.streak_count >= 4 ? '#15803d' : '#595959' }}> 🔥{b.streak_count}</span> : ''}{b.reset_days && b.times_completed > 0 && b.last_completed_at ? (() => {
@@ -563,8 +582,8 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                     <span style={{ width: 40, textAlign: 'center', fontSize: 10, padding: '2px 4px', borderRadius: 8, background: b.age_band ? '#f0f4ff' : 'transparent', color: '#2563b0' }}>{b.age_band || ''}</span>
                     <span style={{ width: 70, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#333' }}>${(b.current_reward / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 9, color: '#595959', textDecoration: 'line-through', marginLeft: 3 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
                     <button onClick={() => toggleBountyLog(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: expandedLog === b.id ? '#2563b0' : '#aaa' }} title="Log">📝</button>
-                    <button onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>
-                    <button onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>
+                    {canWrite && <button onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>}
+                    {canWrite && <button onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>}
                   </>
                 )}
               </div>
@@ -578,10 +597,11 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                         <span style={{ fontSize: 10, padding: '2px 4px', borderRadius: 4, background: '#f5f5f5', color: '#595959', whiteSpace: 'nowrap' }}>{log.entry_type}</span>
                         <span style={{ flex: 1, fontSize: 12, color: '#333' }}>{log.content}</span>
                         <span style={{ fontSize: 10, color: '#595959', whiteSpace: 'nowrap' }}>{log.created_at ? new Date(log.created_at).toLocaleDateString() : ''}</span>
-                        <button onClick={() => removeLog(b.id, log.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 14 }}>×</button>
+                        {canWrite && <button onClick={() => removeLog(b.id, log.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 14 }}>×</button>}
                       </div>
                     ))}
                   </div>
+                  {canWrite && (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <select value={logForm.entry_type} onChange={e => setLogForm({ ...logForm, entry_type: e.target.value })} style={{ ...st.input, maxWidth: 110, margin: 0, fontSize: 12 }}>
                       <option value="note">Note</option>
@@ -596,6 +616,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                     <input value={logForm.content} onChange={e => setLogForm({ ...logForm, content: e.target.value })} placeholder="Add a log entry..." style={{ ...st.input, flex: 1, margin: 0, fontSize: 12 }} onKeyDown={e => { if (e.key === 'Enter') submitLog(b.id) }} />
                     <button onClick={() => submitLog(b.id)} style={{ ...st.submitBtn, padding: '6px 12px', fontSize: 12 }}>Add</button>
                   </div>
+                  )}
                 </div>
               )}
               </div>
@@ -607,9 +628,9 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {/* Fund Tracker */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 12px' }}>
         <h3 style={{ margin: 0 }}>💰 Fund Tracker</h3>
-        <button onClick={() => setShowFundForm(!showFundForm)} style={{ ...st.btn, background: '#15803d' }}>{showFundForm ? 'Cancel' : '+ New Fund'}</button>
+        {canWrite && <button onClick={() => setShowFundForm(!showFundForm)} style={{ ...st.btn, background: '#15803d' }}>{showFundForm ? 'Cancel' : '+ New Fund'}</button>}
       </div>
-      {showFundForm && (
+      {canWrite && showFundForm && (
         <form onSubmit={async (e) => { e.preventDefault(); if (!fundForm.name.trim() || !fundForm.starting_balance) return; await createFund(profileId, { name: fundForm.name.trim(), description: fundForm.description.trim() || null, starting_balance: Math.round(parseFloat(fundForm.starting_balance) * 100) }); setFundForm({ name: '', description: '', starting_balance: '' }); setShowFundForm(false); load() }} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           <input placeholder="Fund name (e.g. Insurance Fund)" value={fundForm.name} onChange={e => setFundForm({ ...fundForm, name: e.target.value })} style={{ ...st.input, flex: 1 }} />
           <input placeholder="Description" value={fundForm.description} onChange={e => setFundForm({ ...fundForm, description: e.target.value })} style={{ ...st.input, flex: 1 }} />
@@ -637,16 +658,18 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
               <button onClick={async () => { if (isExpanded) { setExpandedFund(null); return } setExpandedFund(fund.id); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []) }} style={{ ...st.btn, background: '#f0f0f0', color: '#333', fontSize: 11 }}>{isExpanded ? 'Hide' : 'Transactions'} ({fund.transaction_count})</button>
-              <button onClick={async () => { if (confirm(`Delete fund "${fund.name}"?`)) { await deleteFund(profileId, fund.id); load() }}} style={{ ...st.btn, background: '#fdecea', color: '#c0392b', fontSize: 11 }}>Delete</button>
+              {canWrite && <button onClick={async () => { if (confirm(`Delete fund "${fund.name}"?`)) { await deleteFund(profileId, fund.id); load() }}} style={{ ...st.btn, background: '#fdecea', color: '#c0392b', fontSize: 11 }}>Delete</button>}
             </div>
             {isExpanded && (
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #d4edda' }}>
+                {canWrite && (
                 <form onSubmit={async (e) => { e.preventDefault(); if (!txnForm.amount || !txnForm.description.trim()) return; const res = await createFundTransaction(profileId, fund.id, { amount: Math.round(parseFloat(txnForm.amount) * 100), description: txnForm.description.trim(), date: txnForm.date || null }); if (res && res.id) { setTxnForm({ amount: '', description: '', date: new Date().toISOString().split('T')[0] }); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []); load() } else { alert(res?.detail || 'Error') }}} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
                   <input placeholder="Amount ($)" type="number" step="0.01" min="0" value={txnForm.amount} onChange={e => setTxnForm({ ...txnForm, amount: e.target.value })} style={{ ...st.input, maxWidth: 100 }} />
                   <input placeholder="What was it for?" value={txnForm.description} onChange={e => setTxnForm({ ...txnForm, description: e.target.value })} style={{ ...st.input, flex: 1 }} />
                   <input type="date" value={txnForm.date} onChange={e => setTxnForm({ ...txnForm, date: e.target.value })} style={{ ...st.input, maxWidth: 140 }} />
                   <button type="submit" style={{ ...st.btn, background: '#15803d', fontSize: 11 }}>+ Disburse</button>
                 </form>
+                )}
                 {fundTxns.length === 0 && <p style={{ fontSize: 12, color: '#595959', margin: 0 }}>No transactions yet.</p>}
                 {fundTxns.map(txn => (
                   <div key={txn.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #eee', fontSize: 12 }}>
@@ -657,7 +680,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ color: '#595959' }}>bal: ${(txn.balance_after / 100).toFixed(2)}</span>
-                      <button onClick={async () => { await deleteFundTransaction(profileId, fund.id, txn.id); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []); load() }} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 11 }}>×</button>
+                      {canWrite && <button onClick={async () => { await deleteFundTransaction(profileId, fund.id, txn.id); const txns = await fetchFundTransactions(profileId, fund.id); setFundTxns(Array.isArray(txns) ? txns : []); load() }} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 11 }}>×</button>}
                     </div>
                   </div>
                 ))}
@@ -670,10 +693,10 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {/* Wishlist */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 12px' }}>
         <h3 style={{ margin: 0 }}>🎁 Wishlist</h3>
-        <button onClick={() => setShowWishForm(!showWishForm)} style={{ ...st.btn, background: '#8e44ad' }}>{showWishForm ? 'Cancel' : '+ Add Wish'}</button>
+        {canWrite && <button onClick={() => setShowWishForm(!showWishForm)} style={{ ...st.btn, background: '#8e44ad' }}>{showWishForm ? 'Cancel' : '+ Add Wish'}</button>}
       </div>
 
-      {showWishForm && (
+      {canWrite && showWishForm && (
         <form onSubmit={handleWishSubmit} style={st.form}>
           <input placeholder="What do you want?" value={wishForm.title} onChange={e => setWishForm({ ...wishForm, title: e.target.value })} style={st.input} autoFocus />
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -700,9 +723,15 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
         const priorityLabel = { 1: '⭐', 2: '⭐⭐', 3: '⭐⭐⭐' }[item.priority] || ''
         return (
           <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#15803d' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
-            <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
-              <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
-            </button>
+            {canWrite ? (
+              <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
+                <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
+              </button>
+            ) : (
+              <span style={{ ...st.statusDot, cursor: 'default' }} title={item.status}>
+                <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
+              </span>
+            )}
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ textDecoration: item.status === 'purchased' ? 'line-through' : 'none' }}>{item.title}</span>
@@ -720,7 +749,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
               {item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#2563b0' }}>View item ↗</a>}
             </div>
             <span style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>${(item.cost_cents / 100).toFixed(2)}</span>
-            <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>
+            {canWrite && <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>}
           </div>
         )
       })}

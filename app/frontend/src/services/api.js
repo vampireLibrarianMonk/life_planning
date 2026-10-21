@@ -1,5 +1,26 @@
 import { getToken } from './auth'
 
+// Global 403 interceptor: if any /api/ write is rejected (e.g. a readonly user
+// or a stale token), surface a single friendly toast instead of a silent
+// failure or raw thrown error. Hidden write controls make this rare, but this
+// is the defense-in-depth safety net. Patched once per page load.
+if (typeof window !== 'undefined' && !window.__api403Patched) {
+  window.__api403Patched = true
+  const origFetch = window.fetch.bind(window)
+  window.fetch = async (...args) => {
+    const res = await origFetch(...args)
+    try {
+      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || ''
+      if (res.status === 403 && url.includes('/api/')) {
+        window.dispatchEvent(new CustomEvent('api-forbidden'))
+      }
+    } catch {
+      /* never let the interceptor break a request */
+    }
+    return res
+  }
+}
+
 const headers = () => ({
   'Content-Type': 'application/json',
   'Authorization': `Bearer ${getToken()}`,

@@ -4,6 +4,9 @@ import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uplo
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import Economy from './Economy'
+import { isReadonly } from '../services/auth'
+
+const canWrite = !isReadonly()
 
 const PILLARS = [
   { key: 'spiritual', label: 'Spiritual', icon: '✝️', placeholder: "e.g. 'First prayer unprompted'", about: "As your child comes to study their place in this world, a question will surface that no other pillar can answer: What is real beyond what I can measure, and how do I live in light of it? This pillar exists because the spiritual dimension is not optional — it is the environment in which everything else operates. The goal is not a child who performs religion. The goal is a person who can recognize what is genuinely good and pursue it, recognize what wears the mask of good and test it, recognize what attacks them spiritually and name it, stand firm when structures are compromised — even structures that claim holiness — and transmit what they've learned without coercion. The primary tool is the Fruit Test (Matthew 7:15–20): not by words, office, or credentials, but by what a person or institution produces over time." },
@@ -369,14 +372,14 @@ export default function Profile() {
         {avatarSrc && <AvatarCrop imageSrc={avatarSrc} onComplete={handleAvatarCropped} onCancel={() => { setAvatarSrc(null); setAvatarFile(null) }} />}
         <Link to="/" style={s.back}>&larr; All Profiles</Link>
         <div style={s.profileHeader}>
-          <label style={{ cursor: 'pointer', position: 'relative' }} title="Click to change photo">
+          <label style={{ cursor: canWrite ? 'pointer' : 'default', position: 'relative' }} title={canWrite ? 'Click to change photo' : undefined}>
             {profile.avatar ? (
               <img src={`/api/uploads/${profile.avatar}`} alt={profile.name} style={s.bigAvatar} />
             ) : (
               <div style={s.bigAvatarPlaceholder}>{profile.name.charAt(0)}</div>
             )}
-            <input type="file" accept="image/*" onChange={handleAvatarSelect} style={{ display: 'none' }} />
-            <span style={s.avatarEdit}>📷</span>
+            {canWrite && <input type="file" accept="image/*" onChange={handleAvatarSelect} style={{ display: 'none' }} />}
+            {canWrite && <span style={s.avatarEdit}>📷</span>}
           </label>
           <div>
             <h1 style={s.name}>{profile.name}</h1>
@@ -384,9 +387,11 @@ export default function Profile() {
           </div>
         </div>
 
+        {canWrite && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
           <button onClick={handleReseedProfile} className="write-action" style={{ ...s.addBtn, background: '#55606b', fontSize: 12 }} title="Add any new milestones and bounties from the planning documents to this profile. Corrects age bands on existing milestones.">🔄 Sync Milestones & Bounties</button>
         </div>
+        )}
 
         {/* Roadmap — at-a-glance overview */}
         <h2 style={s.sectionTitle}>Roadmap</h2>
@@ -690,6 +695,7 @@ export default function Profile() {
               <p style={{ margin: '4px 0 0', fontSize: 13, whiteSpace: 'pre-wrap' }}>{r.content}</p>
             </div>
           ))}
+          {canWrite && (
           <form onSubmit={handleSubmitResponse} style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <select value={lessonResponseForm.response_type} onChange={e => setLessonResponseForm({ ...lessonResponseForm, response_type: e.target.value })} style={s.input}>
@@ -701,6 +707,7 @@ export default function Profile() {
             <textarea value={lessonResponseForm.content} onChange={e => setLessonResponseForm({ ...lessonResponseForm, content: e.target.value })} placeholder="Write your response..." style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
             <button type="submit" className="write-action" style={s.submitBtn}>Submit Response</button>
           </form>
+          )}
         </div>
       )
     }
@@ -716,9 +723,9 @@ export default function Profile() {
               <p style={{ margin: '4px 0 0', fontSize: 14, color: '#666' }}>Transcript-based lessons: read, rebrief, expand, teach.</p>
             </div>
           </div>
-          <button onClick={() => setShowLessonForm(!showLessonForm)} style={s.addBtn}>{showLessonForm ? 'Cancel' : '+ New Lesson'}</button>
+          {canWrite && <button onClick={() => setShowLessonForm(!showLessonForm)} style={s.addBtn}>{showLessonForm ? 'Cancel' : '+ New Lesson'}</button>}
         </div>
-        {showLessonForm && (
+        {canWrite && showLessonForm && (
           <form onSubmit={handleCreateLesson} style={{ ...s.form, marginBottom: 16 }}>
             <input value={lessonForm.title} onChange={e => setLessonForm({ ...lessonForm, title: e.target.value })} placeholder="Lesson title" style={s.input} required />
             <input value={lessonForm.source} onChange={e => setLessonForm({ ...lessonForm, source: e.target.value })} placeholder="Source (e.g., YouTube: Channel Name)" style={s.input} />
@@ -862,7 +869,7 @@ export default function Profile() {
                 </div>
               ) : (
                 <>
-                  <button onClick={async () => { if (b.status === 'retired') return; if (b.category && researchTopics[b.category] && b.status === 'available') { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: 'claimed' }); return; } const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', cursor: b.status === 'retired' ? 'default' : 'pointer', padding: 2, fontSize: 16, opacity: b.status === 'retired' ? 0.4 : 1 }} title={b.status === 'retired' ? 'Retired' : `${b.status} — click to advance`}>
+                  <button onClick={async () => { if (!canWrite || b.status === 'retired') return; if (b.category && researchTopics[b.category] && b.status === 'available') { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: 'claimed' }); return; } const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} disabled={!canWrite} style={{ background: 'none', border: 'none', cursor: (!canWrite || b.status === 'retired') ? 'default' : 'pointer', padding: 2, fontSize: 16, opacity: b.status === 'retired' ? 0.4 : 1 }} title={b.status === 'retired' ? 'Retired' : canWrite ? `${b.status} — click to advance` : b.status}>
                     <span style={{ color: b.status === 'retired' ? '#999' : b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
                       {b.status === 'retired' ? '🔒' : b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
                     </span>
@@ -877,8 +884,8 @@ export default function Profile() {
                     <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f5f5f5', color: '#595959' }}>{b.tier}</span>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{b.reward_amount ? `$${(b.current_reward / 100).toFixed(2)}` : '🏆'}</div>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button onClick={() => { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: b.status }) }} style={{ background: 'none', border: 'none', color: '#595959', fontSize: 12, cursor: 'pointer' }} title="Edit">✎</button>
-                      <button onClick={async () => { if (confirm('Delete this bounty?')) { await deleteBounty(id, b.id); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 16, cursor: 'pointer' }} title="Delete">&times;</button>
+                      {canWrite && <button onClick={() => { setEditingPBounty(b.id); setEditPBForm({ title: b.title, description: b.description || '', reward_amount: (b.reward_amount / 100).toFixed(2), age_band: b.age_band || '', status: b.status }) }} style={{ background: 'none', border: 'none', color: '#595959', fontSize: 12, cursor: 'pointer' }} title="Edit">✎</button>}
+                      {canWrite && <button onClick={async () => { if (confirm('Delete this bounty?')) { await deleteBounty(id, b.id); fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)) } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 16, cursor: 'pointer' }} title="Delete">&times;</button>}
                     </div>
                   </div>
                 </>
@@ -970,7 +977,7 @@ export default function Profile() {
             <p style={{ margin: '0 0 10px', fontSize: 12, color: '#66745d', lineHeight: 1.5 }}>Complete a thoughtful {meta.title || activeDiscern} reflection, save what you learned below, then advance the bounty status as the work moves from claimed to complete to paid.</p>
             {discernBounties.map(b => (
               <div key={b.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid #e6eedf' }}>
-                <button onClick={async () => { const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchBounties(id).then(d => Array.isArray(d) && setPillarBounties(d)) } }} style={{ width: 34, height: 34, borderRadius: 17, border: '1px solid #d9e8cf', background: '#fff', cursor: b.status === 'paid' ? 'default' : 'pointer', fontSize: 16 }} title={statusLabel[b.status] || b.status}>
+                <button onClick={async () => { if (!canWrite) return; const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]; if (next) { await updateBounty(id, b.id, { status: next }); fetchBounties(id).then(d => Array.isArray(d) && setPillarBounties(d)) } }} disabled={!canWrite} style={{ width: 34, height: 34, borderRadius: 17, border: '1px solid #d9e8cf', background: '#fff', cursor: (!canWrite || b.status === 'paid') ? 'default' : 'pointer', fontSize: 16 }} title={statusLabel[b.status] || b.status}>
                   <span style={{ color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#f5a623' : '#bbb' }}>{statusIcon[b.status] || '○'}</span>
                 </button>
                 <div style={{ flex: 1 }}>
@@ -987,12 +994,14 @@ export default function Profile() {
           </div>
         )}
 
+        {canWrite && (
         <form onSubmit={handleSubmitDiscern} style={{ ...s.form, marginTop: 20 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>New Reflection</label>
           <input placeholder="Summary (e.g. 'What I understand about my body now')" value={discernForm.title} onChange={e => setDiscernForm({ ...discernForm, title: e.target.value })} style={s.input} />
           <textarea placeholder="Write your reflection... What do you understand? What changed? What don't you know yet?" value={discernForm.reflection} onChange={e => setDiscernForm({ ...discernForm, reflection: e.target.value })} style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
           <button type="submit" className="write-action" style={s.submitBtn}>Save Reflection</button>
         </form>
+        )}
 
         {discernEntries.length === 0 && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
 
@@ -1079,7 +1088,7 @@ export default function Profile() {
     return (
       <div key={item.id} style={{ marginBottom: 6, marginLeft: isChild ? 24 : 0 }}>
         <div className="milestone-item" style={{ borderLeft: `3px solid ${STATUS_COLORS[item.status] || '#e0e0e0'}` }}>
-          <button onClick={() => handleStatusToggle(item)} style={{ ...s.statusBtn, minWidth: 28 }} title={`Status: ${STATUS_DISPLAY[item.status] || item.status} (click to advance)`}>
+          <button onClick={() => canWrite && handleStatusToggle(item)} disabled={!canWrite} style={{ ...s.statusBtn, minWidth: 28, cursor: canWrite ? 'pointer' : 'default' }} title={canWrite ? `Status: ${STATUS_DISPLAY[item.status] || item.status} (click to advance)` : `Status: ${STATUS_DISPLAY[item.status] || item.status}`}>
             <span style={{ color: STATUS_COLORS[item.status] || '#e0e0e0', fontSize: 18 }}>{STATUS_LABELS[item.status] || '○'}</span>
           </button>
           <div style={{ flex: 1, cursor: isMilestone ? 'pointer' : 'default', minWidth: 0 }} onClick={() => isMilestone && toggleMilestoneExpand(item.id)}>
@@ -1092,8 +1101,8 @@ export default function Profile() {
             {item.category && <span style={s.categoryBadge}>{item.category}</span>}
             {item.score != null && <span style={s.scoreBadge}>{item.score}/5</span>}
             <button onClick={() => loadAttachments(item.id)} style={s.editBtn} title="Attachments">📎</button>
-            <button onClick={() => startEdit(item)} style={s.editBtn} title="Edit">✎</button>
-            {showDelete && <button onClick={() => handleDelete(item.id)} style={s.deleteBtn} title="Delete">&times;</button>}
+            {canWrite && <button onClick={() => startEdit(item)} style={s.editBtn} title="Edit">✎</button>}
+            {canWrite && showDelete && <button onClick={() => handleDelete(item.id)} style={s.deleteBtn} title="Delete">&times;</button>}
           </div>
         </div>
         {expandedAttachments === item.id && (
@@ -1110,7 +1119,7 @@ export default function Profile() {
                 ) : (
                   <a href={`/api/uploads/${a.filename}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#2563b0' }}>📄 {a.original_name}</a>
                 )}
-                <button onClick={() => handleDeleteAttachment(item.id, a.id)} style={{ ...s.deleteBtn, fontSize: 14 }} title="Remove">×</button>
+                {canWrite && <button onClick={() => handleDeleteAttachment(item.id, a.id)} style={{ ...s.deleteBtn, fontSize: 14 }} title="Remove">×</button>}
               </div>
             ))}
           </div>
@@ -1126,7 +1135,7 @@ export default function Profile() {
                 <span style={{ fontSize: 10, color: '#595959' }}>{new Date(child.created_at).toLocaleDateString()}</span>
               </div>
             ))}
-            {subFormParent === item.id ? (
+            {canWrite && (subFormParent === item.id ? (
               <form onSubmit={(e) => handleAddSubEntry(e, item.id)} style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {['note','event','evidence'].map(t => (
@@ -1145,7 +1154,7 @@ export default function Profile() {
               </form>
             ) : (
               <button onClick={() => setSubFormParent(item.id)} style={{ fontSize: 11, color: '#2563b0', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', textAlign: 'left' }}>+ Add note, event, or evidence</button>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -1162,7 +1171,7 @@ export default function Profile() {
           <h2 style={{ margin: 0, fontSize: 20 }}>{currentPillar.label}</h2>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {pillarTab === 'milestones' && <button onClick={() => { setShowForm(!showForm); setFormType('milestone') }} style={s.addBtn}>{showForm ? 'Cancel' : '+ Milestone'}</button>}
+          {canWrite && pillarTab === 'milestones' && <button onClick={() => { setShowForm(!showForm); setFormType('milestone') }} style={s.addBtn}>{showForm ? 'Cancel' : '+ Milestone'}</button>}
         </div>
       </div>
 
@@ -1259,11 +1268,13 @@ export default function Profile() {
 
       {pillarTab === 'bounties' && (
         <div>
+          {canWrite && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
             <button onClick={handleReseedProfile} className="write-action" style={{ ...s.addBtn, background: '#55606b' }} title="Add any newly seeded milestones and bounties to this existing profile">Sync Seeded Bounties</button>
             <button onClick={() => setShowPillarBountyForm(!showPillarBountyForm)} style={s.addBtn}>{showPillarBountyForm ? 'Cancel' : '+ New Bounty'}</button>
           </div>
-          {showPillarBountyForm && (
+          )}
+          {canWrite && showPillarBountyForm && (
             <form onSubmit={handlePillarBountySubmit} style={s.form}>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <select value={pBountyForm.tier} onChange={e => setPBountyForm({ ...pBountyForm, tier: e.target.value })} style={{ ...s.input, maxWidth: 130 }}>
@@ -1319,7 +1330,7 @@ export default function Profile() {
                 </div>
               ) : (
                 <>
-                  <button onClick={() => cyclePillarBountyStatus(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }} title={`${b.status} — click to advance`}>
+                  <button onClick={() => canWrite && cyclePillarBountyStatus(b)} disabled={!canWrite} style={{ background: 'none', border: 'none', cursor: canWrite ? 'pointer' : 'default', padding: 2 }} title={canWrite ? `${b.status} — click to advance` : b.status}>
                     <span style={{ fontSize: 16, color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#f5a623' : '#ddd' }}>
                       {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
                     </span>
@@ -1332,8 +1343,8 @@ export default function Profile() {
                   <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff','diamond':'#effcff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#595959','gold':'#b8860b','platinum':'#2563b0','diamond':'#0088aa'}[b.tier] }}>{b.tier}</span>
                   {b.age_band && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f0f4ff', color: '#2563b0' }}>{b.age_band}</span>}
                   <span style={{ fontWeight: 600, fontSize: 14 }}>${((b.current_reward ?? b.reward_amount) / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 10, color: '#595959', textDecoration: 'line-through', marginLeft: 4 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
-                  <button onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>
-                  <button onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
+                  {canWrite && <button onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>}
+                  {canWrite && <button onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>}
                 </>
               )}
             </div>
@@ -1341,7 +1352,7 @@ export default function Profile() {
         </div>
       )}
 
-      {pillarTab === 'milestones' && showForm && (
+      {pillarTab === 'milestones' && canWrite && showForm && (
         <form onSubmit={handleAddEntry} style={s.form}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#2563b0', marginBottom: 4 }}>
             📌 New Milestone (goal/target)

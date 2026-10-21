@@ -6,6 +6,7 @@ import Profile from './pages/Profile'
 import Setup from './pages/Setup'
 import RegionFailoverBanner from './components/RegionFailoverBanner'
 import ReadOnlyBanner from './components/ReadOnlyBanner'
+import ForbiddenToast from './components/ForbiddenToast'
 import { getToken, setToken as saveToken, isReadonly } from './services/auth'
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
     <>
       <RegionFailoverBanner />
       {readonly && <ReadOnlyBanner />}
+      <ForbiddenToast />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />

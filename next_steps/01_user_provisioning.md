@@ -1,22 +1,23 @@
 # Next Step: User Provisioning & Role Separation
 
-> ## ⏭️ TOP TODO WHEN YOU RETURN (2026-10-21)
-> **In readonly mode, ALL CRUD buttons must be non-visible (not just the few
-> tagged so far).** Current state: a read-only banner shows and only the primary
-> create/edit controls (form Save buttons, Sync) are tagged `write-action` +
-> CSS-hidden. The remaining inline write buttons (per-bounty claim/score/edit/
-> delete, + New/Event/Note/Milestone, wishlist, fund, attachment upload/delete,
-> status toggles) are still visible and just fail with a backend 403. Make every
-> CRUD control hidden for `readonly`. Cleanest approach: gate them on an
-> `isReadonly()` check (hide, `return null`) or tag them all `write-action`
-> (which the existing `html[data-role="readonly"]` CSS already hides). The role
-> is available via `getRole()`/`isReadonly()` in `services/auth.js`.
+> ## ✅ Readonly CRUD-hiding DONE (2026-10-21)
+> Every live CRUD control is now hidden for `readonly` (inline `canWrite =
+> !isReadonly()` gate in Profile.jsx + Economy.jsx). Status toggles (milestone
+> 6-state, bounty/wishlist status) render as STATIC badges for readonly so state
+> stays visible. Added: a role/identity chip in the Dashboard header for all
+> roles, and a global 403 interceptor (`api.js` → `ForbiddenToast`) as a
+> defense-in-depth "that change wasn't saved" toast. Backend is the real
+> boundary; a regression test (`tests/test_readonly_enforcement.py`) asserts
+> every write route depends on a readonly-blocking guard so future leaks fail CI.
 >
-> **In-flight state at save:** the readonly-visibility FIX (readonly sees all
-> profiles) was committed (`5dace40`) and the image pushed; both App Runner
-> services were mid auto-deploy. Verify the deploy finished and that the
-> readonly test account (`admin-readonly`) now sees the profile:
-> `./deploy/monitor.sh status` and log in as admin-readonly.
+> ### Deferred items from the adversarial review (need owner sign-off):
+> - **Lock down child writes** (Task 3): behavior-incident create/delete and
+>   bounty Complete→Paid should be admin-only (a child shouldn't score their own
+>   behavior or pay themselves). Changes child UX — confirm before doing.
+> - **Per-profile read scoping** (Task 4): readonly/child currently read ALL
+>   profiles' PII/journals. Owner accepted "all profiles" for the single-family
+>   case; revisit the `authorize_profile_access` + ProfileAccess grant path
+>   before adding any non-family users.
 
 ---
 

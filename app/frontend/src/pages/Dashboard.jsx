@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchProfiles, createProfile } from '../services/api'
-import { clearToken } from '../services/auth'
+import { clearToken, getClaims } from '../services/auth'
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([])
@@ -50,7 +50,21 @@ export default function Dashboard() {
           <h1 style={styles.title}>Life Plan Tracker</h1>
           <p style={styles.subtitle}>Lifetime Development Dashboard</p>
         </div>
-        <button onClick={() => { clearToken(); window.location.reload() }} style={styles.logoutBtn}>Logout</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {(() => {
+            const c = getClaims()
+            if (!c) return null
+            const roleLabel = c.role === 'readonly' ? 'read-only' : c.role
+            const bg = c.role === 'admin' ? '#e8f0ff' : c.role === 'readonly' ? '#fff3cd' : '#e8f8f0'
+            const fg = c.role === 'admin' ? '#2563b0' : c.role === 'readonly' ? '#8a6f00' : '#15803d'
+            return (
+              <span title={`Signed in as ${c.sub} (${roleLabel})`} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 12, background: bg, color: fg, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                {c.sub} · {roleLabel}
+              </span>
+            )
+          })()}
+          <button onClick={() => { clearToken(); window.location.reload() }} style={styles.logoutBtn}>Logout</button>
+        </div>
       </header>
 
       {error && <p style={styles.error}>Error: {error}</p>}

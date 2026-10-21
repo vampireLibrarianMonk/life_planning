@@ -32,6 +32,22 @@ avatars, the SQLite replica), re-encryption is a quick copy, not a migration.
 
 ## Build order (failover flipped LAST)
 
+> **Progress:** Steps 1–7 DONE & verified (2026-10-21). MRK in both regions;
+> data re-encrypted; west S3 buckets + CRR (backfilled); secrets replicated to
+> west; ECR registry replication; west App Runner `life-planning-west`
+> (`kwc6vqrvy9.us-west-2.awsapprunner.com`) RUNNING, MaxSize=1. **Verified: the
+> west standby restored the DB from the west replica and serves "Robert
+> Flanigan" — full cross-region chain works.** Step 8 (Route 53 failover) is the
+> only remaining step and is the one that changes live routing.
+
+> **⚠️ Split-brain / fail-back caveat to resolve in Step 8 design:** both
+> services run Litestream. CRR writes east→west into the DB bucket while the
+> west service's own Litestream also owns a generation there. In strict
+> active/passive this is fine as long as only the routed region takes writes,
+> but fail-BACK (west→east) needs a defined reconciliation path. Document the
+> replication direction explicitly and treat the standby as read-until-promoted
+> in the game-day.
+
 ### 1. KMS multi-region key
 - Create an MRK in us-east-1 (`--multi-region`), alias `alias/life-planning-mr`.
 - Replicate it to us-west-2 (`replicate-key`), same alias there.

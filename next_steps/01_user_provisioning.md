@@ -1,5 +1,25 @@
 # Next Step: User Provisioning & Role Separation
 
+> ## ⏭️ TOP TODO WHEN YOU RETURN (2026-10-21)
+> **In readonly mode, ALL CRUD buttons must be non-visible (not just the few
+> tagged so far).** Current state: a read-only banner shows and only the primary
+> create/edit controls (form Save buttons, Sync) are tagged `write-action` +
+> CSS-hidden. The remaining inline write buttons (per-bounty claim/score/edit/
+> delete, + New/Event/Note/Milestone, wishlist, fund, attachment upload/delete,
+> status toggles) are still visible and just fail with a backend 403. Make every
+> CRUD control hidden for `readonly`. Cleanest approach: gate them on an
+> `isReadonly()` check (hide, `return null`) or tag them all `write-action`
+> (which the existing `html[data-role="readonly"]` CSS already hides). The role
+> is available via `getRole()`/`isReadonly()` in `services/auth.js`.
+>
+> **In-flight state at save:** the readonly-visibility FIX (readonly sees all
+> profiles) was committed (`5dace40`) and the image pushed; both App Runner
+> services were mid auto-deploy. Verify the deploy finished and that the
+> readonly test account (`admin-readonly`) now sees the profile:
+> `./deploy/monitor.sh status` and log in as admin-readonly.
+
+---
+
 Strategy for adding proper user provisioning (username≠email, three real user
 types, secure credential delivery) to the Life Plan Tracker. Decided via an
 adversarial design review (Pragmatic Builder vs. Safety Critic → Finalizer).

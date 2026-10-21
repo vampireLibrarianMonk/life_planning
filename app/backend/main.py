@@ -128,8 +128,21 @@ def seed_admin():
 
 @app.get("/api/health")
 def health():
+    import os
+
+    from fastapi.responses import JSONResponse
+
     import config
 
+    # Drill switch: when HEALTH_FORCE_FAIL=1, report unhealthy (503). This makes
+    # BOTH the Route 53 health check and the browser's /api/health poll fail, so
+    # a real user-facing failover (and the RegionFailoverBanner) can be tested on
+    # demand. Set back to 0 (or unset) to recover. Default is healthy.
+    if os.getenv("HEALTH_FORCE_FAIL", "0") == "1":
+        return JSONResponse(
+            status_code=503,
+            content={"status": "forced_fail", "config": config.summary()},
+        )
     return {"status": "ok", "config": config.summary()}
 
 

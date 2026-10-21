@@ -13,9 +13,10 @@ import { useEffect, useRef, useState } from 'react'
  * blip clears on the next poll and there is no second region name to report.
  */
 
-const HEALTHY_POLL_MS = 30000   // relaxed polling while everything is fine
-const FAILING_POLL_MS = 5000    // faster polling once we suspect an outage
-const FAILS_BEFORE_OVERLAY = 3  // consecutive failures before we show the overlay
+const HEALTHY_POLL_MS = 15000   // poll cadence while healthy (snappy enough to
+                                // catch a brief real failover without being chatty)
+const FAILING_POLL_MS = 3000    // poll faster once we suspect an outage
+const FAILS_BEFORE_OVERLAY = 2  // consecutive failures before showing the overlay
 
 function prettyRegion(region) {
   if (!region) return 'the primary region'

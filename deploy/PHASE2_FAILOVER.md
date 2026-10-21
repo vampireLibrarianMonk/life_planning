@@ -179,6 +179,46 @@ failover, flip it back. (Add in a later commit if we want repeatable drills.)
 
 ---
 
+## TWO distinct things to test (infra failover vs. user-facing UX)
+
+A key insight from the 2026-10-21 drill: **the health-check-flip drill proves
+the INFRASTRUCTURE fails over, but NOT the user-facing banner.** They are
+separate tests with different mechanisms.
+
+| Test | Mechanism | What it proves | User impact |
+|------|-----------|----------------|-------------|
+| **A. Infra failover** | Flip the primary's Route 53 health-check path to a non-2xx path (`/api/profiles/`). The east app KEEPS RUNNING. | DNS reroutes east→west, standby serves real data, auto fail-back. | **None** — safe, routine, reversible. |
+| **B. User-facing UX (the banner)** | A **real** east outage so a loaded browser's requests actually fail: `aws apprunner pause-service` on east, or a temporary WAF block-all on east, or a `HEALTH_FORCE_FAIL` app toggle. | The `RegionFailoverBanner` fires (shows "switching region") during the ~90s gap, then the session recovers on west. | **Real brief outage** — full-fidelity, not routine. |
+
+**Why test A does not show the banner:** `RegionFailoverBanner` only appears
+after ~3 consecutive failed `/api/health` calls from the *browser*. In test A
+the east app never stops serving, so the user's requests keep succeeding (on
+east) until DNS moves them to west — a seamless switch with **no failed
+requests, so the banner never triggers**. The banner is correctly designed for a
+*genuine* outage, which test A does not create.
+
+**To actually see the transition message**, run test B — recommended mechanism
+is the app toggle below (cleanest + repeatable); `pause-service` is the most
+realistic but slower to pause/resume.
+
+### Proposed `HEALTH_FORCE_FAIL` toggle (clean repeatable UX drill)
+Add an env var read at request time: when `HEALTH_FORCE_FAIL=1` on the EAST
+service, `/api/health` returns 503 **and** the app returns 503 for API calls so
+a loaded browser session genuinely fails → the banner fires → Route 53 also
+fails the health check → DNS moves to west. Flip it back to `0` to recover.
+This gives a one-switch, fully-reversible, user-visible failover drill without a
+true service pause. (Deferred build item — see FOLLOW_UPS.)
+
+### Full-fidelity drill via pause (no code change)
+```bash
+aws apprunner pause-service  --service-arn <EAST_SERVICE_ARN> --region us-east-1
+# ... load the site in a browser: requests fail, banner appears, ~90s later
+#     the session is served by west. Verify data present.
+aws apprunner resume-service --service-arn <EAST_SERVICE_ARN> --region us-east-1
+```
+
+---
+
 ## Rollback / spin-down
 
 Phase 2 is additive and reversible. To spin down the standby (the owner noted a

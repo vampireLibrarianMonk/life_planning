@@ -220,3 +220,15 @@ set their own**, child logins are opt-in/read-only/sent to the parent, and
 Secrets Manager keeps doing only its one admin-bootstrap job. Phase 1 is built,
 deployed, and used (admin `pmflani`). Next: slim the Docker image to runtime
 code only, and default SES to a non-Gmail sender.
+
+---
+
+## Related follow-ups (added 2026-10-21, phase 2)
+
+- [ ] **Build `HEALTH_FORCE_FAIL` toggle** so the user-facing failover banner can
+      be tested on demand (env var → east returns 503 for health + API → browser
+      session fails → banner shows → DNS fails to west → flip back). See
+      `deploy/PHASE2_FAILOVER.md` "TWO distinct things to test".
+- [x] **Budget** raised to $70/mo and scoped to the `project=life-planning`
+      cost-allocation tag (was $50, unfiltered). All 23 phase-1+phase-2 resources
+      (15 east + 8 west) tagged `project=life-planning`.

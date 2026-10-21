@@ -64,7 +64,11 @@ def _seed_bounties(db: Session, profile_id: int) -> dict:
 
 
 def _get_accessible_profiles(user: User, db: Session) -> list[Profile]:
-    if user.role.value == "admin":
+    # admin and readonly both see every profile (readonly = view-only household
+    # access, e.g. a parent's second account or a grandparent). A child user is
+    # scoped to their own profile; any other role falls back to explicit
+    # ProfileAccess grants.
+    if user.role.value in ("admin", "readonly"):
         return db.query(Profile).all()
     if user.role.value == "child" and user.profile:
         return [user.profile]

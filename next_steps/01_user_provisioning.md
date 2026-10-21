@@ -225,7 +225,7 @@ code only, and default SES to a non-Gmail sender.
 
 ## Related follow-ups (added 2026-10-21, phase 2)
 
-- [ ] **Build `HEALTH_FORCE_FAIL` toggle** so the user-facing failover banner can
+- [x] **Build `HEALTH_FORCE_FAIL` toggle** (DONE 2026-10-21, drill verified: banner shown ~97s) so the user-facing failover banner can
       be tested on demand (env var → east returns 503 for health + API → browser
       session fails → banner shows → DNS fails to west → flip back). See
       `deploy/PHASE2_FAILOVER.md` "TWO distinct things to test".

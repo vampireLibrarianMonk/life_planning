@@ -133,7 +133,14 @@ Trust: `build.apprunner.amazonaws.com`. Attach managed
 ### 7. App Runner service (from ECR image)
 `create-service` with `ImageRepository` (type ECR, `:latest`),
 `AutoDeploymentsEnabled=true`, `AccessRoleArn` = ECR access role,
-`InstanceRoleArn` = instance role, port 8000, health check `/api/health`, and
+`InstanceRoleArn` = instance role, port 8000, and env vars below.
+
+> **Health-check path = `/api/alive`** (always 200), NOT `/api/health`. App
+> Runner gates deployments on this path; `/api/health` is toggleable to 503 for
+> failover drills (see PHASE2_FAILOVER.md), so using it here would block deploys.
+> Set/confirm with
+> `update-service --health-check-configuration Protocol=HTTP,Path=/api/alive,...`.
+
 env vars:
 ```
 DEPLOY_MODE=aws  AWS_REGION=us-east-1

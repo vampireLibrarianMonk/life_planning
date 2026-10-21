@@ -202,12 +202,42 @@ is the app toggle below (cleanest + repeatable); `pause-service` is the most
 realistic but slower to pause/resume.
 
 ### Proposed `HEALTH_FORCE_FAIL` toggle (clean repeatable UX drill)
-Add an env var read at request time: when `HEALTH_FORCE_FAIL=1` on the EAST
-service, `/api/health` returns 503 **and** the app returns 503 for API calls so
-a loaded browser session genuinely fails → the banner fires → Route 53 also
-fails the health check → DNS moves to west. Flip it back to `0` to recover.
-This gives a one-switch, fully-reversible, user-visible failover drill without a
-true service pause. (Deferred build item — see FOLLOW_UPS.)
+
+> **BUILT & VERIFIED 2026-10-21.** The toggle exists and a real user-facing
+> failover was run end-to-end. Browser-simulation result: east
+> `HEALTH_FORCE_FAIL=1` → `/api/health` 503 → **banner "Switching to the backup
+> region" appeared after ~3s (2 consecutive failed polls) and stayed up ~97s**
+> until Route 53 re-pointed the domain to us-west-2, then auto-dismissed.
+> Confirms the banner reliably covers the full ~90s DNS-failover gap.
+
+**Critical design requirement discovered:** App Runner gates its *deployment* on
+the service health-check path. If that path is `/api/health`, enabling
+`HEALTH_FORCE_FAIL` makes the deploy hang and roll back (App Runner never sees a
+healthy new version). **Fix:** two separate endpoints —
+- **`/api/alive`** — always 200; this is App Runner's **service health-check
+  path** (set via `update-service --health-check-configuration Path=/api/alive`).
+  Unaffected by the drill, so deploys/toggles never roll back.
+- **`/api/health`** — reports mode/region AND honors `HEALTH_FORCE_FAIL` (503);
+  this is what **Route 53 failover** and the **browser banner** watch.
+
+Note: the WAF only allow-lists `/api/health`; `/api/alive` is reachable by App
+Runner's internal checker (not via the WAF/edge), which is sufficient.
+
+How the toggle makes `/api/health` fail: env var read at request time, returns
+503 when `HEALTH_FORCE_FAIL=1`, so BOTH Route 53 and the browser poll fail →
+real user-visible failover. Set back to `0`/unset to recover.
+
+### Drill: trigger a real user-facing failover (repeatable)
+```bash
+set -a; . ./.arn-env; set +a
+# 1. Enable on EAST only (redeploys; succeeds because App Runner watches /api/alive):
+aws apprunner update-service --service-arn "$SERVICE_ARN" --region us-east-1 \
+  --cli-input-json file://<east-service-json-with HEALTH_FORCE_FAIL=1>
+# 2. Load the site in a browser — within ~3s the "Switching to the backup
+#    region" banner appears; ~90s later the session is served by us-west-2.
+# 3. Recover: re-run update-service WITHOUT HEALTH_FORCE_FAIL. Domain returns to east.
+```
+(The CLI builds the full env block; see the session history / monitor.sh.)
 
 ### Full-fidelity drill via pause (no code change)
 ```bash

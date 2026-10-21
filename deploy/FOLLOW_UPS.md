@@ -11,12 +11,17 @@ Resource IDs: see git-ignored `.arn-env`.
 
 ## Action required by owner (not code)
 
-- [ ] **Confirm the SNS alert email.** A confirmation email was sent to
-      `<owner-email>` (subject "AWS Notification - Subscription
-      Confirmation"). Click **Confirm subscription** or the `life-planning-down`
-      CloudWatch alarm cannot notify you. Verify with:
-      `aws sns list-subscriptions-by-topic --topic-arn <ALERT_TOPIC_ARN> --region us-east-1`
-      (status should become `confirmed`).
+- [x] **Confirm the SNS alert email.** Confirmed for `<owner-email>`
+      (2026-10-20) — the `life-planning-down` alarm can now notify.
+- [x] **Cost-allocation tagging.** All 13 Life Plan resources tagged
+      `project=life-planning` (Route 53 hosted zone excluded as shared infra).
+      The `project` user-defined cost-allocation tag was activated in the
+      Billing console on 2026-10-20.
+- [ ] **Check isolated cost in ~24h.** In Cost Explorer, group/filter by
+      Tag → `project` = `life-planning` to see this app's spend separated from
+      other projects (Bedrock/Textract/etc.). Tag activation applies going
+      forward (from the start of the current month), not retroactively before
+      the tag existed. Expected steady-state: ~$20–27/mo.
 - [ ] **Store admin password + AWS recovery off the deploy laptop.** Deploys
       require local Docker + AWS creds on one machine; that laptop is a single
       operational point of failure. Keep the Secrets Manager admin password and

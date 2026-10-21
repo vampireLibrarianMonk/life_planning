@@ -18,6 +18,13 @@ consensus.
 *(Diagram source: [`architecture.puml`](architecture.puml). Re-render with the
 command in the "Rendering the diagram" section below.)*
 
+> **Note:** this diagram is the **dual-region target design (phase 2)**. The
+> **currently live** system is **phase 1: single region (us-east-1)** — one App
+> Runner service from an ECR image, SQLite persisted via Litestream to S3, WAF,
+> custom-domain TLS, and alerting. For exactly what is deployed today, see
+> **`DEPLOYMENT_STEPS.md`** (the as-built runbook). Phase 2 (the standby region
+> drawn here) is deferred; its blocker is the multi-region KMS upgrade.
+
 ---
 
 ## DNS requirement — translated

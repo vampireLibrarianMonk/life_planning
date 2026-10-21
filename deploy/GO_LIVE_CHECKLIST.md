@@ -1,9 +1,19 @@
 # Go-Live Checklist — Phase 1 (single region, us-east-1)
 
-Target: `https://life-planning.my-deployment.com`. Full command detail is in
-`DEPLOYMENT_STEPS.md`; this is the fast driver + how to watch each step.
+> ✅ **COMPLETED 2026-10-20.** The app is live at
+> `https://life-planning.my-deployment.com`. This file is retained as a record
+> of the go-live sequence. For the accurate **as-built** record (which differs
+> from the original plan — ECR image build instead of GitHub source, plus
+> Litestream, autoscaling pin, alerting, and the go-live fixes) see
+> **`DEPLOYMENT_STEPS.md`**. Operate the live app with `./deploy/monitor.sh`.
 
+Target: `https://life-planning.my-deployment.com`.
 Monitor helper: `./deploy/monitor.sh {status|health|logs|dns|watch|smoke|all}`
+
+> Note: the original plan below assumed an App Runner **GitHub-source** build.
+> In practice the CLI/API only supports managed runtimes, so we built a
+> **Dockerfile image → ECR** and App Runner deploys from ECR with auto-deploy
+> on `:latest`. See `DEPLOYMENT_STEPS.md` for the real steps.
 
 ---
 

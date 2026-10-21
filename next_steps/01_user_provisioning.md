@@ -10,7 +10,9 @@ adversarial design review (Pragmatic Builder vs. Safety Critic → Finalizer).
 - **Test case:** the father/admin account — username `<admin-username>`,
   email `<owner-email>`, type `father`.
 
-Status: **designed, not yet built.** This is the first thing to pick up next.
+Status: **BUILT, DEPLOYED, and in use** (2026-10-21). See "OUTCOME & lessons
+learned" below. The first admin account (`pmflani` / Patrick Flanigan) was
+provisioned live and the setup-link email delivered via SES.
 
 ---
 
@@ -164,22 +166,57 @@ password (409 if exists) → POST setup-token (sets email + token, must_change=1
 
 ---
 
-## Open items to resolve when building
+## OUTCOME & lessons learned (built + deployed 2026-10-21)
 
-- [ ] **Gmail app password** for SMTP (or decide to start with `--no-email`
-      terminal link and wire SMTP second). Store as env/secret, never hardcode.
-- [ ] Decide `display_name` for the <admin-username> admin.
-- [ ] Confirm the `/setup` page styling matches the app (reuse existing Login
-      page look; keep it accessible — a11y suite will check).
-- [ ] Add a pytest for token issue/validate/expire and a Playwright test for the
-      setup flow (keep the two suites separate, per existing convention).
+**Status: BUILT, DEPLOYED, and used.** The first account — `pmflani` (role admin,
+display name "Patrick Flanigan") — was provisioned on the live app and the SES
+setup-link invitation was delivered. Flow verified end-to-end (provision →
+emailed one-time link → set own password → login; token single-use).
+
+Implemented: `email`/`must_change_password`/`setup_token_*` columns + idempotent
+boot migration; admin-only `POST /api/auth/setup-token/{username}`; public
+`POST /api/auth/setup`; login blocks `must_change_password`; `/setup` frontend
+page; `email_service.py` (AWS SES); `provision_user.py` CLI. Email is sent ONLY
+by the CLI (admin's AWS creds) — the web app never sends mail, so there is no
+public email-send surface to abuse.
+
+**Lesson — do NOT send from a `@gmail.com` sender to a Gmail recipient.**
+The first invite (from `pmflani@gmail.com` to `pmflani@gmail.com`) sent cleanly
+via SES (0 bounces) but Gmail **spam-foldered** it: a message "from a gmail.com
+address" that was actually sent via AWS SES fails Gmail's DMARC/spoof check, and
+self-to-self is an extra spam signal. **Default for future invites: send FROM a
+non-Gmail verified SES identity** (e.g. a ProtonMail/Yahoo identity, or a
+verified address on the app's own domain) TO the recipient. Recipient marked the
+first one "Not spam," which helps future delivery to that inbox.
 
 ---
 
-## One-line summary for morning-me
+## Open items / next steps
 
-One new `email` column (+ small token fields), four friendly types map onto the
-three existing roles, **nobody is emailed a password — they get a 24h one-time
-link to set their own**, child logins are opt-in/read-only/sent to the parent,
-and Secrets Manager keeps doing only its one admin-bootstrap job. Build Phase 1,
-test with `father / <admin-username> / <owner-email>`.
+- [ ] **Slim the Docker image — code only, no docs/tests.** `.dockerignore`
+      correctly excludes top-level `docs/`, `diagrams/`, `transcripts/`, etc.,
+      BUT the Dockerfile does `COPY app/backend/ ./`, which currently ships
+      non-runtime files inside the image: `app/backend/tests/` (pytest suite)
+      and `app/backend/.env.example`. (`provision_user.py` is a local admin CLI
+      and is also not needed at runtime.) Add `.dockerignore` entries
+      (`app/backend/tests/`, `app/backend/.env.example`) or narrow the COPY so
+      the runtime image carries only what the app needs. No secrets leak today
+      (.env.example is placeholders), but it is bloat + unnecessary surface.
+- [ ] **Verify a SES sender on the app's own domain** (or a non-Gmail identity)
+      and set it as the default `SES_SENDER` for invitations.
+- [ ] **Phase 2 provisioning:** `child` type (`--issue-child-login`, readonly
+      default, parent-addressed) and `--child-write` opt-in.
+- [ ] Add pytest for token issue/validate/expire + a Playwright test for the
+      `/setup` flow (keep the two suites separate).
+- [ ] (Optional) Request SES production access to send to non-verified addresses.
+
+---
+
+## One-line summary
+
+One `email` column (+ token fields), four friendly types map onto the three
+existing roles, **nobody is emailed a password — they get a 24h one-time link to
+set their own**, child logins are opt-in/read-only/sent to the parent, and
+Secrets Manager keeps doing only its one admin-bootstrap job. Phase 1 is built,
+deployed, and used (admin `pmflani`). Next: slim the Docker image to runtime
+code only, and default SES to a non-Gmail sender.

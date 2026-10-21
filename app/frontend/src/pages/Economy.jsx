@@ -374,7 +374,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
             <input type="date" value={incForm.date} onChange={e => setIncForm({ ...incForm, date: e.target.value })} style={{ ...st.input, maxWidth: 150 }} />
           </div>
           <input placeholder="What happened? e.g. 'Told the truth about breaking the vase'" value={incForm.description} onChange={e => setIncForm({ ...incForm, description: e.target.value })} style={st.input} autoFocus />
-          <button type="submit" style={st.submitBtn}>Save Incident</button>
+          <button type="submit" className="write-action" style={st.submitBtn}>Save Incident</button>
         </form>
       )}
 
@@ -437,7 +437,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
               <label style={{ fontSize: 14, color: '#333' }}>Reset after <input type="number" min="1" placeholder="days" value={bountyForm.reset_days} onChange={e => setBountyForm({ ...bountyForm, reset_days: e.target.value })} style={{ ...st.input, width: 65, margin: '0 4px', display: 'inline', fontSize: 14 }} /> days</label>
             </>}
           </div>
-          <button type="submit" style={st.submitBtn}>Create Bounty</button>
+          <button type="submit" className="write-action" style={st.submitBtn}>Create Bounty</button>
         </form>
       )}
 

@@ -23,3 +23,24 @@ export async function login(username, password) {
   setToken(data.access_token)
   return data.access_token
 }
+
+/** Decode the JWT payload (unverified — for UI hints only; the backend enforces). */
+export function getClaims() {
+  const t = getToken()
+  if (!t) return null
+  try {
+    const payload = t.split('.')[1]
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+export function getRole() {
+  return getClaims()?.role || null
+}
+
+export function isReadonly() {
+  return getRole() === 'readonly'
+}

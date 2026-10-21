@@ -8,6 +8,13 @@
     * { box-sizing: border-box; }
     body { margin: 0; -webkit-text-size-adjust: 100%; }
 
+    /* Read-only mode: disable write controls (backend also enforces 403). */
+    html[data-role="readonly"] .write-action {
+      opacity: 0.45;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+
     /* Desktop: grid layout for pillars */
     .pillar-grid-desktop {
       display: grid;

@@ -385,7 +385,7 @@ export default function Profile() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#55606b', fontSize: 12 }} title="Add any new milestones and bounties from the planning documents to this profile. Corrects age bands on existing milestones.">🔄 Sync Milestones & Bounties</button>
+          <button onClick={handleReseedProfile} className="write-action" style={{ ...s.addBtn, background: '#55606b', fontSize: 12 }} title="Add any new milestones and bounties from the planning documents to this profile. Corrects age bands on existing milestones.">🔄 Sync Milestones & Bounties</button>
         </div>
 
         {/* Roadmap — at-a-glance overview */}
@@ -699,7 +699,7 @@ export default function Profile() {
               </select>
             </div>
             <textarea value={lessonResponseForm.content} onChange={e => setLessonResponseForm({ ...lessonResponseForm, content: e.target.value })} placeholder="Write your response..." style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
-            <button type="submit" style={s.submitBtn}>Submit Response</button>
+            <button type="submit" className="write-action" style={s.submitBtn}>Submit Response</button>
           </form>
         </div>
       )
@@ -736,7 +736,7 @@ export default function Profile() {
                 <option value="6-12">6–12</option><option value="13-18">13–18</option><option value="18-25">18–25</option><option value="25-35">25–35</option>
               </select>
             </div>
-            <button type="submit" style={s.submitBtn}>Create Lesson</button>
+            <button type="submit" className="write-action" style={s.submitBtn}>Create Lesson</button>
           </form>
         )}
         {lessons.length === 0 && !showLessonForm && <p style={{ color: '#595959', fontSize: 14 }}>No lesson plans yet. Click "+ New Lesson" to paste a transcript.</p>}
@@ -991,7 +991,7 @@ export default function Profile() {
           <label style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>New Reflection</label>
           <input placeholder="Summary (e.g. 'What I understand about my body now')" value={discernForm.title} onChange={e => setDiscernForm({ ...discernForm, title: e.target.value })} style={s.input} />
           <textarea placeholder="Write your reflection... What do you understand? What changed? What don't you know yet?" value={discernForm.reflection} onChange={e => setDiscernForm({ ...discernForm, reflection: e.target.value })} style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
-          <button type="submit" style={s.submitBtn}>Save Reflection</button>
+          <button type="submit" className="write-action" style={s.submitBtn}>Save Reflection</button>
         </form>
 
         {discernEntries.length === 0 && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
@@ -1260,7 +1260,7 @@ export default function Profile() {
       {pillarTab === 'bounties' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
-            <button onClick={handleReseedProfile} style={{ ...s.addBtn, background: '#55606b' }} title="Add any newly seeded milestones and bounties to this existing profile">Sync Seeded Bounties</button>
+            <button onClick={handleReseedProfile} className="write-action" style={{ ...s.addBtn, background: '#55606b' }} title="Add any newly seeded milestones and bounties to this existing profile">Sync Seeded Bounties</button>
             <button onClick={() => setShowPillarBountyForm(!showPillarBountyForm)} style={s.addBtn}>{showPillarBountyForm ? 'Cancel' : '+ New Bounty'}</button>
           </div>
           {showPillarBountyForm && (
@@ -1287,7 +1287,7 @@ export default function Profile() {
                 <input placeholder="$ amount" type="number" step="0.25" min="0" value={pBountyForm.reward_amount} onChange={e => setPBountyForm({ ...pBountyForm, reward_amount: e.target.value })} style={{ ...s.input, maxWidth: 90 }} />
               </div>
               <input placeholder="Description (optional)" value={pBountyForm.description} onChange={e => setPBountyForm({ ...pBountyForm, description: e.target.value })} style={s.input} />
-              <button type="submit" style={s.submitBtn}>Create Bounty</button>
+              <button type="submit" className="write-action" style={s.submitBtn}>Create Bounty</button>
             </form>
           )}
           {pillarBounties.length === 0 && !showPillarBountyForm && (
@@ -1359,7 +1359,7 @@ export default function Profile() {
               <option value="18-25">18–25</option>
               <option value="25-35">25–35</option>
             </select>
-            <button type="submit" style={s.submitBtn}>Save</button>
+            <button type="submit" className="write-action" style={s.submitBtn}>Save</button>
           </div>
         </form>
       )}

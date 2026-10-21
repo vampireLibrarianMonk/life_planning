@@ -232,3 +232,18 @@ code only, and default SES to a non-Gmail sender.
 - [x] **Budget** raised to $70/mo and scoped to the `project=life-planning`
       cost-allocation tag (was $50, unfiltered). All 23 phase-1+phase-2 resources
       (15 east + 8 west) tagged `project=life-planning`.
+
+---
+
+## Readonly UX polish (added 2026-10-21)
+
+- A persistent **read-only banner** shows for `readonly` users (role decoded
+  from the JWT client-side, for UI hints only — the backend still enforces 403
+  on all writes). Write controls tagged `write-action` are dimmed + click-
+  disabled via `html[data-role="readonly"]` CSS.
+- **Coverage is partial by design:** the banner is always shown (airtight
+  messaging), and the primary create/edit entry points (form Save buttons, Sync)
+  are disabled. Not every individual inline button is tagged yet — remaining
+  write attempts simply fail with the backend's 403. Follow-up: tag the rest
+  (per-bounty claim/score/edit/delete, wishlist, fund, attachment controls) for
+  full visual coverage.

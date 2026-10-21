@@ -1,19 +1,27 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import Setup from './pages/Setup'
 import RegionFailoverBanner from './components/RegionFailoverBanner'
-import { getToken, setToken as saveToken } from './services/auth'
+import ReadOnlyBanner from './components/ReadOnlyBanner'
+import { getToken, setToken as saveToken, isReadonly } from './services/auth'
 
 export default function App() {
   const [token, setTokenState] = useState(getToken())
+  const readonly = token ? isReadonly() : false
 
   const handleLogin = (t) => {
     saveToken(t)
     setTokenState(t)
   }
+
+  // Expose the role to CSS so write controls can be disabled globally.
+  useEffect(() => {
+    if (readonly) document.documentElement.setAttribute('data-role', 'readonly')
+    else document.documentElement.removeAttribute('data-role')
+  }, [readonly])
 
   // The setup page is reachable WITHOUT a login (new users have no password yet).
   if (window.location.pathname === '/setup') {
@@ -37,6 +45,7 @@ export default function App() {
   return (
     <>
       <RegionFailoverBanner />
+      {readonly && <ReadOnlyBanner />}
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />

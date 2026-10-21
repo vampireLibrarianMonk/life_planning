@@ -1,6 +1,6 @@
 # Life Plan Tracker
 
-A lifetime development tracking system for children (ages 0–35). It tracks 14 pillars of development, 17 structured programs, 10 discernment categories, a family economy with behavior-gated bounties (10 tiers from Bronze to Ironforged), streaks, diminishing-returns decay, and 590+ pre-loaded milestones drawn from structured planning documents. The system accounts for prefrontal cortex maturation differences between males (~25–30) and females (~21–24), extending the framework to age 35 to validate outcomes over a meaningful post-maturation window.
+Lifetime development tracker (0–35) for children. Tracks 6 pillars (Spiritual, Financial, Education, Character, Life Skills, Heritage), a behavior-gated family economy with bounties and wishlist, and 146 pre-loaded milestones. Accounts for prefrontal cortex maturation differences by sex. FastAPI + React. Self-hosted.
 
 The dashboard answers one question: **"Is this child becoming a wise, capable, kind, and independent person?"**
 

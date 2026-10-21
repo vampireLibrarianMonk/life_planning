@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin, require_admin_or_child
 from database import get_db
-from models import BehaviorIncident, BehaviorScore, Bounty, User, WishlistItem
+from models import BehaviorIncident, BehaviorScore, Bounty, Role, User, WishlistItem
 from schemas import (
     BehaviorScoreCreate,
     BehaviorScoreResponse,
@@ -54,7 +54,7 @@ def create_incident(
     profile_id: int,
     req: IncidentCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    _: User = Depends(require_admin),
 ):
     if req.trait not in TRAITS:
         raise HTTPException(status_code=400, detail=f"Trait must be one of: {TRAITS}")
@@ -70,7 +70,7 @@ def delete_incident(
     profile_id: int,
     incident_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    _: User = Depends(require_admin),
 ):
     inc = (
         db.query(BehaviorIncident)
@@ -103,7 +103,7 @@ def create_behavior(
     profile_id: int,
     req: BehaviorScoreCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    _: User = Depends(require_admin),
 ):
     score = BehaviorScore(profile_id=profile_id, **req.model_dump())
     db.add(score)
@@ -118,7 +118,7 @@ def update_behavior(
     score_id: int,
     req: BehaviorScoreUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    _: User = Depends(require_admin),
 ):
     score = (
         db.query(BehaviorScore)
@@ -246,9 +246,17 @@ def update_bounty(
     bounty_id: int,
     req: BountyUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    current_user: User = Depends(require_admin_or_child),
 ):
     import json
+
+    # A child may claim and complete their own bounties, but only an admin may
+    # mark a bounty PAID (a child must not pay themselves).
+    if req.status == "paid" and current_user.role != Role.admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Only an admin can mark a bounty paid.",
+        )
 
     bounty = (
         db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()

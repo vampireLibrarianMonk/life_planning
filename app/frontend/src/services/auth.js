@@ -44,3 +44,11 @@ export function getRole() {
 export function isReadonly() {
   return getRole() === 'readonly'
 }
+
+export function isAdmin() {
+  return getRole() === 'admin'
+}
+
+export function isChild() {
+  return getRole() === 'child'
+}

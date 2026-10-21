@@ -97,3 +97,59 @@ def test_guards_actually_reject_readonly(backend):
         with pytest.raises(HTTPException) as exc:
             guard(current_user=ro)
         assert exc.value.status_code == 403, f"{guard_name} did not 403 readonly"
+
+
+# --- Child self-write lockdown (adversarial review Task 3) ------------------
+
+CHILD_FORBIDDEN_WRITE_ROUTES = {
+    # Behavior scoring feeds tier eligibility — a child must not score itself.
+    ("POST", "/api/profiles/{profile_id}/incidents"),
+    ("DELETE", "/api/profiles/{profile_id}/incidents/{incident_id}"),
+    ("POST", "/api/profiles/{profile_id}/behavior"),
+    ("PATCH", "/api/profiles/{profile_id}/behavior/{score_id}"),
+}
+
+
+def test_behavior_routes_are_admin_only(backend):
+    """The behavior-scoring routes must be guarded by require_admin (a child
+    cannot create/delete incidents or scores)."""
+    main, _auth, _models = backend
+    found = {}
+    for route in main.app.routes:
+        methods = getattr(route, "methods", None) or set()
+        path = getattr(route, "path", "")
+        for method in methods:
+            if (method, path) in CHILD_FORBIDDEN_WRITE_ROUTES:
+                found[(method, path)] = _dependency_callables(route)
+
+    missing = CHILD_FORBIDDEN_WRITE_ROUTES - set(found)
+    assert not missing, f"behavior routes not found (renamed?): {sorted(missing)}"
+    offenders = [
+        f"{m} {p} deps={sorted(deps)}"
+        for (m, p), deps in found.items()
+        if "require_admin" not in deps
+    ]
+    assert not offenders, "behavior routes must be admin-only:\n" + "\n".join(offenders)
+
+
+def test_child_cannot_mark_bounty_paid(backend, monkeypatch):
+    """update_bounty must reject status='paid' for a non-admin (child) caller
+    before touching the database."""
+    main, _auth, models = backend
+    from routes import economy
+
+    class _ChildUser:
+        role = models.Role.child
+
+    class _PaidReq:
+        status = "paid"
+
+    with pytest.raises(HTTPException) as exc:
+        economy.update_bounty(
+            profile_id=1,
+            bounty_id=1,
+            req=_PaidReq(),
+            db=None,  # must 403 before any DB access
+            current_user=_ChildUser(),
+        )
+    assert exc.value.status_code == 403

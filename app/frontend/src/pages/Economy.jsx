@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchBehavior, createBehavior, updateBehavior, fetchEligibility, fetchBounties, createBounty, updateBounty, deleteBounty, fetchEarnings, fetchWishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, fetchIncidents, createIncident, deleteIncident, fetchResearchTopics, fetchBountyLogs, createBountyLog, deleteBountyLog, fetchFunds, createFund, deleteFund, fetchFundTransactions, createFundTransaction, deleteFundTransaction, fetchBudget, updateBudget } from '../services/api'
 import MiniMarkdown from '../components/MiniMarkdown'
-import { isReadonly } from '../services/auth'
+import { isReadonly, isAdmin } from '../services/auth'
 
 const TRAITS = ['integrity', 'honesty', 'responsibility', 'respect', 'school_effort', 'citizenship']
 const TRAIT_LABELS = { integrity: 'Integrity', honesty: 'Honesty', responsibility: 'Responsibility', respect: 'Respect', school_effort: 'School Effort', citizenship: 'Citizenship' }
@@ -22,8 +22,12 @@ function getVisibleTiers(eligibleTier, isAdmin) {
   return [...gatedVisible, ...ungated]
 }
 
-export default function Economy({ profileId, isAdmin = true, wishlistOnly = false }) {
+export default function Economy({ profileId, isAdmin: isAdminProp = true, wishlistOnly = false }) {
   const canWrite = !isReadonly()
+  // Behavior scoring and marking a bounty "paid" are admin-only (a child must
+  // not score their own behavior or pay themselves). The backend enforces this;
+  // we also hide the controls so a child isn't shown actions that will 403.
+  const isAdminUser = isAdmin()
   const [eligibility, setEligibility] = useState(null)
   const [incidents, setIncidents] = useState([])
   const [bounties, setBounties] = useState([])
@@ -103,6 +107,11 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
     }
     const next = BOUNTY_STATUS_CYCLE[b.status]
     if (!next) return
+    // Only an admin can mark a bounty paid (a child must not pay themselves).
+    if (next === 'paid' && !isAdminUser) {
+      alert('Only a parent/admin can mark a bounty paid.')
+      return
+    }
     // For research bounties being claimed, show topic picker
     if (b.category && b.status === 'available') {
       setClaimingBounty(b)
@@ -365,10 +374,10 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
       {/* Behavior Incidents */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 12px' }}>
         <h3 style={{ margin: 0 }}>Behavior Log</h3>
-        {canWrite && <button onClick={() => setShowIncidentForm(!showIncidentForm)} style={st.btn}>{showIncidentForm ? 'Cancel' : '+ Record Incident'}</button>}
+        {isAdminUser && <button onClick={() => setShowIncidentForm(!showIncidentForm)} style={st.btn}>{showIncidentForm ? 'Cancel' : '+ Record Incident'}</button>}
       </div>
 
-      {canWrite && showIncidentForm && (
+      {isAdminUser && showIncidentForm && (
         <form onSubmit={handleIncidentSubmit} style={st.form}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={incForm.trait} onChange={e => setIncForm({ ...incForm, trait: e.target.value })} style={{ ...st.input, maxWidth: 160 }}>
@@ -397,7 +406,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
               <span style={{ fontSize: 11, color: '#595959', minWidth: 70 }}>{TRAIT_LABELS[inc.trait]?.slice(0, 8)}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{inc.description}</span>
               <span style={{ fontSize: 11, color: '#595959' }}>{inc.date}</span>
-              {canWrite && <button onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>}
+              {isAdminUser && <button onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>}
             </div>
           ))}
         </div>
@@ -479,7 +488,7 @@ export default function Economy({ profileId, isAdmin = true, wishlistOnly = fals
         </div>
       )}
 
-      {getVisibleTiers(eligibility?.eligible_tier || 'bronze', isAdmin).filter(tier => bounties.some(b => b.tier === tier)).map(tier => (
+      {getVisibleTiers(eligibility?.eligible_tier || 'bronze', isAdminProp).filter(tier => bounties.some(b => b.tier === tier)).map(tier => (
         <div key={tier} style={{ marginBottom: 24 }}>
           <h4 style={{ margin: '0 0 8px', color: TIER_TEXT_COLORS[tier], textTransform: 'capitalize', fontSize: 14 }}>{tier} Tier <span style={{ fontSize: 11, color: '#595959', fontWeight: 400 }}>({bounties.filter(b => b.tier === tier).length})</span></h4>
           {/* Column headers */}

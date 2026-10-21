@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchProfiles, createProfile } from '../services/api'
-import { clearToken, getClaims } from '../services/auth'
+import { clearToken, getClaims, isReadonly } from '../services/auth'
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([])
@@ -74,12 +74,14 @@ export default function Dashboard() {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h2 style={{ margin: 0, fontSize: 20 }}>Profiles</h2>
-            <button onClick={() => setShowForm(!showForm)} style={styles.addBtn}>
-              {showForm ? 'Cancel' : '+ New Profile'}
-            </button>
+            {!isReadonly() && (
+              <button onClick={() => setShowForm(!showForm)} style={styles.addBtn}>
+                {showForm ? 'Cancel' : '+ New Profile'}
+              </button>
+            )}
           </div>
 
-          {showForm && (
+          {!isReadonly() && showForm && (
             <form onSubmit={handleCreate} style={styles.form}>
               <input
                 type="text"
@@ -123,7 +125,7 @@ export default function Dashboard() {
             <div style={styles.empty}>
               <p style={{ fontSize: 48, margin: 0 }}>👶</p>
               <p style={{ fontSize: 18, margin: '12px 0 4px' }}>No profiles yet</p>
-              <p style={{ color: '#595959', margin: 0 }}>Click "+ New Profile" above to create one</p>
+              <p style={{ color: '#595959', margin: 0 }}>{isReadonly() ? 'There are no profiles to view yet.' : 'Click "+ New Profile" above to create one'}</p>
             </div>
           )}
         </>

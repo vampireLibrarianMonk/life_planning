@@ -11,26 +11,37 @@
 > every write route depends on a readonly-blocking guard so future leaks fail CI.
 >
 > ### Completed since the adversarial review:
-> - ✅ **Lock down child writes** (Task 3): behavior-incident create/delete/update
->   and bounty Complete→Paid are now admin-only (a child can't score their own
->   behavior or pay themselves). Backend-enforced + UI-hidden + regression tests.
-> - ✅ **Sensitive-read privacy**: the behavior-incident log, private discernment
->   journals, and aggregate financial totals (earnings summary, fund balances/
->   ledgers) are private to the child + admin via `require_private_access`;
->   `/eligibility` returns tier-only for readonly. Individual bounty/wishlist
->   dollar amounts stay visible to readonly. Verified live against the
->   `admin-readonly` account.
+> - ✅ **Lock down child writes**: behavior-incident create/delete/update and
+>   bounty Complete→Paid are admin-only. Backend + UI + tests.
+> - ✅ **Sensitive-read privacy**: behavior log, private discernment journals, and
+>   financial totals are private to the child + admin; `/eligibility` returns
+>   tier-only for readonly. Individual bounty/wishlist amounts stay visible.
+> - ✅ **Discernment journal = child's private diary**: `created_by` author on
+>   entries; a child sees their own + parent notes; an ADMIN sees ONLY admin-
+>   authored notes (never the child's reflections); edit/delete restricted to the
+>   author's role. Verified live with the `robflan` child account.
+> - ✅ **Per-profile scoping (cross-child leak FIXED)**: profile-scoped routes only
+>   checked role, not ownership — a child could read another child's data by
+>   changing the URL id. Added `require_profile_access` (router-level on all 7
+>   {profile_id} routers) + `require_private_profile_access` (owning child/admin
+>   only) on the private reads. Verified live: robflan 403/404 on another
+>   profile. This also satisfies the old "per-profile read scoping" TODO.
 >
-> ### Remaining TODO (ordered; worldwide access is LAST):
-> 1. **Per-profile read scoping** (adversarial review Task 4): readonly/child
->    currently read ALL profiles. Owner accepted "all profiles" for the single-
->    family case; revisit the `authorize_profile_access` + ProfileAccess grant
->    path before adding any non-family users.
-> 2. _(LAST)_ **Worldwide / anonymized public readonly profile**: build a default
->    "demo" profile that unattributed, worldwide readonly users can view without
->    exposing a real child's name/DOB/photos/private data. Decide at that point
->    whether to also tighten photo access (currently open to close-family
->    readonly, which the owner confirmed is fine for now). **Do this last.**
+> ### Remaining TODO (ordered):
+> 1. **Lesson responses privacy** — OPEN QUESTION: owner may want the child's
+>    lesson rebrief/expansion/teachback treated as diary-private too (same author
+>    model as the journal). Currently parent-visible. Confirm.
+> 2. _(LAST)_ **Worldwide / anonymized public readonly demo profile** — IN
+>    PROGRESS: a public app-demonstrator profile (fake data, no real PII) viewable
+>    without a real family login.
+>
+> ### Housekeeping:
+> - **Stranded test profile id 2 ("OtherKid TEST")** created during cross-child
+>   leak verification — there is NO delete-profile API (DELETE returns 405), so it
+>   couldn't be removed. Either add an admin delete-profile endpoint or remove the
+>   row directly. Low priority (it's inaccessible to robflan now) but it's clutter.
+> - **npm audit pre-commit hook** occasionally fails on a transient npm registry
+>   503/timeout (not a real CVE) — make the hook tolerant of registry outages.
 
 ---
 

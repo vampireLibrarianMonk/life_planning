@@ -6,11 +6,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin, require_admin_or_child
+from auth import get_current_user, require_admin, require_admin_or_child, require_profile_access
 from database import get_db
 from models import LessonPlan, LessonResponse, User
 
-router = APIRouter(prefix="/api/profiles/{profile_id}/lessons", tags=["lessons"])
+router = APIRouter(
+    prefix="/api/profiles/{profile_id}/lessons",
+    tags=["lessons"],
+    dependencies=[Depends(require_profile_access)],
+)
 
 
 class LessonCreate(BaseModel):

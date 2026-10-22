@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin_or_child
+from auth import get_current_user, require_admin_or_child, require_profile_access
 from database import get_db
 from models import EventAttachment, PillarEntry, User
 from schemas import AttachmentResponse
@@ -23,7 +23,9 @@ ALLOWED_MIME_PREFIXES = (
 )
 
 router = APIRouter(
-    prefix="/api/profiles/{profile_id}/entries/{entry_id}/attachments", tags=["events"]
+    prefix="/api/profiles/{profile_id}/entries/{entry_id}/attachments",
+    tags=["events"],
+    dependencies=[Depends(require_profile_access)],
 )
 
 

@@ -170,8 +170,8 @@ PRIVATE_READ_ROUTES = {
 
 
 def test_sensitive_reads_are_private(backend):
-    """Each private read route must depend on require_private_access (admin +
-    child only; readonly blocked)."""
+    """Each private read route must depend on require_private_profile_access
+    (admin + the owning child only; readonly and other children blocked)."""
     main, _auth, _models = backend
     found = {}
     for route in main.app.routes:
@@ -186,26 +186,68 @@ def test_sensitive_reads_are_private(backend):
     offenders = [
         f"{m} {p} deps={sorted(deps)}"
         for (m, p), deps in found.items()
-        if "require_private_access" not in deps
+        if "require_private_profile_access" not in deps
     ]
-    assert not offenders, "these reads must be gated by require_private_access:\n" + "\n".join(
-        offenders
+    assert not offenders, (
+        "these reads must be gated by require_private_profile_access:\n" + "\n".join(offenders)
     )
 
 
-def test_require_private_access_role_matrix(backend):
-    """require_private_access: admin + child pass, readonly is 403'd."""
+def test_require_private_profile_access_role_matrix(backend):
+    """require_private_profile_access: admin passes; the owning child passes; a
+    non-owning child and readonly are 403'd."""
     _main, auth, models = backend
 
+    class _Profile:
+        def __init__(self, pid):
+            self.id = pid
+
     class _U:
-        def __init__(self, role):
+        def __init__(self, role, profile_pid=None):
             self.role = role
+            self.profile = _Profile(profile_pid) if profile_pid is not None else None
 
-    # admin + child pass through unchanged
-    for role in (models.Role.admin, models.Role.child):
-        assert auth.require_private_access(current_user=_U(role)).role == role
-
+    # admin passes for any profile
+    assert auth.require_private_profile_access(
+        profile_id=5, current_user=_U(models.Role.admin), db=None
+    )
+    # owning child passes
+    assert auth.require_private_profile_access(
+        profile_id=7, current_user=_U(models.Role.child, 7), db=None
+    )
+    # non-owning child is rejected
+    with pytest.raises(HTTPException) as e1:
+        auth.require_private_profile_access(
+            profile_id=7, current_user=_U(models.Role.child, 99), db=None
+        )
+    assert e1.value.status_code == 403
     # readonly is rejected
+    with pytest.raises(HTTPException) as e2:
+        auth.require_private_profile_access(
+            profile_id=7, current_user=_U(models.Role.readonly), db=None
+        )
+    assert e2.value.status_code == 403
+
+
+def test_require_profile_access_blocks_cross_child(backend):
+    """A child may access only their own profile; another child's is 403."""
+    _main, auth, models = backend
+
+    class _Profile:
+        def __init__(self, pid):
+            self.id = pid
+
+    class _U:
+        def __init__(self, role, profile_pid=None):
+            self.role = role
+            self.profile = _Profile(profile_pid) if profile_pid is not None else None
+
+    # owning child ok
+    assert auth.require_profile_access(profile_id=1, current_user=_U(models.Role.child, 1), db=None)
+    # cross-child blocked
     with pytest.raises(HTTPException) as exc:
-        auth.require_private_access(current_user=_U(models.Role.readonly))
+        auth.require_profile_access(profile_id=2, current_user=_U(models.Role.child, 1), db=None)
     assert exc.value.status_code == 403
+    # admin + readonly pass for any profile
+    assert auth.require_profile_access(profile_id=2, current_user=_U(models.Role.admin), db=None)
+    assert auth.require_profile_access(profile_id=2, current_user=_U(models.Role.readonly), db=None)

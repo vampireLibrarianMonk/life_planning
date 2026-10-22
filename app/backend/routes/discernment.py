@@ -4,11 +4,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin_or_child, require_private_access
+from auth import (
+    get_current_user,
+    require_admin_or_child,
+    require_private_profile_access,
+    require_profile_access,
+)
 from database import get_db
 from models import DiscernmentJournal, Role, User
 
-router = APIRouter(prefix="/api/profiles/{profile_id}/discernment", tags=["discernment"])
+router = APIRouter(
+    prefix="/api/profiles/{profile_id}/discernment",
+    tags=["discernment"],
+    dependencies=[Depends(require_profile_access)],
+)
 
 CATEGORIES = [
     "health",
@@ -105,7 +114,7 @@ def list_entries(
     profile_id: int,
     category: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_private_access),
+    current_user: User = Depends(require_private_profile_access),
 ):
     """List discernment journal entries.
 
@@ -114,7 +123,7 @@ def list_entries(
         any admin-authored notes);
       - an admin sees ONLY admin-authored entries — never the child's private
         reflections;
-      - readonly is already blocked by require_private_access.
+      - readonly is already blocked by require_private_profile_access.
     """
     q = db.query(DiscernmentJournal).filter(DiscernmentJournal.profile_id == profile_id)
     if category:

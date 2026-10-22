@@ -3,12 +3,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from auth import get_current_user, require_admin_or_child
+from auth import get_current_user, require_admin_or_child, require_profile_access
 from database import get_db
 from models import PillarEntry, User
 from schemas import Pillar, PillarEntryCreate, PillarEntryResponse, PillarEntryUpdate
 
-router = APIRouter(prefix="/api/profiles/{profile_id}/entries", tags=["pillars"])
+router = APIRouter(
+    prefix="/api/profiles/{profile_id}/entries",
+    tags=["pillars"],
+    dependencies=[Depends(require_profile_access)],
+)
 
 
 @router.get("/", response_model=list[PillarEntryResponse])

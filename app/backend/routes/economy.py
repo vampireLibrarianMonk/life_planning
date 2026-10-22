@@ -10,7 +10,8 @@ from auth import (
     get_current_user,
     require_admin,
     require_admin_or_child,
-    require_private_access,
+    require_private_profile_access,
+    require_profile_access,
 )
 from database import get_db
 from models import BehaviorIncident, BehaviorScore, Bounty, Role, User, WishlistItem
@@ -28,7 +29,11 @@ from schemas import (
     WishlistUpdate,
 )
 
-router = APIRouter(prefix="/api/profiles/{profile_id}", tags=["economy"])
+router = APIRouter(
+    prefix="/api/profiles/{profile_id}",
+    tags=["economy"],
+    dependencies=[Depends(require_profile_access)],
+)
 
 TRAITS = ["integrity", "honesty", "responsibility", "respect", "school_effort", "citizenship"]
 
@@ -40,7 +45,7 @@ def list_incidents(
     profile_id: int,
     days: int = 30,
     db: Session = Depends(get_db),
-    _: User = Depends(require_private_access),
+    _: User = Depends(require_private_profile_access),
 ):
     cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
     return (
@@ -93,7 +98,9 @@ def delete_incident(
 
 @router.get("/behavior", response_model=list[BehaviorScoreResponse])
 def list_behavior(
-    profile_id: int, db: Session = Depends(get_db), _: User = Depends(require_private_access)
+    profile_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_private_profile_access),
 ):
     return (
         db.query(BehaviorScore)
@@ -746,7 +753,9 @@ def update_budget(
 
 @router.get("/earnings")
 def earnings_summary(
-    profile_id: int, db: Session = Depends(get_db), _: User = Depends(require_private_access)
+    profile_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_private_profile_access),
 ):
     """Summary of earned money from completed bounties.
 

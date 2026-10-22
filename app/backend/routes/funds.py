@@ -4,11 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth import require_admin_or_child, require_private_access
+from auth import require_admin_or_child, require_private_profile_access, require_profile_access
 from database import get_db
 from models import Fund, FundTransaction, User
 
-router = APIRouter(prefix="/api/profiles/{profile_id}/funds", tags=["funds"])
+router = APIRouter(
+    prefix="/api/profiles/{profile_id}/funds",
+    tags=["funds"],
+    dependencies=[Depends(require_profile_access)],
+)
 
 
 class FundCreate(BaseModel):
@@ -56,7 +60,9 @@ class TransactionResponse(BaseModel):
 
 @router.get("/", response_model=list[FundResponse])
 def list_funds(
-    profile_id: int, db: Session = Depends(get_db), _: User = Depends(require_private_access)
+    profile_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_private_profile_access),
 ):
     """List all funds for a profile with current balances."""
     funds = db.query(Fund).filter(Fund.profile_id == profile_id).all()
@@ -124,7 +130,7 @@ def list_transactions(
     profile_id: int,
     fund_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_private_access),
+    _: User = Depends(require_private_profile_access),
 ):
     """List all transactions for a fund with running balance."""
     fund = db.query(Fund).filter(Fund.id == fund_id, Fund.profile_id == profile_id).first()

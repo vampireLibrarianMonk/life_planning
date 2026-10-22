@@ -88,3 +88,57 @@ def require_private_access(current_user: User = Depends(get_current_user)) -> Us
             detail="This information is private to the child and parents.",
         )
     return current_user
+
+
+def require_profile_access(
+    profile_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """Authorize access to a specific profile's data.
+
+    Closes the cross-profile hole: a CHILD may only touch THEIR OWN profile
+    (not another child's). Admin and readonly keep household-wide access (the
+    owner's single-family model); any other role falls back to explicit
+    ProfileAccess grants. Apply to every /profiles/{profile_id}/... route.
+    """
+    if current_user.role == Role.admin or current_user.role == Role.readonly:
+        return current_user
+    if current_user.role == Role.child:
+        if current_user.profile and current_user.profile.id == profile_id:
+            return current_user
+        raise HTTPException(status_code=403, detail="You can only access your own profile.")
+    # Any other role: explicit per-profile grant required.
+    from models import ProfileAccess
+
+    granted = (
+        db.query(ProfileAccess)
+        .filter(ProfileAccess.user_id == current_user.id, ProfileAccess.profile_id == profile_id)
+        .first()
+    )
+    if not granted:
+        raise HTTPException(status_code=403, detail="No access to this profile.")
+    return current_user
+
+
+def require_private_profile_access(
+    profile_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """Combine private-data gating (readonly excluded) with per-profile scoping.
+
+    Used for the behavior log, private journals, and financial totals: the
+    requester must be admin (any profile) or the child who OWNS this profile.
+    Readonly and other children are rejected.
+    """
+    if current_user.role == Role.admin:
+        return current_user
+    if current_user.role == Role.child:
+        if current_user.profile and current_user.profile.id == profile_id:
+            return current_user
+        raise HTTPException(status_code=403, detail="You can only access your own profile.")
+    raise HTTPException(
+        status_code=403,
+        detail="This information is private to the child and parents.",
+    )

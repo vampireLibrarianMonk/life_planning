@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin, require_admin_or_child
@@ -113,6 +114,35 @@ def create_profile(
 
     _seed_bounties(db, profile.id)
 
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+class _LinkUserRequest(PydanticBaseModel):
+    user_id: int | None  # the child User.id to own this profile (None = unlink)
+
+
+@router.patch("/{profile_id}/user", response_model=ProfileResponse)
+def link_profile_user(
+    profile_id: int,
+    req: _LinkUserRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Link (or unlink) the child User who owns this profile.
+
+    Child-scoping relies on Profile.user_id, so a child account only sees its
+    profile once linked here. Admin-only.
+    """
+    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    if req.user_id is not None:
+        user = db.query(User).filter(User.id == req.user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+    profile.user_id = req.user_id
     db.commit()
     db.refresh(profile)
     return profile

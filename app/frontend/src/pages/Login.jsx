@@ -46,6 +46,9 @@ export default function Login({ onLogin }) {
         {error && <p style={{ color: 'red' }}>{error}</p>}
         <button type="submit" style={{ padding: '8px 24px' }}>Login</button>
       </form>
+      <p style={{ marginTop: 16, fontSize: 14 }}>
+        Just looking? <a href="/demo">View a live demo</a> — no login needed.
+      </p>
     </div>
   )
 }

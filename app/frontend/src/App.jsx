@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import Setup from './pages/Setup'
+import Demo from './pages/Demo'
 import RegionFailoverBanner from './components/RegionFailoverBanner'
 import ReadOnlyBanner from './components/ReadOnlyBanner'
 import ForbiddenToast from './components/ForbiddenToast'
@@ -30,6 +31,16 @@ export default function App() {
       <>
         <RegionFailoverBanner />
         <Setup />
+      </>
+    )
+  }
+
+  // The demo page is a public, no-login app demonstrator (fake data only).
+  if (window.location.pathname === '/demo') {
+    return (
+      <>
+        <RegionFailoverBanner />
+        <Demo />
       </>
     )
   }

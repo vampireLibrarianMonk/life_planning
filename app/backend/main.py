@@ -12,6 +12,7 @@ from auth import hash_password
 from database import Base, engine, ensure_columns
 from models import User
 from routes import (
+    demo,
     discernment,
     discernments,
     docs,
@@ -82,6 +83,7 @@ app.include_router(discernment.router)
 app.include_router(discernments.router)
 app.include_router(lessons.router)
 app.include_router(funds.router)
+app.include_router(demo.router)
 
 
 @app.on_event("startup")

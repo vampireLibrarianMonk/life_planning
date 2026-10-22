@@ -98,9 +98,9 @@ repos:
       - id: npm-audit
         name: npm audit (frontend production deps)
         language: system
-        # Only the SHIPPED deps (--omit=dev); dev-toolchain advisories are
-        # tracked separately and never reach the built app.
-        entry: bash -c 'cd app/frontend && npm audit --omit=dev --audit-level=high'
+        # Only the SHIPPED deps (--omit=dev). The wrapper fails on real HIGH+
+        # advisories but skips-with-warning on transient npm-registry outages.
+        entry: scripts/npm_audit_prod.sh
         files: ^app/frontend/package(-lock)?\.json$
         pass_filenames: false
 

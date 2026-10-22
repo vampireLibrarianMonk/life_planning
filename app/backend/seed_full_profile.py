@@ -12,7 +12,9 @@ Usage:
         --name "Test Child" --dob 2015-06-01 \
         --artifacts ~/Downloads --max-files 3
 
-Requires `requests` (dev-only; not a runtime dependency of the app).
+Requires `requests` (dev-only; in requirements-test.txt). Run it from the test
+virtualenv, e.g.:
+    .venv-test/bin/python seed_full_profile.py --admin-user admin --admin-pass ...
 """
 
 from __future__ import annotations

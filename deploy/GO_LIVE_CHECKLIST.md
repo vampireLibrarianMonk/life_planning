@@ -22,7 +22,7 @@ Monitor helper: `./deploy/monitor.sh {status|health|logs|dns|watch|smoke|all}`
 - [ ] `git fetch && git status` — confirm in sync with `origin/master` (it is).
 - [ ] Tonight's modular commits pushed to GitHub (App Runner builds from the repo).
 - [ ] `aws sts get-caller-identity` — confirm account `809784555426`.
-- [ ] `pre-commit run --all-files` green; `./.venv/bin/python -m pytest` green.
+- [ ] `pre-commit run --all-files` green; `./.venv-test/bin/python -m pytest` green.
 
 ## 1. Secrets & keys (CLI, ~5 min)
 

@@ -65,13 +65,11 @@ The framework extends to age 35 rather than stopping at 18 or 25 because:
 # Clone the repo
 cd life_plan
 
-# Create Python virtual environment
-python -m venv .venv
+# --- Runtime virtualenv (.venv): mirrors the Docker image, runtime deps only ---
+python3.12 -m venv .venv
 source .venv/bin/activate
-
-# Install backend dependencies
 cd app/backend
-pip install -r requirements.txt
+pip install -r requirements.txt      # runtime deps ONLY (what ships in Docker)
 
 # Build the frontend
 cd ../frontend
@@ -79,6 +77,22 @@ npm install
 npm run build
 cd ../backend
 ```
+
+> **Two virtualenvs, by design.** `.venv` holds **only** the runtime
+> dependencies (`requirements.txt`) and mirrors exactly what the Docker image
+> installs — keeping the image lean and the runtime set honest. Test/dev tools
+> (pytest, httpx, the seeder's `requests`, pre-commit) live in a **separate**
+> `.venv-test` so they never leak into the shipped set:
+>
+> ```bash
+> python3.12 -m venv .venv-test
+> .venv-test/bin/pip install -r app/backend/requirements-test.txt
+> # run the test suite with:
+> .venv-test/bin/python -m pytest        # from app/backend
+> ```
+>
+> Both venvs must use **Python 3.12** (the code uses `datetime.UTC`, which needs
+> 3.11+, and the image is `python:3.12-slim`).
 
 **Run the application:**
 

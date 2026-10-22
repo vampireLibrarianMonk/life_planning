@@ -1,0 +1,20 @@
+# Dev / test dependencies — NOT shipped in the Docker image.
+# The runtime image installs ONLY requirements.txt. Install this into a separate
+# test virtualenv (.venv-test):
+#     python -m venv .venv-test
+#     .venv-test/bin/pip install -r app/backend/requirements-test.txt
+#
+# Includes the runtime deps (so tests can import the app) plus test-only tools.
+-r requirements.txt
+
+# Test runner + FastAPI TestClient transport.
+pytest==8.3.5
+httpx==0.27.2
+
+# Used by the programmatic full-profile seeder (seed_full_profile.py), a dev
+# tool that drives the real HTTP API. Not a runtime dependency.
+requests==2.32.3
+
+# Bootstraps the git pre-commit hooks (ruff/mypy/bandit/etc. run in pre-commit's
+# own managed envs, so they are NOT listed here).
+pre-commit==3.8.0

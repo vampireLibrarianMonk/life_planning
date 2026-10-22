@@ -9,7 +9,22 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin, require_admin_or_child
 from database import get_db
-from models import Bounty, BountyTier, Pillar, PillarEntry, Profile, ProfileAccess, User
+from models import (
+    BehaviorIncident,
+    BehaviorScore,
+    Bounty,
+    BountyTier,
+    Discernment,
+    DiscernmentJournal,
+    Fund,
+    LessonPlan,
+    Pillar,
+    PillarEntry,
+    Profile,
+    ProfileAccess,
+    User,
+    WishlistItem,
+)
 from schemas import ProfileAccessCreate, ProfileCreate, ProfileResponse
 from seed_data import BOUNTIES, MILESTONES
 from storage import get_storage
@@ -146,6 +161,54 @@ def link_profile_user(
     db.commit()
     db.refresh(profile)
     return profile
+
+
+@router.delete("/{profile_id}", status_code=204)
+def delete_profile(
+    profile_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Permanently delete a profile and ALL of its data. Admin-only.
+
+    Removes every profile-scoped record in FK-safe order. Grandchild rows
+    (BountyLog, FundTransaction, EventAttachment, LessonResponse, nested
+    PillarEntry children) are handled by ORM cascade on their parent. Any
+    uploaded files referenced by attachments are NOT garbage-collected here.
+    """
+    profile = db.query(Profile).filter(Profile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Delete ORM objects (so cascade="all, delete-orphan" fires on grandchildren
+    # like BountyLog / FundTransaction / LessonResponse / EventAttachment).
+    for lesson in db.query(LessonPlan).filter(LessonPlan.profile_id == profile_id):
+        db.delete(lesson)
+    for fund in db.query(Fund).filter(Fund.profile_id == profile_id):
+        db.delete(fund)
+    for bounty in db.query(Bounty).filter(Bounty.profile_id == profile_id):
+        db.delete(bounty)
+    # PillarEntry can nest (parent_id). Delete leaf entries first, then parents,
+    # so cascade on a parent never races an explicit child delete.
+    entries = db.query(PillarEntry).filter(PillarEntry.profile_id == profile_id).all()
+    for entry in [e for e in entries if e.parent_id is not None]:
+        db.delete(entry)
+    db.flush()
+    for entry in [e for e in entries if e.parent_id is None]:
+        db.delete(entry)
+    for model in (
+        BehaviorScore,
+        BehaviorIncident,
+        WishlistItem,
+        Discernment,
+        DiscernmentJournal,
+        ProfileAccess,
+    ):
+        for row in db.query(model).filter(model.profile_id == profile_id):
+            db.delete(row)
+
+    db.delete(profile)
+    db.commit()
 
 
 @router.post("/{profile_id}/reseed", status_code=200)

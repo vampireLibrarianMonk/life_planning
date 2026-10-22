@@ -29,6 +29,11 @@ class Storage(ABC):
     def save(self, key: str, data: bytes, content_type: str) -> None: ...
 
     @abstractmethod
+    def read(self, key: str) -> bytes | None:
+        """Return the stored bytes for a key, or None if it doesn't exist."""
+        ...
+
+    @abstractmethod
     def delete(self, key: str) -> None: ...
 
     @abstractmethod
@@ -52,6 +57,10 @@ class LocalStorage(Storage):
 
     def save(self, key: str, data: bytes, content_type: str) -> None:
         (UPLOAD_DIR / key).write_bytes(data)
+
+    def read(self, key: str) -> bytes | None:
+        p = UPLOAD_DIR / key
+        return p.read_bytes() if p.exists() and p.is_file() else None
 
     def delete(self, key: str) -> None:
         p = UPLOAD_DIR / key
@@ -91,6 +100,13 @@ class S3Storage(Storage):
             ContentType=content_type,
             # SSE handled by bucket default (SSE-KMS multi-region key).
         )
+
+    def read(self, key: str) -> bytes | None:
+        try:
+            resp = self._s3.get_object(Bucket=self._bucket, Key=key)
+            return resp["Body"].read()
+        except self._s3.exceptions.NoSuchKey:
+            return None
 
     def delete(self, key: str) -> None:
         self._s3.delete_object(Bucket=self._bucket, Key=key)

@@ -61,7 +61,12 @@ def test_every_write_route_uses_a_role_guard(backend):
     """Each mutating /api route must depend on a guard that excludes readonly."""
     main, _auth, _models = backend
     # Guards that are known to reject a readonly role.
-    blocking_guards = {"require_admin", "require_admin_or_child", "require_write_access"}
+    blocking_guards = {
+        "require_admin",
+        "require_admin_or_child",
+        "require_write_access",
+        "require_private_profile_access",  # admin + owning child; readonly 403
+    }
 
     offenders = []
     checked = 0

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchProfiles, createProfile } from '../services/api'
+import { fetchProfiles, createProfile, restoreProfile } from '../services/api'
 import { clearToken, getClaims, isReadonly } from '../services/auth'
 
 export default function Dashboard() {
@@ -10,6 +10,20 @@ export default function Dashboard() {
   const [showForm, setShowForm] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDob, setNewDob] = useState('')
+  const isAdminUser = getClaims()?.role === 'admin'
+
+  const handleRestore = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file) return
+    try {
+      const res = await restoreProfile(file)
+      alert(`Restored "${res.name}" (profile ${res.profile_id}).`)
+      loadProfiles()
+    } catch (err) {
+      alert(`Restore failed: ${err.message}`)
+    }
+  }
 
   const loadProfiles = () => {
     fetchProfiles()
@@ -78,6 +92,12 @@ export default function Dashboard() {
               <button onClick={() => setShowForm(!showForm)} style={styles.addBtn}>
                 {showForm ? 'Cancel' : '+ New Profile'}
               </button>
+            )}
+            {isAdminUser && (
+              <label style={{ ...styles.addBtn, background: '#2563b0', cursor: 'pointer', display: 'inline-block' }} title="Restore a profile from a downloaded archive .zip">
+                ⬆️ Restore from backup
+                <input type="file" accept=".zip,application/zip" onChange={handleRestore} style={{ display: 'none' }} />
+              </label>
             )}
           </div>
 

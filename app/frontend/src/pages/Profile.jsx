@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, reseedProfile, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics, fetchLessons, createLesson, createLessonResponse, deleteLesson, updateLesson } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, reseedProfile, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics, fetchLessons, createLesson, createLessonResponse, deleteLesson, updateLesson, archiveProfile, deleteProfile } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import Economy from './Economy'
@@ -312,6 +312,40 @@ export default function Profile() {
     if (result?.detail) alert(result.detail)
   }
 
+  const handleArchive = async () => {
+    try {
+      await archiveProfile(id)
+      alert('Backup downloaded. Keep the .zip somewhere safe — it can fully restore this profile.')
+    } catch {
+      alert('Could not create the archive. Please try again.')
+    }
+  }
+
+  const handleDeleteProfile = async () => {
+    const nm = profile ? profile.name : 'this profile'
+    if (!confirm(`Delete ${nm}? A backup will be downloaded first, then ALL data is permanently removed.`)) return
+    let token
+    try {
+      token = await archiveProfile(id) // backup-first handshake
+    } catch {
+      alert('Backup failed — delete aborted (nothing was removed).')
+      return
+    }
+    if (!token) {
+      alert('Could not obtain a delete authorization token — delete aborted.')
+      return
+    }
+    if (!confirm(`Backup for ${nm} downloaded. This is your LAST chance — permanently delete now?`)) return
+    try {
+      await deleteProfile(id, token)
+      alert(`${nm} was deleted. Your downloaded backup can restore it later.`)
+      window.location.href = '/'
+    } catch (e) {
+      alert(`Delete failed: ${e.message}`)
+    }
+  }
+
+
   const cyclePillarBountyStatus = async (b) => {
     const next = { available: 'claimed', claimed: 'complete', complete: 'paid' }[b.status]
     if (!next) return
@@ -389,8 +423,12 @@ export default function Profile() {
         </div>
 
         {canWrite && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           <button onClick={handleReseedProfile} className="write-action" style={{ ...s.addBtn, background: '#55606b', fontSize: 12 }} title="Add any new milestones and bounties from the planning documents to this profile. Corrects age bands on existing milestones.">🔄 Sync Milestones & Bounties</button>
+          <button onClick={handleArchive} style={{ ...s.addBtn, background: '#2563b0', fontSize: 12 }} title="Download a full .zip backup of this profile (data + photos). Can fully restore later.">⬇️ Archive / Download Backup</button>
+          {adminUser && (
+            <button onClick={handleDeleteProfile} style={{ ...s.addBtn, background: '#c0392b', fontSize: 12 }} title="Permanently delete this profile. A backup is downloaded first.">🗑️ Delete Profile</button>
+          )}
         </div>
         )}
 

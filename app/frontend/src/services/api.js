@@ -394,3 +394,59 @@ export async function updateBudget(profileId, data) {
   const res = await fetch(`/api/profiles/${profileId}/budget`, { method: 'PATCH', headers: headers(), body: JSON.stringify(data) })
   return res.json()
 }
+
+// --- Archive / restore / delete -------------------------------------------
+
+/**
+ * Download a full .zip archive of a profile and return the one-time archive
+ * token from the response header (needed to authorize a delete). Admin + the
+ * owning child may archive.
+ */
+export async function archiveProfile(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/archive`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) throw new Error('Archive failed')
+  const token = res.headers.get('X-Archive-Token')
+  const blob = await res.blob()
+  // Trigger a browser download.
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `life-plan-profile-${profileId}-archive.zip`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+  return token
+}
+
+/** Full clean delete (admin only) — requires a fresh archive token. */
+export async function deleteProfile(profileId, archiveToken) {
+  const res = await fetch(
+    `/api/profiles/${profileId}?archive_token=${encodeURIComponent(archiveToken)}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } },
+  )
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail || 'Delete failed')
+  }
+  return res.json().catch(() => ({}))
+}
+
+/** Full restore (admin only) from a previously-downloaded archive .zip. */
+export async function restoreProfile(file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch('/api/profiles/restore', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: fd,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail || 'Restore failed')
+  }
+  return res.json()
+}

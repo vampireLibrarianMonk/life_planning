@@ -28,20 +28,20 @@
 >   profile. This also satisfies the old "per-profile read scoping" TODO.
 >
 > ### Remaining TODO (ordered):
-> 1. **Lesson responses privacy** — OPEN QUESTION: owner may want the child's
->    lesson rebrief/expansion/teachback treated as diary-private too (same author
->    model as the journal). Currently parent-visible. Confirm.
-> 2. _(LAST)_ **Worldwide / anonymized public readonly demo profile** — IN
->    PROGRESS: a public app-demonstrator profile (fake data, no real PII) viewable
->    without a real family login.
+> 1. ✅ **Worldwide / anonymized public readonly demo profile** — DONE: public
+>    no-login `/demo` page backed by read-only `/api/demo/*` serving fake in-memory
+>    data (no DB, no real profile, no private sections). Linked from Login.
 >
-> ### Housekeeping:
-> - **Stranded test profile id 2 ("OtherKid TEST")** created during cross-child
->   leak verification — there is NO delete-profile API (DELETE returns 405), so it
->   couldn't be removed. Either add an admin delete-profile endpoint or remove the
->   row directly. Low priority (it's inaccessible to robflan now) but it's clutter.
-> - **npm audit pre-commit hook** occasionally fails on a transient npm registry
->   503/timeout (not a real CVE) — make the hook tolerant of registry outages.
+> ### Decisions locked / not-TODOs:
+> - **Lesson responses stay parent-visible (NOT diary-private).** They will later
+>   be prompt-private and drive an independent LLM evaluation, so the parent-
+>   visible model is intentional — do not apply the journal author model to them.
+>
+> ### Housekeeping — DONE:
+> - ✅ **Admin delete-profile endpoint** added (`DELETE /api/profiles/{id}`,
+>   FK-safe cascade) and the stranded "OtherKid TEST" (id 2) profile removed.
+> - ✅ **npm audit pre-commit hook** now tolerant of transient registry outages
+>   (`scripts/npm_audit_prod.sh`).
 
 ---
 

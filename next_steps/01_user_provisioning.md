@@ -10,14 +10,27 @@
 > boundary; a regression test (`tests/test_readonly_enforcement.py`) asserts
 > every write route depends on a readonly-blocking guard so future leaks fail CI.
 >
-> ### Deferred items from the adversarial review (need owner sign-off):
-> - **Lock down child writes** (Task 3): behavior-incident create/delete and
->   bounty Complete→Paid should be admin-only (a child shouldn't score their own
->   behavior or pay themselves). Changes child UX — confirm before doing.
-> - **Per-profile read scoping** (Task 4): readonly/child currently read ALL
->   profiles' PII/journals. Owner accepted "all profiles" for the single-family
->   case; revisit the `authorize_profile_access` + ProfileAccess grant path
->   before adding any non-family users.
+> ### Completed since the adversarial review:
+> - ✅ **Lock down child writes** (Task 3): behavior-incident create/delete/update
+>   and bounty Complete→Paid are now admin-only (a child can't score their own
+>   behavior or pay themselves). Backend-enforced + UI-hidden + regression tests.
+> - ✅ **Sensitive-read privacy**: the behavior-incident log, private discernment
+>   journals, and aggregate financial totals (earnings summary, fund balances/
+>   ledgers) are private to the child + admin via `require_private_access`;
+>   `/eligibility` returns tier-only for readonly. Individual bounty/wishlist
+>   dollar amounts stay visible to readonly. Verified live against the
+>   `admin-readonly` account.
+>
+> ### Remaining TODO (ordered; worldwide access is LAST):
+> 1. **Per-profile read scoping** (adversarial review Task 4): readonly/child
+>    currently read ALL profiles. Owner accepted "all profiles" for the single-
+>    family case; revisit the `authorize_profile_access` + ProfileAccess grant
+>    path before adding any non-family users.
+> 2. _(LAST)_ **Worldwide / anonymized public readonly profile**: build a default
+>    "demo" profile that unattributed, worldwide readonly users can view without
+>    exposing a real child's name/DOB/photos/private data. Decide at that point
+>    whether to also tighten photo access (currently open to close-family
+>    readonly, which the owner confirmed is fine for now). **Do this last.**
 
 ---
 

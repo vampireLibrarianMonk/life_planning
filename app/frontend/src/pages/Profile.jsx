@@ -520,7 +520,9 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* Discernment */}
+        {/* Discernment — entirely private to the child + admin; hidden for readonly */}
+        {canWrite && (
+        <>
         <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Discernment & Reflections</h2>
         <div className="pillar-grid-desktop">
           {[
@@ -542,6 +544,8 @@ export default function Profile() {
             </button>
           ))}
         </div>
+        </>
+        )}
       </div>
     )
   }
@@ -925,6 +929,13 @@ export default function Profile() {
         </div>
       </div>
     )
+  }
+
+  // Discernment view — fully private; a readonly user should never reach it.
+  if (activePillar === '__discernment__' && activeDiscern && !canWrite) {
+    setActivePillar(null)
+    setActiveDiscern(null)
+    return null
   }
 
   // Discernment view

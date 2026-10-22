@@ -4,9 +4,10 @@ import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uplo
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import Economy from './Economy'
-import { isReadonly } from '../services/auth'
+import { isReadonly, isAdmin } from '../services/auth'
 
 const canWrite = !isReadonly()
+const adminUser = isAdmin()
 
 const PILLARS = [
   { key: 'spiritual', label: 'Spiritual', icon: '✝️', placeholder: "e.g. 'First prayer unprompted'", about: "As your child comes to study their place in this world, a question will surface that no other pillar can answer: What is real beyond what I can measure, and how do I live in light of it? This pillar exists because the spiritual dimension is not optional — it is the environment in which everything else operates. The goal is not a child who performs religion. The goal is a person who can recognize what is genuinely good and pursue it, recognize what wears the mask of good and test it, recognize what attacks them spiritually and name it, stand firm when structures are compromised — even structures that claim holiness — and transmit what they've learned without coercion. The primary tool is the Fruit Test (Matthew 7:15–20): not by words, office, or credentials, but by what a person or institution produces over time." },
@@ -1009,10 +1010,11 @@ export default function Profile() {
 
         {canWrite && (
         <form onSubmit={handleSubmitDiscern} style={{ ...s.form, marginTop: 20 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>New Reflection</label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>{adminUser ? 'New Parent Note' : 'New Reflection'}</label>
+          {adminUser && <p style={{ margin: '0 0 6px', fontSize: 11, color: '#888', fontStyle: 'italic' }}>The child&rsquo;s own reflections are private to them and are not shown here. Notes you add are visible to you and the child.</p>}
           <input placeholder="Summary (e.g. 'What I understand about my body now')" value={discernForm.title} onChange={e => setDiscernForm({ ...discernForm, title: e.target.value })} style={s.input} />
           <textarea placeholder="Write your reflection... What do you understand? What changed? What don't you know yet?" value={discernForm.reflection} onChange={e => setDiscernForm({ ...discernForm, reflection: e.target.value })} style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
-          <button type="submit" className="write-action" style={s.submitBtn}>Save Reflection</button>
+          <button type="submit" className="write-action" style={s.submitBtn}>{adminUser ? 'Save Note' : 'Save Reflection'}</button>
         </form>
         )}
 
@@ -1024,19 +1026,26 @@ export default function Profile() {
 
         {canWrite && discernEntries.length === 0 && <p style={{ color: '#595959', textAlign: 'center', padding: 20 }}>No reflections yet. Write your first one above.</p>}
 
-        {canWrite && discernEntries.map(entry => (
-          <div key={entry.id} style={{ padding: '16px', background: '#fff', borderRadius: 10, marginBottom: 12, borderLeft: '3px solid #9b59b6' }}>
+        {canWrite && discernEntries.map(entry => {
+          const myRole = adminUser ? 'admin' : 'child'
+          const canModify = entry.created_by === myRole
+          return (
+          <div key={entry.id} style={{ padding: '16px', background: '#fff', borderRadius: 10, marginBottom: 12, borderLeft: `3px solid ${entry.created_by === 'admin' ? '#2563b0' : '#9b59b6'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.title}</span>
                 {entry.age_at_entry != null && <span style={{ fontSize: 11, color: '#595959', marginLeft: 8 }}>age {entry.age_at_entry}</span>}
+                <span style={{ fontSize: 10, marginLeft: 8, padding: '1px 6px', borderRadius: 6, background: entry.created_by === 'admin' ? '#e8f0ff' : '#f3e8fb', color: entry.created_by === 'admin' ? '#2563b0' : '#7b2d8b' }}>
+                  {entry.created_by === 'admin' ? 'parent note' : 'child reflection'}
+                </span>
               </div>
-              <button onClick={async () => { if (confirm('Delete this reflection?')) { await deleteDiscernmentEntry(id, entry.id); loadDiscern() } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>
+              {canModify && <button onClick={async () => { if (confirm('Delete this reflection?')) { await deleteDiscernmentEntry(id, entry.id); loadDiscern() } }} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>}
             </div>
             <p style={{ margin: '8px 0 0', fontSize: 13, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.reflection}</p>
             <span style={{ fontSize: 10, color: '#595959' }}>{new Date(entry.created_at).toLocaleDateString()}</span>
           </div>
-        ))}
+          )
+        })}
       </div>
     )
   }

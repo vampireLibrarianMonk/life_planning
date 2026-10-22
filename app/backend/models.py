@@ -302,6 +302,9 @@ class DiscernmentJournal(Base):
     title = Column(String(300), nullable=False)  # brief summary
     reflection = Column(Text, nullable=False)  # the child's written reflection
     age_at_entry = Column(Integer, nullable=True)  # child's age when written
+    # Author of this entry: 'child' (the child's private diary — only the child
+    # may read it) or 'admin' (a parent note — admin + child may read/CRUD).
+    created_by = Column(String(20), nullable=False, default="child")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

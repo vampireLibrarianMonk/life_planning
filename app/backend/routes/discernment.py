@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin_or_child, require_private_access
 from database import get_db
-from models import DiscernmentJournal, User
+from models import DiscernmentJournal, Role, User
 
 router = APIRouter(prefix="/api/profiles/{profile_id}/discernment", tags=["discernment"])
 
@@ -88,6 +88,7 @@ class JournalResponse(BaseModel):
     title: str
     reflection: str
     age_at_entry: int | None
+    created_by: str
     created_at: str
     updated_at: str
     model_config = {"from_attributes": True}
@@ -104,12 +105,23 @@ def list_entries(
     profile_id: int,
     category: str | None = None,
     db: Session = Depends(get_db),
-    _: User = Depends(require_private_access),
+    current_user: User = Depends(require_private_access),
 ):
-    """List discernment journal entries, optionally filtered by category."""
+    """List discernment journal entries.
+
+    The journal is the child's private diary:
+      - a child sees every entry on their own profile (their reflections +
+        any admin-authored notes);
+      - an admin sees ONLY admin-authored entries — never the child's private
+        reflections;
+      - readonly is already blocked by require_private_access.
+    """
     q = db.query(DiscernmentJournal).filter(DiscernmentJournal.profile_id == profile_id)
     if category:
         q = q.filter(DiscernmentJournal.category == category)
+    # Admin cannot read the child's private (child-authored) reflections.
+    if current_user.role == Role.admin:
+        q = q.filter(DiscernmentJournal.created_by == "admin")
     return q.order_by(DiscernmentJournal.created_at.desc()).all()
 
 
@@ -118,18 +130,27 @@ def create_entry(
     profile_id: int,
     req: JournalCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    current_user: User = Depends(require_admin_or_child),
 ):
-    """Create a new discernment journal entry."""
+    """Create a new discernment journal entry, stamped with its author.
+
+    A child's entry is private to the child; an admin's entry is a parent note
+    that both the admin and child can see.
+    """
     if req.category not in CATEGORIES:
         raise HTTPException(
             status_code=400, detail=f"Invalid category. Must be one of: {CATEGORIES}"
         )
-    entry = DiscernmentJournal(profile_id=profile_id, **req.model_dump())
+    author = "admin" if current_user.role == Role.admin else "child"
+    entry = DiscernmentJournal(profile_id=profile_id, created_by=author, **req.model_dump())
     db.add(entry)
     db.commit()
     db.refresh(entry)
     return entry
+
+
+def _author_for(current_user: User) -> str:
+    return "admin" if current_user.role == Role.admin else "child"
 
 
 @router.patch("/{entry_id}")
@@ -138,9 +159,13 @@ def update_entry(
     entry_id: int,
     req: JournalUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    current_user: User = Depends(require_admin_or_child),
 ):
-    """Update a discernment journal entry."""
+    """Update a journal entry — only the author's own role may edit it.
+
+    An admin may edit only admin-authored entries; a child may edit only their
+    own reflections. Neither can alter the other's words.
+    """
     entry = (
         db.query(DiscernmentJournal)
         .filter(DiscernmentJournal.id == entry_id, DiscernmentJournal.profile_id == profile_id)
@@ -148,6 +173,8 @@ def update_entry(
     )
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
+    if entry.created_by != _author_for(current_user):
+        raise HTTPException(status_code=403, detail="You can only edit entries you created.")
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(entry, field, value)
     db.commit()
@@ -160,9 +187,9 @@ def delete_entry(
     profile_id: int,
     entry_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    current_user: User = Depends(require_admin_or_child),
 ):
-    """Delete a discernment journal entry."""
+    """Delete a journal entry — only the author's own role may delete it."""
     entry = (
         db.query(DiscernmentJournal)
         .filter(DiscernmentJournal.id == entry_id, DiscernmentJournal.profile_id == profile_id)
@@ -170,5 +197,7 @@ def delete_entry(
     )
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
+    if entry.created_by != _author_for(current_user):
+        raise HTTPException(status_code=403, detail="You can only delete entries you created.")
     db.delete(entry)
     db.commit()

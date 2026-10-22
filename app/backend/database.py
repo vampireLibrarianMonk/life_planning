@@ -45,3 +45,15 @@ def ensure_columns():
         for col, clause in wanted.items():
             if col not in existing:
                 conn.execute(text(f"ALTER TABLE users ADD COLUMN {clause}"))
+
+        # discernment_journal.created_by: author of each reflection. Existing
+        # rows default to 'child' (treat pre-existing reflections as the child's
+        # private diary) so parents cannot retroactively read them.
+        dj_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(discernment_journal)"))}
+        if dj_cols and "created_by" not in dj_cols:
+            conn.execute(
+                text(
+                    "ALTER TABLE discernment_journal "
+                    "ADD COLUMN created_by VARCHAR(20) NOT NULL DEFAULT 'child'"
+                )
+            )

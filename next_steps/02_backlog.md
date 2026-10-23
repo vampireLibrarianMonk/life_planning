@@ -43,47 +43,44 @@ don't let an admin delete/demote the last remaining admin (lockout guard).
 
 ---
 
-## 2. ASQ-level developmental tracking for the child  (DO DUE DILIGENCE FIRST)
+## 2. Developmental tracking for the child — ASQ-*style* (NOT yet; owner: "when we start")
 
-**Owner note:** "not yet — when we start." This is a *future* item; the point of
-this entry is to record the **due-diligence findings and caveats** so we build it
-responsibly when the time comes.
+**Decision locked (2026-10-23): original content, no ASQ reproduction.** We will
+build an ASQ-*inspired* tracker using **our own abstracted developmental goals
+and modified questionnaires** — NOT the verbatim Ages & Stages Questionnaires®
+items, intervals, or cutoff scores. This sidesteps copyright entirely (ASQ is
+published by Brookes Publishing, "all rights reserved"; verified at
+agesandstages.com — it's a paid product behind purchase/subscription). The
+parent can still complete the real ASQ **on paper with their pediatrician**
+separately; our app just tracks our own goal structure + the child's progress.
 
-**What "ASQ" is:** the **Ages & Stages Questionnaires®** — a widely used parent-
-completed developmental screening tool for children (roughly 1 month–6 years),
-covering domains like communication, gross motor, fine motor, problem-solving,
-and personal-social. There's also **ASQ:SE-2** for social-emotional screening.
+### Why this is clean
+- We reproduce **no proprietary expression** — our own wording and our own
+  age-banded goal structure (mirroring the general *idea* of age-interval
+  developmental domains, which is not itself protectable).
+- Still a **screening/encouragement tracker, NOT a diagnosis** — UI copy must say
+  "a prompt to talk to your pediatrician," no medical advice (house rule).
 
-### ⚠️ Due-diligence flags to resolve BEFORE building
-1. **It is copyrighted / licensed, not free.** ASQ-3 and ASQ:SE-2 are published
-   by Brookes Publishing. The questionnaires, scoring intervals, and cutoff
-   values are **proprietary**. We almost certainly **cannot embed the actual ASQ
-   questions, age intervals, or cutoff scores** without a license. → Confirm
-   licensing terms before encoding any ASQ content. Safer default: let a parent
-   **record their own results/observations** (scores they obtained elsewhere, or
-   free-form developmental notes) rather than reproducing the instrument.
-2. **It's a *screening* tool, not a diagnosis.** Must be framed as "a prompt to
-   talk to your pediatrician," never as a medical assessment. The app gives no
-   medical advice (house rule). UI copy must say so plainly.
-3. **Sensitive health-adjacent data.** Developmental screening results are
-   among the most private data about a child — treat them AT LEAST as private as
-   the discernment journal (child+admin only, backend-enforced via the
-   `require_private_profile_access` pattern we already have). Include in the
-   archive/export + full-clean-delete paths.
-4. **Age-interval model.** ASQ is organized by specific month intervals
-   (2, 4, 6, 9, 12, … months). If we build our OWN developmental tracker instead
-   of licensing ASQ, we can mirror the *structure* (age-banded checkpoints per
-   domain) without copying ASQ's proprietary items — likely the cleanest path.
+### Access model (owner decision) — differs from the journal
+- **admin** (parents): full CRUD.
+- **child** (owning child): can view (and participate as appropriate).
+- **readonly** (extended family / grandparents): **CAN view** — developmental
+  progress is something family follows along with.
+- → use the **`require_profile_access`** guard (admin + readonly + the OWNING
+  child; blocks cross-child), NOT the stricter `require_private_profile_access`.
+- **Excluded from the public `/demo`** — "extended-family readonly" ≠ worldwide;
+  the demo stays fake-data only.
 
-### Likely shape IF we proceed (pending #1)
-- A new private, per-profile domain: age-interval checkpoints across
-  developmental domains, parent-entered, with a status/score per item and a
-  "discuss with pediatrician" nudge rather than a pass/fail.
-- Backend: profile-scoped + `require_private_profile_access`; add to archive
-  export map + delete cascade; author/privacy same as journals.
-- Decision gate: **license real ASQ** vs **build an original age-banded
-  screener** (no proprietary content). Recommend the latter unless a license is
-  obtained.
+### Likely shape when we build
+- New per-profile domain: age-banded checkpoints across our developmental
+  domains, parent-entered, status/score per item + optional notes, with a
+  "discuss with your pediatrician" nudge (never pass/fail / never diagnostic).
+- Separate **goals/questions** from **results** in the data model (clean even
+  though both are our own content).
+- Wire into the **archive export map + full-clean-delete cascade** (same as every
+  other profile-scoped domain).
+- Regression tests mirroring the role/profile-access guard tests.
 
-**Action when we start:** (a) confirm ASQ licensing / choose original-vs-licensed;
-(b) design the private data model; (c) write the medical-disclaimer copy.
+**Action when we start:** (a) draft our own age-banded goal set + question
+wording; (b) build the private data model (goals + results); (c) write the
+no-medical-advice disclaimer copy.

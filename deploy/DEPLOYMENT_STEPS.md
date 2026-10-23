@@ -231,6 +231,92 @@ These were real bugs found while deploying — all fixed and committed:
 
 ---
 
+## Email (Amazon SES) — account invitations
+
+New-user invitations (one-time, 72h "set your password" links) are sent by the
+**local `provision_user.py` CLI** via Amazon SES. The running web app never
+sends email, so there's no public email-send surface.
+
+### What exists (both regions — east primary, west failover)
+| Thing | Value |
+|-------|-------|
+| Sender ("project") | SES **Configuration Set** `life-planning` (tag `project=life-planning`) |
+| **From address** | `no-reply@life-planning.my-deployment.com` (domain-authenticated) |
+| Verified identity | **DOMAIN** `life-planning.my-deployment.com` (Easy DKIM, RSA-2048) |
+| Custom MAIL FROM | `mail.` (east) / `mail-west.` (west) `.life-planning.my-deployment.com` |
+| Production access | **enabled** in us-east-1 **and** us-west-2 (out of the SES sandbox) |
+| DMARC reports | `rua` → the Proton mailbox (report target only, never a From) |
+
+All IDs are recorded in `.arn-env` (`SES_*`).
+
+### Why we send From the **domain**, not `@proton.me` (the bounce we hit)
+Outlook/Hotmail rejected invites sent `From: no-reply-life-planning@proton.me`
+with `550 5.7.515 ... DMARC=Fail` — even though SPF and DKIM individually
+*passed*. The reason is **DMARC alignment**:
+
+- **SPF** checks the server/envelope sender; **DKIM** is a cryptographic
+  signature on the message. Sending through SES makes those pass for
+  *amazonses.com*, not for *proton.me*.
+- **DMARC** requires the SPF/DKIM-authenticated domain to **align with the
+  visible `From:` domain**. Amazon's signature doesn't align with `proton.me`,
+  and Proton publishes a strict DMARC policy, so strict receivers reject it.
+- You cannot make SES DKIM-sign as `@proton.me` (you don't control Proton's DNS).
+
+**Fix:** authenticate a domain **you** control. We own `my-deployment.com` in
+Route 53, so we verified `life-planning.my-deployment.com` in SES and send from
+it → SPF **and** DKIM align with our own domain → DMARC passes at Outlook,
+Gmail, Yahoo.
+
+### What "Easy DKIM" actually did (so you can read up later)
+1. `sesv2 create-email-identity --email-identity life-planning.my-deployment.com
+   --dkim-signing-attributes NextSigningKeyLength=RSA_2048_BIT` — SES generated a
+   DKIM key pair and returned **3 CNAME tokens**. (SES keeps the private key and
+   signs outbound mail; you publish the public half via DNS. 3 records = key
+   rotation headroom.)
+2. Published the 3 CNAMEs in Route 53:
+   `<token>._domainkey.life-planning.my-deployment.com → <token>.dkim.amazonses.com`.
+   SES polls DNS; once it sees them, DKIM status → `SUCCESS` and the identity is
+   `VerifiedForSending`. **DKIM tokens are per-region**, so east and west each
+   have their own 3 CNAMEs (6 total).
+3. **Custom MAIL FROM** (`put-email-identity-mail-from-attributes`) + an **MX**
+   (`feedback-smtp.<region>.amazonses.com`) and **SPF TXT**
+   (`v=spf1 include:amazonses.com ~all`) on the MAIL FROM subdomain → this gives
+   **SPF alignment** on our domain. Each region needs its own MAIL FROM
+   subdomain + region-specific MX (`mail.` east, `mail-west.` west) because an MX
+   can only point at one region's endpoint.
+4. A **DMARC policy** TXT at `_dmarc.life-planning.my-deployment.com`
+   (`v=DMARC1; p=none; rua=mailto:...; adkim=s; aspf=s`). `p=none` = monitor
+   only (mail still delivers because SPF+DKIM align); tighten to `p=quarantine`
+   or `p=reject` later once reports look clean.
+
+Further reading: AWS "Easy DKIM" + "Custom MAIL FROM domain" docs; RFC 7489
+(DMARC); dmarc.org "how DMARC works" (alignment).
+
+### Production access (leaving the SES sandbox)
+Filed with `sesv2 put-account-details --production-access-enabled
+--mail-type TRANSACTIONAL ...` per region (AWS reviews manually, ~24h). Check:
+```bash
+aws sesv2 get-account --region us-east-1 --query 'ProductionAccessEnabled'   # true = out of sandbox
+```
+It's **per account + per region** (no "project" scope). In the sandbox you can
+only send to *verified* recipients; in production you can send to anyone, so we
+request it for **both** regions (failover must be able to email too).
+
+### Send an invitation
+```bash
+export SES_SENDER="no-reply@life-planning.my-deployment.com"   # NEVER an @proton.me From
+export AWS_REGION=us-east-1
+export ADMIN_USERNAME=... ADMIN_PASSWORD=...   # from Secrets Manager
+.venv-test/bin/python app/backend/provision_user.py \
+  --type visitor --username <user> --display-name "<Name>" \
+  --email <addr> --app-url https://life-planning.my-deployment.com --expires-hours 72
+```
+Friendly `--type`: father/mother→admin, visitor→readonly, child→child (with
+`--issue-child-login --child-write`). The email states the role, what the app
+is, and the 72h expiry; no password is ever emailed or stored.
+
+---
+
 ## Operate it
 
 - **Health / status / logs:** `./deploy/monitor.sh {all|status|health|logs|dns|watch|smoke}`

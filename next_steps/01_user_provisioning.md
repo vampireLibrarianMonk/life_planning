@@ -138,10 +138,10 @@ Add to `users`:
   admin's ambient AWS credentials; the running web app **never sends email**, so
   there is no public email-send surface to abuse. No SMTP password is stored
   anywhere.
-- Requires: `SES_SENDER` = a verified SES identity to send from; `AWS_REGION`.
-  SES is in **sandbox** (can only send to verified addresses) — fine for the
-  test case because `<owner-email>` is already a verified identity. Production
-  access (sending to arbitrary addresses) is a later, optional request.
+- Requires: `SES_SENDER` = the DKIM-aligned domain sender
+  `no-reply@life-planning.my-deployment.com`; `AWS_REGION`. SES now has
+  **production access in both regions** (can send to any address) and the
+  domain is DKIM/SPF-authenticated, so invites pass DMARC at major providers.
 - Fallback: `--no-email` prints the one-time setup link to the admin's terminal
   for out-of-band delivery.
 - **Email contains:** friendly greeting, the **username**, the role in plain
@@ -225,30 +225,30 @@ page; `email_service.py` (AWS SES); `provision_user.py` CLI. Email is sent ONLY
 by the CLI (admin's AWS creds) — the web app never sends mail, so there is no
 public email-send surface to abuse.
 
-**Lesson — do NOT send from a `@gmail.com` sender to a Gmail recipient.**
-The first invite (from `pmflani@gmail.com` to `pmflani@gmail.com`) sent cleanly
-via SES (0 bounces) but Gmail **spam-foldered** it: a message "from a gmail.com
-address" that was actually sent via AWS SES fails Gmail's DMARC/spoof check, and
-self-to-self is an extra spam signal. **Default for future invites: send FROM a
-non-Gmail verified SES identity** (e.g. a ProtonMail/Yahoo identity, or a
-verified address on the app's own domain) TO the recipient. Recipient marked the
-first one "Not spam," which helps future delivery to that inbox.
+**Lesson — send From a DKIM-aligned domain you control; NOT @gmail.com or
+@proton.me.** Two deliverability failures taught this:
+- A gmail→gmail invite (`pmflani@gmail.com` → itself, via SES) got
+  **spam-foldered** — SES-sent mail "from a gmail.com address" fails Gmail's
+  DMARC/spoof check.
+- A later `@proton.me` sender was **hard-rejected** by Outlook/Hotmail with
+  `550 5.7.515 DMARC=Fail`: SES can't DKIM-sign as proton.me, so DMARC never
+  aligns.
+**Resolved (2026-10-23):** verified the **domain** `life-planning.my-deployment.com`
+in SES (Easy DKIM) in both regions + per-region custom MAIL FROM, and now send
+From `no-reply@life-planning.my-deployment.com`. SPF+DKIM align → DMARC passes
+at Outlook/Gmail/Yahoo. Full write-up + the DKIM/DMARC explanation is in
+`deploy/DEPLOYMENT_STEPS.md` → "Email (Amazon SES)".
 
 ---
 
 ## Open items / next steps
 
-- [ ] **Slim the Docker image — code only, no docs/tests.** `.dockerignore`
-      correctly excludes top-level `docs/`, `diagrams/`, `transcripts/`, etc.,
-      BUT the Dockerfile does `COPY app/backend/ ./`, which currently ships
-      non-runtime files inside the image: `app/backend/tests/` (pytest suite)
-      and `app/backend/.env.example`. (`provision_user.py` is a local admin CLI
-      and is also not needed at runtime.) Add `.dockerignore` entries
-      (`app/backend/tests/`, `app/backend/.env.example`) or narrow the COPY so
-      the runtime image carries only what the app needs. No secrets leak today
-      (.env.example is placeholders), but it is bloat + unnecessary surface.
-- [ ] **Verify a SES sender on the app's own domain** (or a non-Gmail identity)
-      and set it as the default `SES_SENDER` for invitations.
+- [x] **Slim the Docker image** — done earlier (`.dockerignore` excludes
+      `app/backend/tests/`, `.env.example`, `provision_user.py`).
+- [x] **Verify a SES sender on the app's own domain** — DONE: domain identity
+      `life-planning.my-deployment.com` (Easy DKIM) in both regions; default
+      `SES_SENDER=no-reply@life-planning.my-deployment.com`. SES production
+      access granted in both regions.
 - [ ] **Phase 2 provisioning:** `child` type (`--issue-child-login`, readonly
       default, parent-addressed) and `--child-write` opt-in.
 - [ ] Add pytest for token issue/validate/expire + a Playwright test for the

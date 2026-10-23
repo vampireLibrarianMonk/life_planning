@@ -53,10 +53,30 @@ def send_email(to: str, subject: str, text_body: str, html_body: str | None = No
 
 # --- Invitation template -----------------------------------------------------
 
+# A one-line "what the app is", shown to every invitee regardless of role.
+_APP_BLURB = (
+    "The Life Plan Tracker is a private family app that records a child's growth "
+    "over time — milestones, character, skills, heritage, and more — so the "
+    "people who love them can follow along."
+)
+
+# Role, described in plain terms + exactly what this person can and cannot do.
 _ROLE_BLURB = {
-    "admin": "You'll have full access to view and manage the tracker.",
-    "readonly": "You'll have view-only access to the records shared with you.",
-    "child": "You'll have access to your own record.",
+    "admin": (
+        "Your role: Parent / Administrator. You can view and manage everything — "
+        "add milestones and notes, manage the family economy, and administer "
+        "other accounts."
+    ),
+    "readonly": (
+        "Your role: Family (view-only). You can view the child's profile, "
+        "milestones, photos, and progress that have been shared with you. You "
+        "cannot make changes, and private items such as the child's personal "
+        "journal and financial totals are kept private."
+    ),
+    "child": (
+        "Your role: This is your own record. You can view your profile, write "
+        "your own private reflections, and take part in your goals and bounties."
+    ),
 }
 
 
@@ -80,9 +100,12 @@ def build_invitation(
 
 An account has been created for you on the Life Plan Tracker.
 
+{_APP_BLURB}
+
   Website:   {app_url}
   Username:  {username}
-  Access:    {role_line}
+
+{role_line}
 
 To finish setting up, choose your own password using the secure one-time link
 below. For your safety, no password was emailed — you set it yourself, and the
@@ -111,14 +134,15 @@ expire on its own.
       <p style="margin:0 0 16px;">Hello {display_name},</p>
       <p style="margin:0 0 16px;">An account has been created for you on the
          Life Plan Tracker.</p>
-      <table style="width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14px;">
+      <p style="margin:0 0 16px;color:#5a6b7b;font-size:14px;">{_APP_BLURB}</p>
+      <table style="width:100%;border-collapse:collapse;margin:0 0 16px;font-size:14px;">
         <tr><td style="padding:6px 0;color:#5a6b7b;width:90px;">Website</td>
             <td style="padding:6px 0;"><a href="{app_url}" style="color:#2563b0;">{app_url}</a></td></tr>
         <tr><td style="padding:6px 0;color:#5a6b7b;">Username</td>
             <td style="padding:6px 0;"><strong>{username}</strong></td></tr>
-        <tr><td style="padding:6px 0;color:#5a6b7b;">Access</td>
-            <td style="padding:6px 0;">{role_line}</td></tr>
       </table>
+      <p style="margin:0 0 20px;padding:12px 14px;background:#f4f7fb;border-radius:8px;
+                font-size:14px;color:#334;">{role_line}</p>
       <p style="margin:0 0 20px;">To finish setting up, choose your own password
          using the secure one-time link below. For your safety, <strong>no password
          was emailed</strong> — you set it yourself. The link works only once and

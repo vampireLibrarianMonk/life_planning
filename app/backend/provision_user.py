@@ -18,7 +18,10 @@ Examples
     --display-name "Aunt Jane" --app-url https://life-planning.my-deployment.com --no-email
 
 Admin credentials are read from --admin-user/--admin-pass or the ADMIN_USERNAME/
-ADMIN_PASSWORD env vars. Email transport uses SMTP_* env vars (see email_service).
+ADMIN_PASSWORD env vars. Email is sent via AWS SES — set SES_SENDER to the
+DKIM-aligned domain sender (no-reply@life-planning.my-deployment.com) and
+AWS_REGION. Do NOT use an @proton.me From address: SES can't DKIM-align it, so
+strict receivers (Outlook/Hotmail) reject it with a DMARC failure.
 """
 
 import argparse

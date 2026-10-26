@@ -1,7 +1,13 @@
-# Backlog — larger features (not yet started)
+# Backlog — larger features
 
-Captured 2026-10-23. These are feature-level items beyond the provisioning work
-(see `01_user_provisioning.md`). Nothing here is built yet.
+Captured 2026-10-23, updated 2026-10-26. Feature-level items beyond the
+provisioning work (see `01_user_provisioning.md`).
+
+**Current state:**
+- **#1 Manager's Dashboard** — specced, not built. No blockers; ready to start.
+- **#2 Early Growth Markers** — corpus + alpha plan written, reviewed, and
+  emailed to Patrick + Sara. **BLOCKED on 5 owner answers** (see that section)
+  before any code is written.
 
 ---
 
@@ -43,44 +49,64 @@ don't let an admin delete/demote the last remaining admin (lockout guard).
 
 ---
 
-## 2. Developmental tracking for the child — ASQ-*style* (NOT yet; owner: "when we start")
+## 2. Early Growth Markers — early-childhood developmental tracker (ALPHA planned)
 
-**Decision locked (2026-10-23): original content, no ASQ reproduction.** We will
-build an ASQ-*inspired* tracker using **our own abstracted developmental goals
-and modified questionnaires** — NOT the verbatim Ages & Stages Questionnaires®
-items, intervals, or cutoff scores. This sidesteps copyright entirely (ASQ is
-published by Brookes Publishing, "all rights reserved"; verified at
-agesandstages.com — it's a paid product behind purchase/subscription). The
-parent can still complete the real ASQ **on paper with their pediatrician**
-separately; our app just tracks our own goal structure + the child's progress.
+Renamed from "ASQ-style tracker." Original, non-ASQ content; a formation on-ramp
+for ages ~2mo–5yr, NOT a clinical screen.
 
-### Why this is clean
-- We reproduce **no proprietary expression** — our own wording and our own
-  age-banded goal structure (mirroring the general *idea* of age-interval
-  developmental domains, which is not itself protectable).
-- Still a **screening/encouragement tracker, NOT a diagnosis** — UI copy must say
-  "a prompt to talk to your pediatrician," no medical advice (house rule).
+### Status (2026-10-26)
+- ✅ **Copyright decision locked:** original content, NO ASQ reproduction. ASQ is
+  a paid Brookes product (verified at agesandstages.com); we write our own items
+  from public-domain facts (MedlinePlus/NIH, WHO, cross-checked AAP).
+- ✅ **Corpus written + reviewed + delivered:**
+  `draft_additions/developmental_checkpoints_draft.md` — 10 intervals (2,4,6,9,
+  12,18,24,36,48,60 mo) × 5 domains × ~5 observable items, non-scoring tri-state
+  **not yet / emerging / practicing**, pinned non-diagnostic banner, "what helps"
+  tips, domain→pillar bridges, split free-text (family-shared "noticing &
+  celebrating" vs. private "questions & worries"). Passed a multi-agent review
+  (copyright, developmental accuracy, safety, format) + an app-competence /
+  mission-fit / reviser panel (mission-fit verdict: FIT WITH GUARDRAILS).
+  Emailed to Patrick + Sara for sign-off (committed `acd92c7`).
+- ✅ **Alpha integration plan written:**
+  `draft_additions/early_growth_markers_alpha_plan.md` (committed `c293436`).
 
-### Access model (owner decision) — differs from the journal
-- **admin** (parents): full CRUD.
-- **child** (owning child): can view (and participate as appropriate).
-- **readonly** (extended family / grandparents): **CAN view** — developmental
-  progress is something family follows along with.
-- → use the **`require_profile_access`** guard (admin + readonly + the OWNING
-  child; blocks cross-child), NOT the stricter `require_private_profile_access`.
-- **Excluded from the public `/demo`** — "extended-family readonly" ≠ worldwide;
-  the demo stays fake-data only.
+### Alpha build plan (from the companion doc) — NOT yet built
+- **Storage = ZERO schema change:** markers are `PillarEntry` rows under the
+  existing `education` pillar + `category="devcheck"` (milestones, family-
+  readable) and `category="devcheck_private"` (worries, parent-only). A new
+  `Pillar` enum value is AVOIDED on purpose — SQLite stores the enum as a
+  VARCHAR+CHECK that the additive boot migration can't widen.
+- **Tri-state → status:** not yet→not_started, emerging→in_progress,
+  practicing→complete (introduced/practicing-status/mastered reserved/unused).
+- **Interval encoding:** label in `age_band` ("12mo"); numeric months in
+  `age_years` as the sort key (UI must sort by `age_years`, not string age_band).
+- **Privacy split (resolved):** milestones + "celebrating" note on the existing
+  `/entries` router (`require_profile_access` = admin + child + family readonly);
+  "worries" on a NEW sub-route gated `require_private_profile_access` (admin +
+  owning child only; readonly 403). Writes stay `require_admin_or_child`.
+- **Configure:** seed-on-demand per interval via a server-side template route
+  (mirrors `seed_data.py`), idempotent; "active" = presence-of-rows; deactivate
+  = DELETE rows. On a Profile-page "Early Growth Markers" section.
+- **Print:** `@media print` + `window.print()` stage sheet (one interval/sheet,
+  empty tri-state checkboxes, pinned banner); worries OMITTED from print in
+  alpha. No server-side PDF.
+- **Filtering:** normal education views AND `/demo` must exclude both `devcheck`
+  categories.
+- **Build order (loop):** (1) backend seed/CRUD + private worries route + tests
+  → (2) configure UI (12mo first) → (3) print sheet → (4) scale all intervals.
 
-### Likely shape when we build
-- New per-profile domain: age-banded checkpoints across our developmental
-  domains, parent-entered, status/score per item + optional notes, with a
-  "discuss with your pediatrician" nudge (never pass/fail / never diagnostic).
-- Separate **goals/questions** from **results** in the data model (clean even
-  though both are our own content).
-- Wire into the **archive export map + full-clean-delete cascade** (same as every
-  other profile-scoped domain).
-- Regression tests mirroring the role/profile-access guard tests.
+### ⛔ BLOCKED ON OWNER ANSWERS — need Patrick + Sara before building
+1. **Corpus sign-off:** do you + Sara approve the corpus format/wording as
+   emailed? (Gate for everything below.)
+2. **Domain encoding:** persist domain as a tag (e.g. `category="devcheck:social_emotional"`)
+   for clean grouping, or keep domain as a UI-only heading? (Recommend: persist.)
+3. **Who marks items:** parents only, or the child too (child role can write)?
+   Determines whether the child's sheet is editable or read-only.
+4. **Print scope:** one interval per sheet (recommended) or an "all active
+   intervals" booklet?
+5. **Worries on print:** omit in alpha (current plan), or provide a separate
+   parent-only print that includes them?
 
-**Action when we start:** (a) draft our own age-banded goal set + question
-wording; (b) build the private data model (goals + results); (c) write the
-no-medical-advice disclaimer copy.
+**Action when unblocked:** start alpha slice 1 (backend seed/CRUD + private
+worries route + tests). Wire into the archive export map + full-clean-delete
+cascade at that point.

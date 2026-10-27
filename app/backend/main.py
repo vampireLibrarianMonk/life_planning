@@ -54,16 +54,34 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_headers(request, call_next):
-    """Add defensive response headers (HSTS, CSP, anti-clickjacking, nosniff).
+    """Add defensive response headers + a server-side CSRF (Origin) check.
 
-    CSP matters especially because the SPA stores its JWT in localStorage; a
-    tight policy is the main barrier between an XSS and token/PII theft.
+    The JWT is carried in an httpOnly `SameSite=strict` cookie, so the browser
+    already withholds it cross-site. This middleware adds a SECOND, server-side
+    CSRF barrier (independent of SameSite): for unsafe methods, if an `Origin`
+    header is present it must match an allowed origin, else the request is
+    rejected. Same-origin SPA calls always send a matching Origin, so this is
+    transparent to real use but blocks cross-site forged POST/PATCH/PUT/DELETE.
     """
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        origin = request.headers.get("origin")
+        if origin is not None and origin not in _allowed_origins and _allowed_origins != ["*"]:
+            from starlette.responses import JSONResponse
+
+            return JSONResponse(
+                status_code=403, content={"detail": "Cross-origin request blocked."}
+            )
+
     resp = await call_next(request)
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    # Authenticated API responses carry child PII / financial data — never cache.
+    if request.url.path.startswith("/api/"):
+        resp.headers["Cache-Control"] = "no-store"
     resp.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "img-src 'self' data: blob: https:; "

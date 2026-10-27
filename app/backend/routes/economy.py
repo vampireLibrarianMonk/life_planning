@@ -270,6 +270,27 @@ def update_bounty(
             detail="Only an admin can mark a bounty paid.",
         )
 
+    # A child may ONLY advance the workflow status of their own bounty (claim /
+    # complete). Every money/economy/definition field is admin-only — otherwise a
+    # child could PATCH reward_amount/times_completed/streak_count/decay_divisor
+    # and mint arbitrary earnings for themselves (the earnings summary is derived
+    # from exactly these fields). Enforce a field whitelist for non-admins.
+    if current_user.role != Role.admin:
+        _child_allowed = {"status"}
+        _child_statuses = {"claimed", "complete"}
+        supplied = req.model_dump(exclude_unset=True)
+        forbidden = set(supplied) - _child_allowed
+        if forbidden:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Only an admin can change: {', '.join(sorted(forbidden))}.",
+            )
+        if "status" in supplied and supplied["status"] not in _child_statuses:
+            raise HTTPException(
+                status_code=403,
+                detail="A child may only set a bounty to 'claimed' or 'complete'.",
+            )
+
     bounty = (
         db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
     )
@@ -425,6 +446,15 @@ def list_bounty_logs(
     _: User = Depends(get_current_user),
 ):
     from models import BountyLog
+
+    # Scope the bounty to the profile in the path (bounty_id is a global PK;
+    # without this, any household viewer could read another child's bounty logs
+    # by guessing ids). Matches the create/delete handlers' check.
+    bounty = (
+        db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+    )
+    if not bounty:
+        raise HTTPException(status_code=404, detail="Bounty not found")
 
     return (
         db.query(BountyLog)

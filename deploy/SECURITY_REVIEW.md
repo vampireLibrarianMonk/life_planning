@@ -193,7 +193,7 @@ private.
 
 | # | Item | Severity (self-assessed) | Status |
 |---|---|---|---|
-| R1 | JWT in `localStorage` (XSS → token/PII theft) | Medium | Mitigated by CSP + 2h TTL; cookie+CSRF is the real fix — **open** |
+| R1 | JWT token theft via XSS | Low (was Medium) | **RESOLVED** — JWT moved to an httpOnly `SameSite=strict` `Secure` cookie (not JS-readable); `no-danger` lint blocks HTML sinks |
 | R2 | Admin + readonly see ALL profiles (no per-profile scoping) | Low (single family) | Accepted; `ProfileAccess` path exists for future non-family users |
 | R3 | `require_private_access` (legacy, role-only) still defined | Low | Superseded by profile-aware guard; consider removing to avoid misuse |
 | R4 | Archive/restore round-trip for Child Development `*_private` rows + photos | Low | Generic path covers it; **add an explicit round-trip assertion** |
@@ -310,3 +310,73 @@ _Update 2026-10-27 — read-only verification done; one real finding surfaced._
 7. **Budgets — ✅ already in place** (`life-planning-monthly`, $70/mo cap). A
    billing *alarm* with SNS notification is the only add still worth doing (left
    for owner since it touches SNS subscriptions).
+
+---
+
+## 11. Re-review results (3-agent panel #2, 2026-10-27) — NEW vectors
+
+A second panel (server-side app-logic · web/HTTP-layer · cloud/infra) hunted
+vectors **distinct** from §10. All findings below were verified in code before
+acting.
+
+### Fixed in code (test-covered, additive) — `tests/test_economy_integrity.py`, `tests/test_csrf_origin.py`
+- **CRITICAL — child could mint money via bounty-PATCH mass-assignment.**
+  `routes/economy.py update_bounty` did a blind `setattr` loop over
+  `BountyUpdate`; the only role gate was `status == "paid"`. A **child** (allowed
+  by `require_admin_or_child`) could PATCH their own bounty with
+  `reward_amount` / `times_completed` / `streak_count` / `decay_divisor` and
+  inflate their own earnings (the earnings summary is derived from exactly these
+  fields). **Fixed:** non-admins may now change **only** `status`, and only to
+  `claimed`/`complete`; any other field → 403.
+- **HIGH — IDOR on bounty logs.** `list_bounty_logs` filtered only on the global
+  `bounty_id`, not the path's `profile_id` (unlike create/delete). A household
+  `readonly` viewer could read **any** child's bounty submission notes by
+  enumerating ids. **Fixed:** scope the bounty to `profile_id` first (404 if
+  mismatch), matching the other handlers.
+- **HIGH — CSRF reintroduced by the cookie migration.** With the JWT now an
+  ambient cookie, `SameSite=strict` was the **only** CSRF control (no server-side
+  check). **Fixed:** added a server-side **Origin allow-list check** for
+  `POST/PUT/PATCH/DELETE` in `main.py` (cross-origin → 403; same-origin and
+  header-less API clients pass). Defense-in-depth alongside SameSite.
+- **Hardening (same middleware):** added `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy: same-origin`, and `Cache-Control: no-store` on
+  all `/api/*` responses (child PII/financials were cacheable); corrected the
+  stale "JWT in localStorage" CSP comment.
+
+### Deferred — owner decision (NOT changed; need judgment / infra)
+- **MEDIUM — numeric validation on economy/money fields.** `reward_amount`,
+  `decay_divisor`, fund `amount`, etc. accept negative/zero (e.g. `decay_divisor
+  = 0` → ZeroDivisionError; negative fund `amount` inflates a balance). Fix is a
+  batch of Pydantic `conint(ge=…)` validators + DB CHECKs — straightforward but
+  touches many schemas; worth doing next, with the owner, as its own pass.
+- **MEDIUM — budget cap derived from mutable bounty rows** (repeatable payouts
+  reset `status`/`completed_at`, so they escape `_period_spent`). Real fix is an
+  append-only payout ledger — a data-model change, deferred.
+- **MEDIUM — upload/body DoS.** No global request-body-size cap; `restore`/avatar
+  /attachment handlers `read()` whole bodies into memory (zip-bomb on restore is
+  admin-only). Add a body-size middleware + per-file/count caps. Also re-scope
+  the WAF `SizeRestrictions_BODY`/`CrossSiteScripting_BODY` **Count** overrides
+  to the upload path only (they're currently global — weakens the edge).
+- **HIGH (infra, owner-only) — dual-region fail-back data loss / split-brain.**
+  CRR is **east→west only** and fail-back is **automatic**; a real east outage
+  with writes on west, then auto-fail-back, **silently loses the west writes**
+  (east restores from its own frozen bucket). The 2026-10-21 "PASS / no
+  divergence" drill used the health-flip mechanism where east keeps running, so
+  it never exercised this. The doc already carries the unresolved
+  "read-until-promoted / reconciliation path" caveat. **Recommendation:** make
+  fail-back a manual, gated promotion (or west→east reconcile before re-pointing
+  Route 53); downgrade the drill's "no data divergence" claim to UNVERIFIED until
+  a real-outage write-back drill is run. (Not changed unattended — infra +
+  lockout/data risk.)
+- **HIGH (infra, owner-only) — admin reseed-on-boot + JWT-secret import-time
+  cache.** `main.py seed_admin` re-aligns the admin password from the secret on
+  **every boot** (clobbers an in-app password change; can diverge across regions
+  mid-rotation); `auth.SECRET_KEY` is bound once at import, so a JWT-secret
+  rotation needs **both** regions redeployed together or failover rejects
+  cookies (mass re-login). **Recommendation:** seed admin only if absent; accept
+  current+previous signing keys during a rotation window. (Owner — identity/infra.)
+- **LOW — `?token=` blob fallback + login returns token in body.** The backend
+  still accepts a full session JWT in the `/api/uploads?token=` query (log/
+  history leak class; Referer channel already closed by `no-referrer`) and
+  `login` still returns `access_token` in the body though the SPA ignores it.
+  Candidates to drop now that the cookie path works. (Low; owner call.)

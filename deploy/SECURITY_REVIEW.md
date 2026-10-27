@@ -258,20 +258,31 @@ in code; only the cookie migration remains deferred (deliberately)._
   logout / image-loading can be verified end-to-end before it goes live.
 
 ### Owner-required infra checklist (NOT touched while unattended)
-1. **WAF** — verify the documented rules are live **and attached in BOTH
-   regions** (a standby without WAF is a failover bypass); add a rate-based rule
-   on `/api/auth/login`.
-2. **KMS** — confirm the live key is the multi-region `alias/life-planning-mr`
-   and the west standby can decrypt (DR linchpin); key policy decrypt-to-role
-   only, no wildcards.
-3. **Secrets** — establish rotation for admin + JWT secrets (note the per-process
-   `lru_cache` means rotation takes effect on redeploy); CloudTrail alert on
-   `GetSecretValue` by any non-instance principal.
+_Update 2026-10-27 — read-only verification done; one real finding surfaced._
+1. **WAF — ⚠️ FINDING: us-west-2 standby appears to have NO web ACL.** Verified
+   live: `life-planning-waf` exists + (presumed) attached in **us-east-1**, but
+   `wafv2 list-web-acls --scope REGIONAL --region us-west-2` returns **empty**.
+   On a regional failover, the standby would serve traffic **without WAF**
+   (rate-limiting/managed rules bypassed). **Priority fix on return:** create the
+   same web ACL in us-west-2 and attach it to the west App Runner service; add a
+   rate-based rule on `/api/auth/login`. (Not done unattended — a misconfigured
+   WAF can black-hole the standby.)
+2. **KMS — ✅ VERIFIED multi-region.** `alias/life-planning-mr` →
+   `mrk-4e4cf93c38474f2d8bb7e294180eb6f0`, MultiRegion=true, Enabled. Still
+   confirm the west replica key + that west can decrypt on failover, and the key
+   policy is decrypt-to-role-only / no wildcards.
+3. **Secrets** — establish rotation for admin + JWT secrets (per-process
+   `lru_cache` ⇒ takes effect on redeploy); CloudTrail alert on `GetSecretValue`
+   by any non-instance principal. (Not done unattended — rotation invalidates
+   live tokens.)
 4. **IAM** — instance-role S3/KMS scoped (no `*`); `house-user` MFA + stale-key
-   rotation; root MFA/no-root-keys; CloudTrail multi-region on.
+   rotation; root MFA/no-root-keys; CloudTrail multi-region on. (Not unattended —
+   lockout risk.)
 5. **CloudWatch** — log-group retention + KMS encryption; confirm uvicorn access
-   logs don't capture query-string PII (headers/bodies are not logged by default).
+   logs don't capture query-string PII (headers/bodies not logged by default).
 6. **S3/DR** — confirm Litestream restore window; ensure the least-priv role
    cannot delete object versions / change versioning (consider Object Lock).
-7. **Budgets** — billing alarm to cap unattended cost-abuse of the public
-   endpoints (`/api/health`, `/api/alive`, `/api/demo`, login).
+   (Not unattended — a wrong deny can block recovery.)
+7. **Budgets — ✅ already in place** (`life-planning-monthly`, $70/mo cap). A
+   billing *alarm* with SNS notification is the only add still worth doing (left
+   for owner since it touches SNS subscriptions).

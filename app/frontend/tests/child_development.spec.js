@@ -66,4 +66,3 @@ test.describe('Child Development section', () => {
     await expect(page.getByRole('heading', { name: 'Child Development' })).toBeVisible()
   })
 })
-

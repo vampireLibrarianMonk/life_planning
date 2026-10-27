@@ -16,6 +16,24 @@ SECRET_KEY = config.get_jwt_secret()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours (short-lived; re-login as needed)
 
+
+def decode_token(token: str) -> dict:
+    """Decode+verify a JWT, accepting the current OR a previous signing secret.
+
+    Verifying against a small key set makes a secret rotation non-disruptive:
+    tokens minted by the other region or before the rotation still validate
+    during the window (see config.get_jwt_decode_secrets). Raises JWTError if no
+    key validates.
+    """
+    last_err: Exception | None = None
+    for key in config.get_jwt_decode_secrets():
+        try:
+            return jwt.decode(token, key, algorithms=[ALGORITHM])
+        except JWTError as e:  # try the next key
+            last_err = e
+    raise last_err or JWTError("token did not validate against any known key")
+
+
 # httpOnly cookie that carries the JWT. Preferred over the Authorization header
 # so the token is never readable by JS (XSS can't exfiltrate it). The header
 # path is retained as a fallback for API clients and a safe rollout.
@@ -64,7 +82,7 @@ def get_current_user(
     if not token:
         raise credentials_exception
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode_token(token)
         user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception

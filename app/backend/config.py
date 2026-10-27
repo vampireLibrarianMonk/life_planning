@@ -61,7 +61,7 @@ def _get_secret_string(secret_id: str) -> str:
 
 
 def get_jwt_secret() -> str:
-    """Return the JWT signing secret for the active mode."""
+    """Return the JWT signing secret (current) for the active mode."""
     if IS_AWS:
         if not JWT_SECRET_ARN:
             raise RuntimeError("DEPLOY_MODE=aws requires JWT_SECRET_ARN to be set")
@@ -75,6 +75,38 @@ def get_jwt_secret() -> str:
             pass
         return raw
     return os.getenv("SECRET_KEY", _LOCAL_JWT_DEFAULT)
+
+
+def get_jwt_decode_secrets() -> list[str]:
+    """Return ALL secrets that should be ACCEPTED when decoding a JWT.
+
+    During a secret rotation the two regions can briefly sign with different
+    secrets (each reads its own replica; the module-level key is bound at import
+    and only refreshes on redeploy). Accepting a small set of keys — the current
+    secret plus an optional previous one — means a token minted by the other
+    region (or before the rotation) still validates, avoiding a forced mass
+    re-login / failover-time cookie rejection. Sign with current, verify against
+    current + previous.
+
+    The previous secret is supplied as an optional `previous` field in the JSON
+    secret (AWS) or the `SECRET_KEY_PREVIOUS` env var (local). Signing always
+    uses the current secret only.
+    """
+    secrets = [get_jwt_secret()]
+    prev: str | None = None
+    if IS_AWS and JWT_SECRET_ARN:
+        raw = _get_secret_string(JWT_SECRET_ARN)
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                prev = parsed.get("previous")
+        except (json.JSONDecodeError, TypeError):
+            prev = None
+    else:
+        prev = os.getenv("SECRET_KEY_PREVIOUS") or None
+    if prev and prev not in secrets:
+        secrets.append(prev)
+    return secrets
 
 
 def get_admin_credentials() -> tuple[str, str]:

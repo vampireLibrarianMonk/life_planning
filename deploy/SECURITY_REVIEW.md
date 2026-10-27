@@ -343,40 +343,47 @@ acting.
   all `/api/*` responses (child PII/financials were cacheable); corrected the
   stale "JWT in localStorage" CSP comment.
 
-### Deferred — owner decision (NOT changed; need judgment / infra)
-- **MEDIUM — numeric validation on economy/money fields.** `reward_amount`,
-  `decay_divisor`, fund `amount`, etc. accept negative/zero (e.g. `decay_divisor
-  = 0` → ZeroDivisionError; negative fund `amount` inflates a balance). Fix is a
-  batch of Pydantic `conint(ge=…)` validators + DB CHECKs — straightforward but
-  touches many schemas; worth doing next, with the owner, as its own pass.
-- **MEDIUM — budget cap derived from mutable bounty rows** (repeatable payouts
-  reset `status`/`completed_at`, so they escape `_period_spent`). Real fix is an
-  append-only payout ledger — a data-model change, deferred.
-- **MEDIUM — upload/body DoS.** No global request-body-size cap; `restore`/avatar
-  /attachment handlers `read()` whole bodies into memory (zip-bomb on restore is
-  admin-only). Add a body-size middleware + per-file/count caps. Also re-scope
-  the WAF `SizeRestrictions_BODY`/`CrossSiteScripting_BODY` **Count** overrides
-  to the upload path only (they're currently global — weakens the edge).
-- **HIGH (infra, owner-only) — dual-region fail-back data loss / split-brain.**
-  CRR is **east→west only** and fail-back is **automatic**; a real east outage
-  with writes on west, then auto-fail-back, **silently loses the west writes**
-  (east restores from its own frozen bucket). The 2026-10-21 "PASS / no
-  divergence" drill used the health-flip mechanism where east keeps running, so
-  it never exercised this. The doc already carries the unresolved
-  "read-until-promoted / reconciliation path" caveat. **Recommendation:** make
-  fail-back a manual, gated promotion (or west→east reconcile before re-pointing
-  Route 53); downgrade the drill's "no data divergence" claim to UNVERIFIED until
-  a real-outage write-back drill is run. (Not changed unattended — infra +
-  lockout/data risk.)
-- **HIGH (infra, owner-only) — admin reseed-on-boot + JWT-secret import-time
-  cache.** `main.py seed_admin` re-aligns the admin password from the secret on
-  **every boot** (clobbers an in-app password change; can diverge across regions
-  mid-rotation); `auth.SECRET_KEY` is bound once at import, so a JWT-secret
-  rotation needs **both** regions redeployed together or failover rejects
-  cookies (mass re-login). **Recommendation:** seed admin only if absent; accept
-  current+previous signing keys during a rotation window. (Owner — identity/infra.)
-- **LOW — `?token=` blob fallback + login returns token in body.** The backend
-  still accepts a full session JWT in the `/api/uploads?token=` query (log/
-  history leak class; Referer channel already closed by `no-referrer`) and
-  `login` still returns `access_token` in the body though the SPA ignores it.
-  Candidates to drop now that the cookie path works. (Low; owner call.)
+### Deferred items — ADDRESSED 2026-10-27 (pass 2b)
+_Owner approved working through the deferred list. Status below._
+- ✅ **Numeric validation.** Constrained-int aliases in `schemas.py`
+  (`Cents`/`Count`/`Divisor ge=2`/`Score1to5`) applied to bounty, wishlist, and
+  behavior schemas; `funds.TransactionCreate.amount` is now `gt=0` (a negative
+  no longer inflates a fund), `FundCreate.starting_balance ge=0`, `BudgetUpdate`
+  caps `ge=0`. Tests: `tests/test_hardening_pass2.py`.
+- ✅ **Upload / body DoS.** New request-body-size cap in the `main.py` middleware
+  (1 MB JSON / 50 MB upload routes, via Content-Length); `upload_attachments`
+  caps file count (20) + per-file size (25 MB) and null-checks `content_type`;
+  `restore` enforces a cumulative decompressed-size cap (500 MB) + per-entry
+  compression-ratio check (zip-bomb defense).
+- ✅ **Admin reseed-on-boot clobber.** `seed_admin` no longer overwrites an
+  existing admin's password on every boot — it seeds only if absent. Rolling a
+  rotated secret onto the account is now an explicit, auditable opt-in
+  (`ADMIN_FORCE_SYNC=1` for one deploy), eliminating the silent revert + the
+  cross-region mid-rotation divergence.
+- ✅ **JWT-secret rotation key-skew.** `auth.decode_token` now verifies against
+  the current secret **plus an optional previous** one
+  (`config.get_jwt_decode_secrets`; previous supplied via the secret JSON
+  `previous` field or `SECRET_KEY_PREVIOUS`). A rotation (or a brief
+  cross-region secret mismatch at failover) no longer rejects valid cookies /
+  forces mass re-login. Signing still uses the current secret only. Tests:
+  `tests/test_hardening_pass2.py`.
+- ⏸️ **Budget cap derived from mutable rows (append-only ledger).** NOT done —
+  it's a data-model change (a payout-ledger table + migration). The C1 fix
+  already stops a child from forging the inputs; the remaining issue is an admin
+  over-paying a repeatable bounty past a cap. Deferred to a dedicated pass.
+- ⏸️ **Dual-region fail-back data loss (infra).** Root cause verified: east DB
+  bucket CRR → west, **west bucket has NO replication back** (confirmed via
+  `get-bucket-replication` → NotFound). Bidirectional CRR is NOT a safe fix
+  (two Litestream writers → WAL corruption). Shipped a **gated fail-back runbook
+  + `deploy/failover_control.sh`** (hold-east / reconcile-to-east / release-east
+  with typed confirmations; reconcile does an `s3 sync` of west's whole
+  Litestream generation tree into east). Documented in `PHASE2_FAILOVER.md`;
+  the drill's "no divergence" claim downgraded to UNVERIFIED. **Still OPEN for
+  owner:** whether to make fail-back *permanently* manual (a live Route 53
+  change — left for explicit go-ahead).
+- ⏸️ **WAF body-rule Count overrides scoped to upload path (infra).** The
+  `SizeRestrictions_BODY`/`CrossSiteScripting_BODY` → Count overrides are still
+  web-ACL-wide; re-scoping them to the upload routes is an owner-side WAF edit.
+  (App-layer now has its own body-size cap, reducing the urgency.)
+- ⏸️ **`?token=` blob fallback + login token-in-body.** Left as-is pending owner
+  call (low; the SPA no longer uses either path).

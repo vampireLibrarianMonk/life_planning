@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel as PydanticBaseModel
+from pydantic import Field as PydanticField
 from sqlalchemy.orm import Session
 
 from auth import (
@@ -673,9 +674,9 @@ def check_eligibility(
 
 
 class BudgetUpdate(PydanticBaseModel):
-    weekly_budget_cents: int | None = None
-    monthly_budget_cents: int | None = None
-    annual_budget_cents: int | None = None
+    weekly_budget_cents: int | None = PydanticField(default=None, ge=0, le=1_000_000_000)
+    monthly_budget_cents: int | None = PydanticField(default=None, ge=0, le=1_000_000_000)
+    annual_budget_cents: int | None = PydanticField(default=None, ge=0, le=1_000_000_000)
 
 
 @router.get("/budget")

@@ -2,8 +2,17 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+# Reusable constrained-int aliases (money is in integer cents; never negative).
+Cents = Annotated[int, Field(ge=0, le=1_000_000_000)]  # 0 .. $10,000,000
+OptCents = Annotated[int, Field(ge=0, le=1_000_000_000)]
+Count = Annotated[int, Field(ge=0, le=1_000_000)]
+Divisor = Annotated[int, Field(ge=2, le=1000)]  # decay divides by >=2
+Score1to5 = Annotated[int, Field(ge=1, le=5)]
+Days = Annotated[int, Field(ge=1, le=36500)]
 
 
 class Role(str, Enum):
@@ -147,22 +156,22 @@ class ProfileAccessCreate(BaseModel):
 # Behavior Scores
 class BehaviorScoreCreate(BaseModel):
     week_of: str
-    integrity: int = 3
-    honesty: int = 3
-    responsibility: int = 3
-    respect: int = 3
-    school_effort: int = 3
-    citizenship: int = 3
+    integrity: Score1to5 = 3
+    honesty: Score1to5 = 3
+    responsibility: Score1to5 = 3
+    respect: Score1to5 = 3
+    school_effort: Score1to5 = 3
+    citizenship: Score1to5 = 3
     notes: str | None = None
 
 
 class BehaviorScoreUpdate(BaseModel):
-    integrity: int | None = None
-    honesty: int | None = None
-    responsibility: int | None = None
-    respect: int | None = None
-    school_effort: int | None = None
-    citizenship: int | None = None
+    integrity: Score1to5 | None = None
+    honesty: Score1to5 | None = None
+    responsibility: Score1to5 | None = None
+    respect: Score1to5 | None = None
+    school_effort: Score1to5 | None = None
+    citizenship: Score1to5 | None = None
     notes: str | None = None
 
 
@@ -203,13 +212,13 @@ class BountyCreate(BaseModel):
     requirements: str | None = None
     reference: str | None = None
     criteria: str | None = None
-    reward_amount: int = 0  # cents
+    reward_amount: Cents = 0  # cents
     pillar: Pillar | None = None
     age_band: str | None = None
     category: str | None = None
-    repeatable: int = 0
-    decay_divisor: int = 2
-    reset_days: int | None = None
+    repeatable: Annotated[int, Field(ge=0, le=1)] = 0
+    decay_divisor: Divisor = 2
+    reset_days: Days | None = None
 
 
 class BountyUpdate(BaseModel):
@@ -218,16 +227,16 @@ class BountyUpdate(BaseModel):
     requirements: str | None = None
     reference: str | None = None
     criteria: str | None = None
-    reward_amount: int | None = None
+    reward_amount: OptCents | None = None
     status: str | None = None
     pillar: Pillar | None = None
     age_band: str | None = None
     category: str | None = None
-    repeatable: int | None = None
-    decay_divisor: int | None = None
-    reset_days: int | None = None
-    times_completed: int | None = None
-    streak_count: int | None = None
+    repeatable: Annotated[int, Field(ge=0, le=1)] | None = None
+    decay_divisor: Divisor | None = None
+    reset_days: Days | None = None
+    times_completed: Count | None = None
+    streak_count: Count | None = None
 
 
 class BountyResponse(BaseModel):
@@ -264,17 +273,17 @@ class BountyResponse(BaseModel):
 class WishlistCreate(BaseModel):
     title: str
     description: str | None = None
-    cost_cents: int = 0
+    cost_cents: Cents = 0
     url: str | None = None
-    priority: int = 1
+    priority: Annotated[int, Field(ge=1, le=10)] = 1
 
 
 class WishlistUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    cost_cents: int | None = None
+    cost_cents: OptCents | None = None
     url: str | None = None
-    priority: int | None = None
+    priority: Annotated[int, Field(ge=1, le=10)] | None = None
     status: str | None = None
 
 

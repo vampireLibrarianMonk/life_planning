@@ -1,7 +1,7 @@
 """Fund tracking routes — drawdown ledgers for earmarked money (e.g., insurance fund)."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from auth import require_admin_or_child, require_private_profile_access, require_profile_access
@@ -18,7 +18,7 @@ router = APIRouter(
 class FundCreate(BaseModel):
     name: str
     description: str | None = None
-    starting_balance: int  # cents
+    starting_balance: int = Field(ge=0, le=1_000_000_000)  # cents
 
 
 class FundUpdate(BaseModel):
@@ -27,7 +27,9 @@ class FundUpdate(BaseModel):
 
 
 class TransactionCreate(BaseModel):
-    amount: int  # cents (positive = money out)
+    # Strictly positive: a disbursement draws the balance DOWN. A negative would
+    # otherwise INCREASE the running balance (balance = starting - sum(amount)).
+    amount: int = Field(gt=0, le=1_000_000_000)  # cents (money out)
     description: str
     date: str | None = None  # YYYY-MM-DD
 

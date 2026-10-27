@@ -45,13 +45,27 @@ async def upload_attachments(
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 
+    # DoS guards: cap the number of files per request and each file's size.
+    MAX_FILES = 20
+    MAX_FILE_BYTES = 25 * 1024 * 1024  # 25 MB per file
+    if len(files) > MAX_FILES:
+        raise HTTPException(status_code=400, detail=f"Too many files (max {MAX_FILES}).")
+
     results = []
     for f in files:
-        if not any(f.content_type.startswith(p) for p in ALLOWED_MIME_PREFIXES):
+        # content_type is attacker-supplied and may be None — validate defensively.
+        if not f.content_type or not any(
+            f.content_type.startswith(p) for p in ALLOWED_MIME_PREFIXES
+        ):
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {f.content_type}")
-        ext = Path(f.filename).suffix
+        ext = Path(f.filename or "").suffix
         stored_name = f"{uuid.uuid4().hex}{ext}"
         content = await f.read()
+        if len(content) > MAX_FILE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large (max {MAX_FILE_BYTES // (1024 * 1024)} MB).",
+            )
         get_storage().save(stored_name, content, f.content_type)
         att = EventAttachment(
             entry_id=entry_id,
@@ -151,7 +165,7 @@ def serve_upload(
     AWS mode: redirect to a short-lived presigned S3 URL (minted ONLY after the
     access check passes).
     """
-    from jose import JWTError, jwt
+    from jose import JWTError
 
     import auth as _auth
 
@@ -166,8 +180,11 @@ def serve_upload(
     if not jwt_token:
         raise not_found
     try:
-        payload = jwt.decode(jwt_token, _auth.SECRET_KEY, algorithms=[_auth.ALGORITHM])
-        current_user = db.query(User).filter(User.id == int(payload.get("sub"))).first()
+        payload = _auth.decode_token(jwt_token)
+        sub = payload.get("sub")
+        if sub is None:
+            raise not_found
+        current_user = db.query(User).filter(User.id == int(sub)).first()
     except (JWTError, TypeError, ValueError):
         raise not_found
     if current_user is None:

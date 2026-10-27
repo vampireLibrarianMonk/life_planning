@@ -21,6 +21,50 @@ New resource IDs get recorded in `.arn-env` (suffix `_WEST` for standby twins).
 
 ![Failover & fail-back sequence](../diagrams/architecture_failover.png)
 
+### Fail-back — DATA-LOSS HAZARD + gated runbook (added 2026-10-27)
+
+> **⚠️ The automatic fail-back is NOT data-safe.** The Route 53 record is a
+> PRIMARY/SECONDARY pair with health checks on both sides, so east auto-reclaims
+> traffic the instant its health check recovers. But CRR is **one-directional
+> (east→west only)** — the west DB bucket has **no** replication back to east.
+> So a *real* east outage with writes landing on west, followed by auto-fail-back,
+> **silently loses every write made on west**: east boots and `litestream restore`
+> pulls from its own frozen east bucket. The 2026-10-21 drill's "no data
+> divergence" claim is **UNVERIFIED for a real outage** — that drill used the
+> health-check-flip mechanism where east keeps running and writing, so east's
+> bucket never went stale and the bug could not surface.
+>
+> **Why we do NOT "just make CRR bidirectional":** two Litestream writers
+> replicating into each other's bucket interleaves independent generation chains
+> on the same `life_plan.db/` prefix → SQLite/WAL corruption (the active/active
+> hazard single-writer exists to prevent).
+>
+> **The correct procedure is a GATED fail-back.** Use
+> `deploy/failover_control.sh` (safe primitives; mutating actions require a typed
+> confirmation):
+>
+> 1. During a real east outage, once west is serving, run `hold-east` so east
+>    will **not** auto-reclaim traffic when it recovers (detach the primary
+>    health check per the printed manual step — DNS edits are left manual on
+>    purpose).
+> 2. When east is healthy again but still held, run `reconcile-to-east` — it
+>    `aws s3 sync`s west's **entire** Litestream generation tree
+>    (`life_plan.db/`) into the east bucket so east will restore west's data,
+>    not its stale copy.
+> 3. Redeploy/restart east, verify it serves the reconciled data (sentinel), then
+>    `release-east` to re-attach the primary health check and resume normal
+>    east-primary failover.
+>
+> If **no writes** happened on west during the outage, steps 1–2 are unnecessary
+> and auto-fail-back is harmless. The hazard is specifically write-on-standby +
+> auto-fail-back.
+>
+> **OWNER DECISION STILL OPEN:** whether to make fail-back *permanently* manual
+> (drop the SECONDARY→PRIMARY auto-promotion by detaching the primary health
+> check by default). That is a live Route 53 change with its own failure modes
+> and is left for an explicit owner go-ahead; the runbook above makes the current
+> auto-config safe to operate in the meantime.
+
 ---
 
 ## The KMS decision (Option 1) and why it leads

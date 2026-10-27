@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 import config as app_config
@@ -66,11 +66,27 @@ async def security_headers(request, call_next):
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         origin = request.headers.get("origin")
         if origin is not None and origin not in _allowed_origins and _allowed_origins != ["*"]:
-            from starlette.responses import JSONResponse
-
             return JSONResponse(
                 status_code=403, content={"detail": "Cross-origin request blocked."}
             )
+
+        # Coarse request-body-size cap (defense against memory-exhaustion DoS on
+        # the single App Runner instance). Upload routes get a higher ceiling;
+        # all other bodies are small JSON. Rejects early on declared length.
+        _p = request.url.path
+        _is_upload = (
+            _p.endswith("/attachments/") or _p.endswith("/avatar") or _p.endswith("/restore")
+        )
+        _max_bytes = (50 * 1024 * 1024) if _is_upload else (1 * 1024 * 1024)
+        _cl = request.headers.get("content-length")
+        if _cl is not None:
+            try:
+                if int(_cl) > _max_bytes:
+                    return JSONResponse(
+                        status_code=413, content={"detail": "Request body too large."}
+                    )
+            except ValueError:
+                return JSONResponse(status_code=400, content={"detail": "Bad Content-Length."})
 
     resp = await call_next(request)
     resp.headers["X-Content-Type-Options"] = "nosniff"
@@ -141,11 +157,17 @@ def seed_admin():
             db.add(admin)
             db.commit()
         elif config.IS_AWS:
-            # In AWS mode, keep the admin credential in sync with the secret so
-            # rotating the secret rotates the login (idempotent on each boot).
-            existing.username = admin_username
-            existing.hashed_password = hash_password(admin_password)
-            db.commit()
+            # Do NOT clobber the admin password on every boot — that silently
+            # reverted any in-app password change and could diverge across
+            # regions mid-rotation. Seed-if-absent is the default. To roll a
+            # rotated secret onto the account, the operator sets ADMIN_FORCE_SYNC=1
+            # for one deploy (explicit, auditable), then removes it.
+            import os
+
+            if os.getenv("ADMIN_FORCE_SYNC") == "1":
+                existing.username = admin_username
+                existing.hashed_password = hash_password(admin_password)
+                db.commit()
     finally:
         db.close()
 

@@ -307,10 +307,21 @@ async def restore_profile(
     # Restore upload blobs first (so attachment rows point at live files).
     # Hardening: reject keys that try to escape the storage root (path traversal
     # in local mode) and never overwrite an existing blob (a crafted archive must
-    # not be able to clobber another profile's live files).
-    for name in zf.namelist():
+    # not be able to clobber another profile's live files). A cumulative
+    # decompressed-size cap defends against a zip bomb.
+    MAX_TOTAL_UNCOMPRESSED = 500 * 1024 * 1024  # 500 MB across all blobs
+    MAX_RATIO = 200  # per-entry compression-ratio sanity cap
+    total_uncompressed = 0
+    for info in zf.infolist():
+        name = info.filename
         if not name.startswith("uploads/") or name.endswith("/"):
             continue
+        # Reject absurd compression ratios (classic zip-bomb signature).
+        if info.compress_size > 0 and info.file_size / info.compress_size > MAX_RATIO:
+            raise HTTPException(status_code=400, detail="Archive entry failed ratio check")
+        total_uncompressed += info.file_size
+        if total_uncompressed > MAX_TOTAL_UNCOMPRESSED:
+            raise HTTPException(status_code=413, detail="Archive too large when decompressed")
         key = name[len("uploads/") :]
         if not key or "/" in key or "\\" in key or ".." in key:
             raise HTTPException(status_code=400, detail="Archive contains an invalid upload path")

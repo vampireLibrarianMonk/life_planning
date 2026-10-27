@@ -11,8 +11,10 @@ Resource IDs: see git-ignored `.arn-env`.
 
 ## Action required by owner (not code)
 
-- [x] **Confirm the SNS alert email.** Confirmed for `<owner-email>`
-      (2026-10-20) — the `life-planning-down` alarm can now notify.
+- [x] **Confirm the SNS alert email.** Confirmed for `pmflani@gmail.com`
+      (2026-10-27) — the `life-planning-east` / `life-planning-west` alarms
+      now notify on both DOWN and recovery (state-neutral names so a recovery
+      email never says "down").
 - [x] **Cost-allocation tagging.** All 13 Life Plan resources tagged
       `project=life-planning` (Route 53 hosted zone excluded as shared infra).
       The `project` user-defined cost-allocation tag was activated in the

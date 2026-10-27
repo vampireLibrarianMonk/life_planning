@@ -55,10 +55,10 @@ App Runner auto-rolls). ECR lifecycle policy prunes to the newest 5 images.
 | DB replica bucket | `life-planning-db-<random>` (Litestream target, same hardening) |
 | WAF web ACL | `life-planning-waf` (regional, attached to the service) |
 | Custom domain | `life-planning.my-deployment.com` (App Runner managed TLS) |
-| SNS topic | `life-planning-alerts` (email: <owner-email>, confirmed) |
-| Route 53 health check | on `/api/health` |
-| CloudWatch alarm | `life-planning-down` → SNS |
-| Budget | `life-planning-monthly` ($50/mo → SNS) |
+| SNS topic | `life-planning-alerts` (email: `pmflani@gmail.com`, confirmed 2026-10-27) |
+| Route 53 health check | east `/api/health` + west `/api/health` (failover pair) |
+| CloudWatch alarms | `life-planning-east` + `life-planning-west` (HealthCheckStatus) → SNS |
+| Budget | `life-planning-monthly` ($70/mo → SNS) |
 
 ---
 
@@ -190,10 +190,20 @@ aws route53 change-resource-record-sets --hosted-zone-id Z0101762W5VWFT32BT2B --
 ### 10. Alerting + budget
 ```bash
 aws sns create-topic --name life-planning-alerts --region us-east-1
-aws sns subscribe --topic-arn <TOPIC> --protocol email --notification-endpoint <owner-email> --region us-east-1  # confirm via email
-aws route53 create-health-check ... ResourcePath=/api/health ...
-aws cloudwatch put-metric-alarm --alarm-name life-planning-down --namespace AWS/Route53 --metric-name HealthCheckStatus ... --alarm-actions <TOPIC>
-aws budgets create-budget --account-id 809784555426 ...  # $50/mo -> SNS
+aws sns subscribe --topic-arn <TOPIC> --protocol email --notification-endpoint pmflani@gmail.com --region us-east-1  # confirm via email
+aws route53 create-health-check ... ResourcePath=/api/health ...   # one per region (east primary, west standby)
+# Two state-neutral alarms so a RECOVERY email never says "down":
+#   life-planning-east  (us-east-1 PRIMARY)  ALARM=down / OK=back up
+#   life-planning-west  (us-west-2 STANDBY)  ALARM=down / OK=up
+aws cloudwatch put-metric-alarm --alarm-name life-planning-east --namespace AWS/Route53 --metric-name HealthCheckStatus \
+  --dimensions Name=HealthCheckId,Value=<EAST_HC> --statistic Minimum --period 60 --evaluation-periods 2 \
+  --threshold 1 --comparison-operator LessThanThreshold --treat-missing-data breaching \
+  --alarm-actions <TOPIC> --ok-actions <TOPIC>
+aws cloudwatch put-metric-alarm --alarm-name life-planning-west --namespace AWS/Route53 --metric-name HealthCheckStatus \
+  --dimensions Name=HealthCheckId,Value=<WEST_HC> --statistic Minimum --period 60 --evaluation-periods 2 \
+  --threshold 1 --comparison-operator LessThanThreshold --treat-missing-data breaching \
+  --alarm-actions <TOPIC> --ok-actions <TOPIC>
+aws budgets create-budget --account-id 809784555426 ...  # $70/mo -> SNS
 # -> record ALERT_TOPIC_ARN, HEALTHCHECK_ID in .arn-env
 ```
 

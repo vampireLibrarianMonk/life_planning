@@ -65,6 +65,42 @@ New resource IDs get recorded in `.arn-env` (suffix `_WEST` for standby twins).
 > and is left for an explicit owner go-ahead; the runbook above makes the current
 > auto-config safe to operate in the meantime.
 
+### Accepted-risk posture (owner, 2026-10-27)
+
+The owner's explicit risk acceptance, which governs how much we invest here:
+
+- **East→West failover with minimal data loss is SATISFACTORY.** Litestream RPO
+  is ~5s; that loss window on a real east outage is acceptable.
+- **A simultaneous east + west failure is OUT OF SCOPE** — if both regions are
+  down at once, something catastrophic is happening and it is an accepted risk.
+- **Auto-fail-back is ACCEPTED, not a bug.** For the realistic short outages
+  (transient / redeploy) east's bucket is at most seconds stale, so letting east
+  auto-reclaim is fine. The gated `failover_control.sh` runbook exists only for
+  the rare *long* outage where writes accumulated on west and you want to
+  reconcile them into east before releasing.
+- **Escalation ladder if single-region ever proves insufficient:** add AZ-level
+  redundancy, then (if needed) a 4-region mesh (us-east-1/2 + us-west-1/2). Not
+  built now — explicitly deferred under this posture.
+
+### Alerting (email on state change)
+
+- SNS topic `life-planning-alerts`, email subscription **`pmflani@gmail.com`**
+  (confirmed 2026-10-27).
+- Two **state-neutral** CloudWatch alarms on the Route 53 health checks so a
+  RECOVERY email never contains the word "down" (the old single `life-planning-down`
+  alarm did):
+  - **`life-planning-east`** (us-east-1 PRIMARY): `ALARM` = east DOWN (failing
+    over to us-west-2); `OK` = east BACK UP.
+  - **`life-planning-west`** (us-west-2 STANDBY): `ALARM` = west DOWN; `OK` =
+    west UP / ready.
+- Both fire on ALARM **and** OK transitions. Email subjects read
+  `ALARM: "life-planning-east"` / `OK: "life-planning-east"` etc.
+- **Note:** during an east-only failover the west alarm stays OK (warm standby
+  never went down), so you get the east ALARM/OK pair, not a separate "now on
+  west" ping. A per-failover "serving from west" message would need a Lambda /
+  EventBridge rule on the failover event — intentionally NOT added (owner: no
+  Lambda). Verified end-to-end via a health-check-flip drill 2026-10-27.
+
 ---
 
 ## The KMS decision (Option 1) and why it leads
@@ -148,9 +184,10 @@ avatars, the SQLite replica), re-encryption is a quick copy, not a migration.
 ### 8. Route 53 failover (the switch — do LAST)
 - Convert `life-planning.my-deployment.com` from a simple record to a
   **failover pair**:
-  - PRIMARY → east App Runner domain, associated with the existing
-    `/api/health` health check (`life-planning-down`).
-  - SECONDARY → west App Runner domain (+ its own health check).
+  - PRIMARY → east App Runner domain, associated with the east
+    `/api/health` health check (alarm: `life-planning-east`).
+  - SECONDARY → west App Runner domain (+ its own health check; alarm:
+    `life-planning-west`).
 - Add the west domain as an App Runner custom domain first (ACM cert in west) so
   the SECONDARY target is valid before the record flips.
 - Activate the `RegionFailoverBanner` (already built, dormant) — it already

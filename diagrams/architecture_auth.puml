@@ -1,0 +1,47 @@
+@startuml architecture_auth
+!include _style.puml
+
+title Authentication & Authorization Flow (httpOnly cookie)
+
+actor Browser as b
+participant "App Runner\n(FastAPI + SPA)" as api
+participant "Guards\n(auth.py deps)" as guard
+database "SQLite" as db
+participant "Secrets Manager\n(JWT secret)" as sec
+
+== Login ==
+b -> api : POST /api/auth/login  (username, password)
+api -> api : throttle by IP+username\n(10 / 5 min → 429)
+api -> db : fetch user, bcrypt verify
+api -> sec : sign JWT (HS256, 2h TTL)
+api --> b : Set-Cookie: lp_auth\n(HttpOnly · Secure · SameSite=strict)
+note right of b
+  Token is NOT readable by JS.
+  Same generic 401 for bad user,
+  bad password, or pre-setup.
+end note
+
+== Authenticated request ==
+b -> api : GET /api/profiles/{id}/...\n(cookie sent automatically)
+api -> api : extract_token()\ncookie first, Bearer header fallback
+api -> guard : require_profile_access(id)
+guard -> db : role + ownership check
+alt authorized
+  guard --> api : user
+  api --> b : 200 + data
+else not owner / readonly on private
+  guard --> b : 403
+else no / bad token
+  api --> b : 401
+end
+
+== Media (img / video) ==
+b -> api : GET /api/uploads/{key}\n(cookie sent automatically)
+api -> guard : resolve owning profile, same access rule
+alt authorized
+  api --> b : 307 → presigned S3 URL  (or stream in local mode)
+else unauthorized / unknown key / path-escape
+  api --> b : 404  (no existence oracle)
+end
+
+@enduml

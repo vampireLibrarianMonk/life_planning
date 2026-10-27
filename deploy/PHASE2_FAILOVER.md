@@ -15,6 +15,12 @@ full build, failover flipped last so the live app is never at risk mid-build.
 
 New resource IDs get recorded in `.arn-env` (suffix `_WEST` for standby twins).
 
+### Topology & failover sequence
+
+![Dual-region deployment](../diagrams/architecture_deployment.png)
+
+![Failover & fail-back sequence](../diagrams/architecture_failover.png)
+
 ---
 
 ## The KMS decision (Option 1) and why it leads

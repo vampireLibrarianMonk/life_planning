@@ -1,0 +1,49 @@
+' Shared PlantUML style for Life Plan Tracker diagrams.
+' Include at the top of every diagram:  !include _style.puml
+' Keeps fonts, colors, and spacing consistent across the diagram set.
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Helvetica, Arial, sans-serif"
+skinparam defaultFontSize 12
+skinparam titleFontSize 18
+skinparam titleFontStyle bold
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 11
+
+skinparam rectangle {
+  roundCorner 10
+  borderColor #B0B7C0
+  BackgroundColor #F7F8FA
+}
+skinparam package {
+  borderColor #CBD2DA
+  BackgroundColor #FCFCFD
+  FontStyle bold
+}
+skinparam node {
+  borderColor #B0B7C0
+  BackgroundColor #F7F8FA
+}
+skinparam database {
+  borderColor #B0B7C0
+  BackgroundColor #F7F8FA
+}
+skinparam cloud {
+  borderColor #B0B7C0
+  BackgroundColor #F4F6FF
+}
+skinparam queue {
+  borderColor #B0B7C0
+  BackgroundColor #F7F8FA
+}
+skinparam note {
+  BackgroundColor #FFFDF5
+  borderColor #E3DCC0
+  FontSize 11
+}
+skinparam legend {
+  BackgroundColor #FCFCFD
+  borderColor #CBD2DA
+}

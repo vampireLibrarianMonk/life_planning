@@ -1,6 +1,6 @@
 # Life Plan Tracker
 
-Lifetime development tracker (0–35) for children. Tracks 6 pillars (Spiritual, Financial, Education, Character, Life Skills, Heritage), a behavior-gated family economy with bounties and wishlist, and 146 pre-loaded milestones. Accounts for prefrontal cortex maturation differences by sex. FastAPI + React. Self-hosted.
+Lifetime development tracker (0–35) for children. Tracks 14 development pillars (Spiritual, Character, Life Navigation, Financial, Education & Career, Life Skills, Resilience, Heritage & Language, Inheritance & Stewardship, Family Economy, Civic & Institutional, Scientific Method, Catholic Formation, Secular Sacred), a behavior-gated family economy with bounties and wishlist, and 590 pre-loaded milestones. Accounts for prefrontal cortex maturation differences by sex. FastAPI + React. Self-hosted.
 
 The dashboard answers one question: **"Is this child becoming a wise, capable, kind, and independent person?"**
 
@@ -15,6 +15,24 @@ Instead of a generic chore chart or a college fund spreadsheet, this is a full n
 ![Education & Character](diagrams/poster_education_character.png)
 
 ![Life Skills & Heritage](diagrams/poster_skills_heritage.png)
+
+## Architecture
+
+The app ships as a single Docker image (FastAPI serving the built React SPA
+same-origin) on AWS App Runner, deployed dual-region (us-east-1 primary /
+us-west-2 warm standby) with Route 53 health-checked failover, AWS WAF in both
+regions, and a KMS multi-region key for encryption at rest.
+
+![Dual-region deployment](diagrams/architecture_deployment.png)
+
+Authentication uses a short-lived JWT carried in an httpOnly, `SameSite=strict`,
+`Secure` cookie (cookie-first, with a Bearer-header fallback for API clients).
+Authorization is enforced by per-profile guards applied as router-level
+dependencies.
+
+![Auth & authorization flow](diagrams/architecture_auth.png)
+
+![Regional failover](diagrams/architecture_failover.png)
 
 ## Neuroscience Basis (Why 0–35)
 

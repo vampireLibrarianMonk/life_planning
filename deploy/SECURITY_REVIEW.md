@@ -23,6 +23,21 @@ can verify._
   **behavior-incident log**, **private discernment journals**, **financial
   totals**, and account credentials/email.
 
+### Architecture
+
+Deployment topology (dual-region, active/passive):
+
+![Dual-region deployment](../diagrams/architecture_deployment.png)
+
+Authentication & authorization request flow (httpOnly cookie, cookie-first with
+Bearer-header fallback):
+
+![Auth & authz flow](../diagrams/architecture_auth.png)
+
+Regional failover & fail-back (Route 53 health-checked DNS):
+
+![Failover sequence](../diagrams/architecture_failover.png)
+
 ---
 
 ## 2. Authentication
@@ -39,10 +54,14 @@ can verify._
   `admin`/`changeme` default (`config.get_admin_credentials` raises
   `RuntimeError` if the secret is missing); admin creds are sourced from Secrets
   Manager and re-synced on boot. (Test: `tests/test_auth_hardening.py`.)
-- **Token storage (KNOWN RISK):** the SPA stores the JWT in `localStorage`, which
-  is readable by any XSS. Mitigated — not eliminated — by a strict CSP (§5) and
-  short token TTL. Documented in `main.py` security-headers comment. Candidate
-  for future hardening (httpOnly cookie + CSRF).
+- **Token storage (HARDENED 2026-10-27):** the JWT is now carried in an
+  **httpOnly, `SameSite=strict`, `Secure` cookie** (`lp_auth`), so it is **not
+  readable by JS** — an XSS can no longer exfiltrate it. The backend reads the
+  token cookie-first with an `Authorization: Bearer` header fallback (API
+  clients + safe rollout). `SameSite=strict` + same-origin API mitigates CSRF;
+  the strict CSP (§5) remains a second barrier. A `no-danger` pre-commit hook
+  blocks any future HTML-injection sink in the SPA. (Supersedes the former
+  localStorage risk.)
 
 ---
 
@@ -108,9 +127,14 @@ private.
   (`deploy/SECURITY_GATES.md` steps 2-3.)
 - **Encryption in transit:** HTTPS end-to-end via App Runner managed TLS on the
   custom domain; HSTS header set (§5).
-- **Attachment serving:** S3 objects served via short-lived SigV4 presigned URLs
-  (SigV4 required for the KMS bucket; commit `a3a5806`). Local mode serves via
-  the app's own route.
+- **Attachment serving (AUTHORIZED):** `/api/uploads/{key}` resolves the file's
+  owning profile and applies the same per-profile access rule as all other
+  profile data; unauthorized / unknown-key / path-escape requests return **404**
+  (no existence oracle). Auth is taken from the httpOnly cookie first (so
+  `<img>`/`<video>` tags work without JS) with a `?token=` query fallback. Only
+  after the access check does it mint a short-lived SigV4 presigned S3 URL (307)
+  or stream locally (forced attachment disposition + nosniff). (Commits
+  `a3a5806`, blob-authz 2026-10-27; `tests/test_upload_authz.py`.)
 - **Secrets:** admin creds + JWT secret in Secrets Manager (replicated to the
   standby region); never in the repo. `.arn-env` (git-ignored) holds resource
   IDs only. Source reference PDFs live in a git-ignored `reference/` folder.
@@ -129,8 +153,9 @@ private.
 - **Security headers** (middleware, `main.py`): `X-Content-Type-Options: nosniff`,
   `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, **HSTS**
   (1 year + subdomains), and a **Content-Security-Policy** (`default-src 'self'`,
-  `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`). CSP is the
-  primary barrier between an XSS and localStorage-token theft.
+  `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`). With the
+  JWT now in an httpOnly cookie, CSP is defense-in-depth against script
+  injection rather than the sole barrier to token theft.
 - **CORS:** in AWS mode restricted to the app's own origin with
   `allow_credentials=False`; wildcard only in local dev.
 - **API docs disabled in production:** `docs_url`/`redoc_url`/`openapi_url` are

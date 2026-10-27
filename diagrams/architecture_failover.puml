@@ -1,0 +1,36 @@
+@startuml architecture_failover
+!include _style.puml
+
+title Regional Failover & Fail-back (Route 53 health-checked)
+
+participant "Browser" as b
+participant "Route 53\nfailover record" as dns
+participant "us-east-1\nPRIMARY" as east
+participant "us-west-2\nSTANDBY" as west
+
+== Steady state ==
+b -> dns : resolve domain
+dns -> east : health check /api/health = 200
+b -> east : all traffic (writes here)
+east -> west : S3 CRR + Litestream WAL (continuous)
+
+== Primary fails ==
+east -> dns : /api/health stops returning 200
+note over dns : ~3 failed checks (~90s)\nmark PRIMARY unhealthy
+dns -> west : promote SECONDARY
+b -> west : traffic now served by west\n(Litestream has the replicated data)
+note over b : RegionFailoverBanner shows\nduring the DNS gap, then clears
+
+== Recovery / fail-back ==
+east -> dns : /api/health healthy again
+note over dns : PRIMARY healthy →\nreturn to east
+dns -> east : traffic back to primary
+west -> east : WAL reconciles (single-writer invariant)
+
+legend bottom
+  Active/passive, single-writer SQLite — exactly one region writes at a time.
+  Drill trigger: flip the primary health-check path to /api/profiles/ (401).
+  Verified 2026-10-27: failover + cookie auth on west + clean fail-back.
+end legend
+
+@enduml

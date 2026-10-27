@@ -1,0 +1,50 @@
+@startuml architecture_deployment
+!include _style.puml
+
+title Life Plan Tracker — Dual-Region Deployment (active / passive)
+
+actor "Family\n(admin · child · readonly)" as user
+
+cloud "Route 53" as r53 {
+  rectangle "life-planning.my-deployment.com\nfailover record + health checks" as dns #E8F0FF
+}
+
+package "us-east-1  —  PRIMARY (active)" as east #F4F6FF {
+  rectangle "AWS WAF\n(regional web ACL)" as wafE #EAF7EE
+  rectangle "App Runner\nFastAPI + built SPA\n(1 instance, single-writer)" as appE
+  database "SQLite + Litestream\n(WAL → S3)" as dbE #FFF8E0
+  rectangle "S3: uploads + db\n(SSE-KMS, versioned)" as s3E #FFF8E0
+  wafE --> appE
+  appE --> dbE
+  appE --> s3E
+}
+
+package "us-west-2  —  STANDBY (warm)" as west #FFF9F3 {
+  rectangle "AWS WAF\n(mirror of east ACL)" as wafW #EAF7EE
+  rectangle "App Runner\nFastAPI + built SPA\n(1 instance, read-until-promoted)" as appW
+  database "SQLite + Litestream\n(continuous restore)" as dbW #FFF8E0
+  rectangle "S3: uploads + db\n(SSE-KMS, versioned)" as s3W #FFF8E0
+  wafW --> appW
+  appW --> dbW
+  appW --> s3W
+}
+
+rectangle "Secrets Manager\nadmin creds · JWT secret\n(replicated e→w)" as sec #EAF7EE
+rectangle "KMS multi-region key\nalias/life-planning-mr" as kms #EAF7EE
+
+user --> dns : HTTPS
+dns ==> wafE : PRIMARY (healthy)
+dns ..> wafW : SECONDARY (on failover)
+
+s3E ==> s3W : S3 CRR (east → west)
+appE ..> sec
+appW ..> sec
+s3E ..> kms : encrypt/decrypt
+s3W ..> kms
+
+legend bottom
+  Single-writer SQLite; only the routed region writes. DNS failover is the switch.
+  RTO ~90–150s (health-checked DNS) · RPO ~5s (Litestream + replication lag).
+end legend
+
+@enduml

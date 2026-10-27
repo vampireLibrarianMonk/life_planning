@@ -10,8 +10,8 @@ export default function Login({ onLogin }) {
     e.preventDefault()
     setError('')
     try {
-      const token = await login(username, password)
-      onLogin(token)
+      await login(username, password)
+      await onLogin()
     } catch {
       setError('Invalid username or password')
     }

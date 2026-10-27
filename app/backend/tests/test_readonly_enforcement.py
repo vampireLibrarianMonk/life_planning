@@ -26,6 +26,7 @@ WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 EXEMPT_PATHS = {
     "/api/auth/login",
     "/api/auth/setup",  # public: new user sets their own password via token
+    "/api/auth/logout",  # any authenticated user may end their own session
 }
 
 

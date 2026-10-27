@@ -33,6 +33,16 @@ class _Login:
         self.password = password
 
 
+class _Resp:
+    """Minimal Response stand-in (login sets a cookie on success)."""
+
+    def set_cookie(self, *a, **k):
+        pass
+
+    def delete_cookie(self, *a, **k):
+        pass
+
+
 def test_login_throttles_after_max_attempts(users_mod, monkeypatch):
     users = users_mod
     # No DB needed: the throttle fires before any DB access once the cap is hit.
@@ -46,7 +56,7 @@ def test_login_throttles_after_max_attempts(users_mod, monkeypatch):
     last_status = None
     for _ in range(users._LOGIN_MAX_ATTEMPTS + 3):
         try:
-            users.login(req=req, request=http, db=_FakeDB())
+            users.login(req=req, request=http, response=_Resp(), db=_FakeDB())
         except HTTPException as e:
             last_status = e.value if False else e.status_code
         calls += 1

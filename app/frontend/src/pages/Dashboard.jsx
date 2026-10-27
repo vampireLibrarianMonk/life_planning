@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchProfiles, createProfile, restoreProfile } from '../services/api'
-import { clearToken, getClaims, isReadonly, uploadUrl } from '../services/auth'
+import { logout, getClaims, isReadonly, uploadUrl } from '../services/auth'
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([])
@@ -77,7 +77,7 @@ export default function Dashboard() {
               </span>
             )
           })()}
-          <button onClick={() => { clearToken(); window.location.reload() }} style={styles.logoutBtn}>Logout</button>
+          <button onClick={async () => { await logout(); window.location.reload() }} style={styles.logoutBtn}>Logout</button>
         </div>
       </header>
 

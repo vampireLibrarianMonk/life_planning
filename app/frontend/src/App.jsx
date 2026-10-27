@@ -8,15 +8,30 @@ import Demo from './pages/Demo'
 import RegionFailoverBanner from './components/RegionFailoverBanner'
 import ReadOnlyBanner from './components/ReadOnlyBanner'
 import ForbiddenToast from './components/ForbiddenToast'
-import { getToken, setToken as saveToken, isReadonly } from './services/auth'
+import { refreshClaims, getClaims, isReadonly } from './services/auth'
 
 export default function App() {
-  const [token, setTokenState] = useState(getToken())
-  const readonly = token ? isReadonly() : false
+  // null = still checking the cookie session; false = not logged in; true = in.
+  const [authed, setAuthed] = useState(null)
+  const readonly = authed ? isReadonly() : false
 
-  const handleLogin = (t) => {
-    saveToken(t)
-    setTokenState(t)
+  // Bootstrap: ask the backend who we are (cookie-backed). No token in JS.
+  useEffect(() => {
+    let alive = true
+    const path = window.location.pathname
+    if (path === '/setup' || path === '/demo') {
+      setAuthed(false)
+      return
+    }
+    refreshClaims().then((claims) => {
+      if (alive) setAuthed(claims != null)
+    })
+    return () => { alive = false }
+  }, [])
+
+  const handleLogin = async () => {
+    await refreshClaims()
+    setAuthed(getClaims() != null)
   }
 
   // Expose the role to CSS so write controls can be disabled globally.
@@ -45,7 +60,12 @@ export default function App() {
     )
   }
 
-  if (!token) {
+  // Still resolving the session — avoid flashing the login screen.
+  if (authed === null) {
+    return <RegionFailoverBanner />
+  }
+
+  if (!authed) {
     return (
       <>
         <RegionFailoverBanner />

@@ -100,8 +100,14 @@ def ctx(monkeypatch, tmp_path):
     return events, db, tok
 
 
-def _serve(events, db, filename, token):
-    return events.serve_upload(filename=filename, token=token, db=db)
+def _serve(events, db, filename, token, cookie_token=None):
+    # Minimal stand-in for a Starlette Request exposing .cookies.
+    import auth as _auth
+
+    class _Req:
+        cookies = {_auth.AUTH_COOKIE_NAME: cookie_token} if cookie_token else {}
+
+    return events.serve_upload(filename=filename, request=_Req(), token=token, db=db)
 
 
 def test_no_token_is_404(ctx):
@@ -116,6 +122,14 @@ def test_bad_token_is_404(ctx):
     with pytest.raises(HTTPException) as e:
         _serve(events, db, "attA.jpg", "garbage.token.here")
     assert e.value.status_code == 404
+
+
+def test_cookie_token_authorizes(ctx):
+    # The httpOnly cookie path must authorize identically to the query param.
+    events, db, tok = ctx
+    resp = _serve(events, db, "attA.jpg", token=None, cookie_token=tok["admin"])
+    # Local mode -> FileResponse (has a path/status); just assert it didn't 404.
+    assert getattr(resp, "status_code", 200) in (200, 307)
 
 
 def test_unknown_key_is_404(ctx):

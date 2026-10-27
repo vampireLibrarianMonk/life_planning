@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -16,7 +16,27 @@ SECRET_KEY = config.get_jwt_secret()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours (short-lived; re-login as needed)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# httpOnly cookie that carries the JWT. Preferred over the Authorization header
+# so the token is never readable by JS (XSS can't exfiltrate it). The header
+# path is retained as a fallback for API clients and a safe rollout.
+AUTH_COOKIE_NAME = "lp_auth"
+
+# auto_error=False so a missing header isn't an instant 401 — we fall back to
+# the cookie before deciding the request is unauthenticated.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+
+def extract_token(
+    request: Request,
+    header_token: str | None = Depends(oauth2_scheme),
+) -> str | None:
+    """Return the JWT from the httpOnly cookie (preferred) or Bearer header.
+
+    Cookie-first means the browser SPA stops needing the token in JS; the header
+    fallback keeps API clients and the migration window working.
+    """
+    cookie_token = request.cookies.get(AUTH_COOKIE_NAME)
+    return cookie_token or header_token
 
 
 def hash_password(password: str) -> str:
@@ -33,12 +53,16 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def get_current_user(
+    token: str | None = Depends(extract_token), db: Session = Depends(get_db)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if not token:
+        raise credentials_exception
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")

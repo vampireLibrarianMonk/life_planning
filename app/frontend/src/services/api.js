@@ -1,16 +1,14 @@
-import { getToken } from './auth'
-
-// Global 403 interceptor: if any /api/ write is rejected (e.g. a readonly user
-// or a stale token), surface a single friendly toast instead of a silent
-// failure or raw thrown error. Hidden write controls make this rare, but this
-// is the defense-in-depth safety net. Patched once per page load.
+// Auth is carried by an httpOnly cookie now, so every same-origin request must
+// send credentials. We patch window.fetch once to (a) default credentials to
+// 'include' and (b) surface a friendly toast on 403 (readonly/stale session).
 if (typeof window !== 'undefined' && !window.__api403Patched) {
   window.__api403Patched = true
   const origFetch = window.fetch.bind(window)
-  window.fetch = async (...args) => {
-    const res = await origFetch(...args)
+  window.fetch = async (input, init = {}) => {
+    const merged = { credentials: 'include', ...init }
+    const res = await origFetch(input, merged)
     try {
-      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || ''
+      const url = typeof input === 'string' ? input : input?.url || ''
       if (res.status === 403 && url.includes('/api/')) {
         window.dispatchEvent(new CustomEvent('api-forbidden'))
       }
@@ -23,7 +21,6 @@ if (typeof window !== 'undefined' && !window.__api403Patched) {
 
 const headers = () => ({
   'Content-Type': 'application/json',
-  'Authorization': `Bearer ${getToken()}`,
 })
 
 export async function fetchProfiles() {
@@ -192,7 +189,6 @@ export async function uploadAvatar(profileId, originalFile, croppedBlob) {
   formData.append('cropped', croppedBlob, 'avatar.png')
   const res = await fetch(`/api/profiles/${profileId}/avatar`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${getToken()}` },
     body: formData,
   })
   return res.json()
@@ -228,7 +224,6 @@ export async function uploadAttachments(profileId, entryId, files) {
   }
   const res = await fetch(`/api/profiles/${profileId}/entries/${entryId}/attachments/`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${getToken()}` },
     body: formData,
   })
   return res.json()
@@ -405,7 +400,6 @@ export async function updateBudget(profileId, data) {
 export async function archiveProfile(profileId) {
   const res = await fetch(`/api/profiles/${profileId}/archive`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${getToken()}` },
   })
   if (!res.ok) throw new Error('Archive failed')
   const token = res.headers.get('X-Archive-Token')
@@ -426,7 +420,7 @@ export async function archiveProfile(profileId) {
 export async function deleteProfile(profileId, archiveToken) {
   const res = await fetch(
     `/api/profiles/${profileId}?archive_token=${encodeURIComponent(archiveToken)}`,
-    { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } },
+    { method: 'DELETE' },
   )
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -441,7 +435,6 @@ export async function restoreProfile(file) {
   fd.append('file', file)
   const res = await fetch('/api/profiles/restore', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${getToken()}` },
     body: fd,
   })
   if (!res.ok) {

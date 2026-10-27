@@ -5,15 +5,19 @@ import secrets
 import time
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from auth import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    AUTH_COOKIE_NAME,
     create_access_token,
+    get_current_user,
     hash_password,
     require_admin,
     verify_password,
 )
+from config import IS_AWS
 from database import get_db
 from models import User
 from schemas import (
@@ -58,8 +62,31 @@ def _hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def _set_auth_cookie(response: Response, token: str) -> None:
+    """Attach the JWT as an httpOnly cookie.
+
+    - httponly: JS can't read it (XSS can't steal the token).
+    - samesite=strict: not sent on cross-site requests (CSRF mitigation).
+    - secure: only over HTTPS in AWS; omitted locally so http://localhost works.
+    - max_age matches the token TTL so the cookie expires with the JWT.
+    """
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="strict",
+        secure=IS_AWS,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
+
+def _clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(key=AUTH_COOKIE_NAME, path="/", samesite="strict", secure=IS_AWS)
+
+
 @router.post("/login", response_model=Token)
-def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
+def login(req: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     # Throttle by client IP + attempted username (defense-in-depth vs. brute force).
     client_ip = request.client.host if request.client else "unknown"
     _login_throttle(f"{client_ip}:{req.username}")
@@ -87,7 +114,24 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
             ),
         )
     token = create_access_token({"sub": str(user.id), "role": user.role.value})
+    _set_auth_cookie(response, token)
+    # Still return the token in the body for API clients + the migration window;
+    # the SPA now relies on the httpOnly cookie instead of storing this.
     return {"access_token": token}
+
+
+@router.post("/logout")
+def logout(response: Response):
+    """Clear the auth cookie. (Header-based clients just drop their token.)"""
+    _clear_auth_cookie(response)
+    return {"ok": True}
+
+
+@router.get("/me", response_model=UserResponse)
+def me(current_user: User = Depends(get_current_user)):
+    """Return the authenticated user so the SPA can get role/identity without
+    reading the (now httpOnly) JWT client-side."""
+    return current_user
 
 
 @router.post("/register", response_model=UserResponse)

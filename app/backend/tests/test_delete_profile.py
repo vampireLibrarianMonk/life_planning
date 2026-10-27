@@ -158,3 +158,64 @@ def test_delete_requires_matching_profile_token(ctx):
     with pytest.raises(HTTPException) as exc:
         archive.delete_profile(profile_id=pid, archive_token=other_token, db=db, _=admin)
     assert exc.value.status_code == 403
+
+
+def _make_archive_zip(archive, profile_id, upload_entries):
+    """Build a minimal valid archive .zip with the given uploads/ entries
+    (list of (name, bytes)) for restore-hardening tests."""
+    import io
+    import json
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("manifest.json", json.dumps({"archive_version": archive.ARCHIVE_VERSION}))
+        zf.writestr(
+            "profile/profile.json",
+            json.dumps({"id": profile_id, "name": "X", "date_of_birth": "2020-01-01"}),
+        )
+        for name, data in upload_entries:
+            zf.writestr(name, data)
+    return buf.getvalue()
+
+
+def test_restore_rejects_path_escape_upload_key(ctx):
+    archive, models, storage, db = ctx
+    admin = _Admin()
+    admin.role = models.Role.admin
+    import asyncio
+
+    zip_bytes = _make_archive_zip(archive, 4242, [("uploads/../evil.png", b"X")])
+
+    class _UF:
+        async def read(self):
+            return zip_bytes
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.get_event_loop().run_until_complete(
+            archive.restore_profile(file=_UF(), db=db, _=admin)
+        )
+    assert exc.value.status_code == 400
+
+
+def test_restore_refuses_to_overwrite_existing_blob(ctx):
+    archive, models, storage, db = ctx
+    admin = _Admin()
+    admin.role = models.Role.admin
+    import asyncio
+
+    # Pre-existing blob that a malicious archive tries to clobber.
+    storage.get_storage().save("victim.png", b"ORIGINAL", "image/png")
+    zip_bytes = _make_archive_zip(archive, 4243, [("uploads/victim.png", b"HACKED")])
+
+    class _UF:
+        async def read(self):
+            return zip_bytes
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.get_event_loop().run_until_complete(
+            archive.restore_profile(file=_UF(), db=db, _=admin)
+        )
+    assert exc.value.status_code == 409
+    # The original blob is untouched.
+    assert storage.get_storage().read("victim.png") == b"ORIGINAL"

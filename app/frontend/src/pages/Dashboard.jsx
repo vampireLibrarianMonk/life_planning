@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchProfiles, createProfile, restoreProfile } from '../services/api'
-import { clearToken, getClaims, isReadonly } from '../services/auth'
+import { clearToken, getClaims, isReadonly, uploadUrl } from '../services/auth'
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([])
@@ -126,7 +126,7 @@ export default function Dashboard() {
             {profiles.map(p => (
               <Link to={`/profile/${p.id}`} key={p.id} style={styles.card}>
                 {p.avatar ? (
-                  <img src={`/api/uploads/${p.avatar}`} alt={p.name} style={styles.avatarImg} />
+                  <img src={uploadUrl(p.avatar)} alt={p.name} style={styles.avatarImg} />
                 ) : (
                   <div style={styles.avatar}>{p.name.charAt(0)}</div>
                 )}

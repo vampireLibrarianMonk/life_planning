@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin_or_child, require_profile_access
 from database import get_db
-from models import EventAttachment, PillarEntry, User
+from models import EventAttachment, PillarEntry, Profile, ProfileAccess, Role, User
 from schemas import AttachmentResponse
 from storage import get_storage
 
@@ -109,17 +109,99 @@ def delete_attachment(
 file_router = APIRouter(prefix="/api/uploads", tags=["events"])
 
 
-@file_router.get("/{filename}")
-def serve_upload(filename: str):
-    """Serve an attachment.
+def _profile_id_for_upload(db: Session, filename: str) -> int | None:
+    """Resolve a stored upload key back to the profile that owns it.
 
-    Local mode: stream the file from disk.
-    AWS mode: redirect to a short-lived presigned S3 URL.
-    The frontend always calls /api/uploads/{filename} regardless of mode.
+    A key is either an EventAttachment.filename (join entry -> profile) or a
+    Profile.avatar / avatar_original. Returns None if the key is unknown.
     """
+    att = (
+        db.query(PillarEntry.profile_id)
+        .join(EventAttachment, EventAttachment.entry_id == PillarEntry.id)
+        .filter(EventAttachment.filename == filename)
+        .first()
+    )
+    if att:
+        return att[0]
+    prof = (
+        db.query(Profile.id)
+        .filter((Profile.avatar == filename) | (Profile.avatar_original == filename))
+        .first()
+    )
+    return prof[0] if prof else None
+
+
+@file_router.get("/{filename}")
+def serve_upload(
+    filename: str,
+    token: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Serve an attachment, AUTHORIZED to the owning profile.
+
+    Browsers fetch media via <img>/<video>/<a> tags that cannot send an
+    Authorization header, so this route accepts the JWT via a `?token=` query
+    param (the SPA appends it). It resolves the file's owning profile and
+    applies the same access rule as the rest of that profile's data
+    (admin / readonly / owning child / granted). Unknown keys, bad tokens, and
+    keys the caller can't access all return 404 (no existence oracle).
+
+    Local mode: stream the file from disk (as an attachment, benign type).
+    AWS mode: redirect to a short-lived presigned S3 URL (minted ONLY after the
+    access check passes).
+    """
+    from jose import JWTError, jwt
+
+    import auth as _auth
+
+    not_found = HTTPException(status_code=404, detail="Not found")
+
+    # Reject path-escape attempts outright (keys are server-generated uuids).
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise not_found
+
+    # Authenticate via the query-param token (image tags can't set headers).
+    if not token:
+        raise not_found
+    try:
+        payload = jwt.decode(token, _auth.SECRET_KEY, algorithms=[_auth.ALGORITHM])
+        current_user = db.query(User).filter(User.id == int(payload.get("sub"))).first()
+    except (JWTError, TypeError, ValueError):
+        raise not_found
+    if current_user is None:
+        raise not_found
+
+    profile_id = _profile_id_for_upload(db, filename)
+    if profile_id is None:
+        raise not_found
+
+    # Enforce the same per-profile access as all other profile data.
+    if current_user.role in (Role.admin, Role.readonly):
+        pass
+    elif current_user.role == Role.child:
+        if not (current_user.profile and current_user.profile.id == profile_id):
+            raise not_found
+    else:
+        granted = (
+            db.query(ProfileAccess)
+            .filter(
+                ProfileAccess.user_id == current_user.id,
+                ProfileAccess.profile_id == profile_id,
+            )
+            .first()
+        )
+        if not granted:
+            raise not_found
+
     storage = get_storage()
     local_path = storage.open_local(filename)
     if local_path is not None:
-        return FileResponse(local_path)
-    # Non-local backend (S3): redirect to a presigned URL.
+        # Force download disposition + benign type so a malicious upload can't
+        # execute in the app origin (e.g. HTML/SVG). nosniff is also set globally.
+        return FileResponse(
+            local_path,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": "attachment", "X-Content-Type-Options": "nosniff"},
+        )
+    # Non-local backend (S3): redirect to a presigned URL (post-authz only).
     return RedirectResponse(url=storage.url_for(filename), status_code=307)

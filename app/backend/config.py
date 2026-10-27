@@ -99,7 +99,11 @@ def get_admin_credentials() -> tuple[str, str]:
 
 
 def summary() -> dict:
-    """Non-sensitive config summary for /api/health and startup logging."""
+    """Non-sensitive config summary for startup LOGGING (admin-side only).
+
+    NOTE: do NOT return this verbatim on the unauthenticated /api/health route —
+    it names the uploads bucket + secrets source. Use public_summary() there.
+    """
     return {
         "mode": DEPLOY_MODE,
         "region": AWS_REGION if IS_AWS else None,
@@ -107,3 +111,12 @@ def summary() -> dict:
         "uploads_bucket": UPLOADS_BUCKET if IS_AWS else None,
         "secrets_source": "secretsmanager" if IS_AWS else "env",
     }
+
+
+def public_summary() -> dict:
+    """Minimal config echo safe for the UNAUTHENTICATED /api/health route.
+
+    Exposes only what the SPA needs (mode + region, used by the region-failover
+    banner). Omits the bucket name and secrets source.
+    """
+    return {"mode": DEPLOY_MODE, "region": AWS_REGION if IS_AWS else None}

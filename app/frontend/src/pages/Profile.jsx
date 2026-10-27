@@ -5,7 +5,7 @@ import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import ChildDevelopment from '../components/ChildDevelopment'
 import Economy from './Economy'
-import { isReadonly, isAdmin } from '../services/auth'
+import { isReadonly, isAdmin, uploadUrl } from '../services/auth'
 
 const canWrite = !isReadonly()
 const adminUser = isAdmin()
@@ -411,7 +411,7 @@ export default function Profile() {
         <div style={s.profileHeader}>
           <label style={{ cursor: canWrite ? 'pointer' : 'default', position: 'relative' }} title={canWrite ? 'Click to change photo' : undefined}>
             {profile.avatar ? (
-              <img src={`/api/uploads/${profile.avatar}`} alt={profile.name} style={s.bigAvatar} />
+              <img src={uploadUrl(profile.avatar)} alt={profile.name} style={s.bigAvatar} />
             ) : (
               <div style={s.bigAvatarPlaceholder}>{profile.name.charAt(0)}</div>
             )}
@@ -1207,13 +1207,13 @@ export default function Profile() {
             {atts.map(a => (
               <div key={a.id} style={s.attachItem}>
                 {a.mime_type.startsWith('image/') ? (
-                  <a href={`/api/uploads/${a.filename}`} target="_blank" rel="noreferrer">
-                    <img src={`/api/uploads/${a.filename}`} alt={a.original_name} style={{ maxWidth: 120, maxHeight: 80, borderRadius: 4 }} />
+                  <a href={uploadUrl(a.filename)} target="_blank" rel="noreferrer">
+                    <img src={uploadUrl(a.filename)} alt={a.original_name} style={{ maxWidth: 120, maxHeight: 80, borderRadius: 4 }} />
                   </a>
                 ) : a.mime_type.startsWith('video/') ? (
-                  <video src={`/api/uploads/${a.filename}`} controls style={{ maxWidth: 180, maxHeight: 100, borderRadius: 4 }} />
+                  <video src={uploadUrl(a.filename)} controls style={{ maxWidth: 180, maxHeight: 100, borderRadius: 4 }} />
                 ) : (
-                  <a href={`/api/uploads/${a.filename}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#2563b0' }}>📄 {a.original_name}</a>
+                  <a href={uploadUrl(a.filename)} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#2563b0' }}>📄 {a.original_name}</a>
                 )}
                 {canWrite && <button onClick={() => handleDeleteAttachment(item.id, a.id)} style={{ ...s.deleteBtn, fontSize: 14 }} title="Remove">×</button>}
               </div>

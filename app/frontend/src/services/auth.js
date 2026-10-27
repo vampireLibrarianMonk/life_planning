@@ -52,3 +52,14 @@ export function isAdmin() {
 export function isChild() {
   return getRole() === 'child'
 }
+
+/**
+ * Build an authorized URL for a stored upload. The blob-serving route now
+ * requires auth, but <img>/<video>/<a> tags can't send an Authorization
+ * header, so the short-lived JWT is passed as a query param.
+ */
+export function uploadUrl(filename) {
+  if (!filename) return ''
+  const t = getToken()
+  return `/api/uploads/${filename}${t ? `?token=${encodeURIComponent(t)}` : ''}`
+}

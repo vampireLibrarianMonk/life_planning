@@ -4,6 +4,7 @@ import {
   fetchCDWorries, saveCDWorries, updateEntry, deleteEntry, createEntry,
   uploadAttachments, fetchAttachments, deleteAttachment,
 } from '../services/api'
+import { uploadUrl } from '../services/auth'
 
 const MARKS = [
   { key: 'not_started', label: 'not yet' },
@@ -217,11 +218,11 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
             {(photos || []).map(p => (
               <div key={p.id} style={{ position: 'relative' }}>
                 {p.mime_type && p.mime_type.startsWith('image/') ? (
-                  <a href={`/api/uploads/${p.filename}`} target="_blank" rel="noreferrer">
-                    <img src={`/api/uploads/${p.filename}`} alt={p.original_name} style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 6 }} />
+                  <a href={uploadUrl(p.filename)} target="_blank" rel="noreferrer">
+                    <img src={uploadUrl(p.filename)} alt={p.original_name} style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 6 }} />
                   </a>
                 ) : (
-                  <a href={`/api/uploads/${p.filename}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>📄 {p.original_name}</a>
+                  <a href={uploadUrl(p.filename)} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>📄 {p.original_name}</a>
                 )}
                 {canWrite && (
                   <button

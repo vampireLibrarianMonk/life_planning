@@ -299,10 +299,21 @@ async def restore_profile(
     storage = get_storage()
 
     # Restore upload blobs first (so attachment rows point at live files).
+    # Hardening: reject keys that try to escape the storage root (path traversal
+    # in local mode) and never overwrite an existing blob (a crafted archive must
+    # not be able to clobber another profile's live files).
     for name in zf.namelist():
-        if name.startswith("uploads/") and not name.endswith("/"):
-            key = name[len("uploads/") :]
-            storage.save(key, zf.read(name), "application/octet-stream")
+        if not name.startswith("uploads/") or name.endswith("/"):
+            continue
+        key = name[len("uploads/") :]
+        if not key or "/" in key or "\\" in key or ".." in key:
+            raise HTTPException(status_code=400, detail="Archive contains an invalid upload path")
+        if storage.read(key) is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Refusing to overwrite an existing stored file: {key}",
+            )
+        storage.save(key, zf.read(name), "application/octet-stream")
 
     def _coerce(model, row: dict) -> dict:
         """Turn ISO datetime strings back into datetime objects for DateTime

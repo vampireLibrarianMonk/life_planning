@@ -190,3 +190,80 @@ private.
 4. **Tenant isolation & privacy invariants** — can any role (esp. readonly or a
    second child) reach another child's behavior log / journals / financial
    totals / photos by any route, parameter, or the archive/restore path?
+
+---
+
+## 10. Re-review results (3-agent panel, 2026-10-27) + remediation
+
+The panel (access-control, appsec/web, cloud/infra) ran against this doc + live
+code. Summary of findings and what was done.
+
+### Fixed in code (this pass) — all test-covered, additive, reversible
+- **CRITICAL — unauthenticated blob access (the real one).** `/api/uploads/{key}`
+  served any attachment/avatar with **zero auth** and (in AWS) minted a presigned
+  URL for anyone — a readonly grandparent or a second child could fetch another
+  child's photos by filename. **Fixed:** `serve_upload` now requires a valid JWT
+  (via `?token=` since `<img>` tags can't send headers), resolves the file's
+  owning profile, and applies the same per-profile access rule; unknown/bad/
+  unauthorized/path-escape all return **404** (no oracle). Local serving now
+  forces `Content-Disposition: attachment` + `application/octet-stream` so a
+  malicious HTML/SVG upload can't execute in the app origin. Frontend fetches via
+  a new `uploadUrl()` helper that appends the token. Tests:
+  `tests/test_upload_authz.py` (7).
+- **HIGH — `/restore` path traversal + blob overwrite.** A crafted archive could
+  write `uploads/../x` (local path escape) or overwrite another profile's live
+  blob. **Fixed:** reject upload keys containing `/`, `\`, or `..` (400) and
+  refuse to overwrite an existing stored key (409). Tests in
+  `tests/test_delete_profile.py`.
+- **LOW/infra-code — `/api/health` info leak.** The unauthenticated health route
+  echoed the uploads bucket name + secrets source. **Fixed:** added
+  `config.public_summary()` (mode + region only) for the public route; the
+  verbose `summary()` is now logging-only.
+
+### Confirmed SAFE by the panel (no change needed)
+- **XSS / crown-jewel path is clean** — `MiniMarkdown` and all rendering go
+  through React auto-escaping; **no `dangerouslySetInnerHTML`/innerHTML anywhere**.
+  The `localStorage` JWT risk stays gated behind "never add an HTML sink."
+- **JWT alg handling safe** — `decode(..., algorithms=["HS256"])` pins the alg
+  (no `alg:none`/confusion).
+- **Router-level `require_profile_access`** does run on every included route, so
+  the bare-`get_current_user` GETs under those routers are still profile-scoped.
+- **`profiles` GET `/{id}`** correctly 404s a child on a non-owned profile.
+- **Archive token** is not forgeable (HS256, server secret, profile-bound).
+
+### Deferred — documented, NOT changed while unattended (owner decision)
+- **R1 (Medium) localStorage JWT → httpOnly cookie + CSRF.** Architecture change
+  with a CSRF tradeoff; residual risk low given clean XSS + 2h TTL + CSP. Keep as
+  an open item; do not migrate reactively.
+- **Archive token single-use/replay (Medium).** Token is 30-min, signed,
+  profile-bound, and delete is admin-only + idempotent; replay = re-deleting an
+  already-deleted profile. A single-use `jti` needs cross-region state (schema);
+  not built unattended. **Recommend** adding a spent-jti check later.
+- **Login rate limiting (Medium).** No app-layer throttle on `/api/auth/login`;
+  defense currently depends on the WAF rate rule. Prefer a **WAF rate-based rule
+  on the login path** (infra — owner) over a new stateful in-app dep across the
+  dual-region deploy.
+- **Login user-enumeration via the pre-setup 403 (Medium).** Distinct message
+  when a username exists but setup is pending. Minor (tiny closed user base);
+  confirm the invite UX before collapsing to a generic 401.
+- **A pre-commit/ESLint `no-danger` guardrail** to permanently block
+  `dangerouslySetInnerHTML` — cheap future add.
+
+### Owner-required infra checklist (NOT touched while unattended)
+1. **WAF** — verify the documented rules are live **and attached in BOTH
+   regions** (a standby without WAF is a failover bypass); add a rate-based rule
+   on `/api/auth/login`.
+2. **KMS** — confirm the live key is the multi-region `alias/life-planning-mr`
+   and the west standby can decrypt (DR linchpin); key policy decrypt-to-role
+   only, no wildcards.
+3. **Secrets** — establish rotation for admin + JWT secrets (note the per-process
+   `lru_cache` means rotation takes effect on redeploy); CloudTrail alert on
+   `GetSecretValue` by any non-instance principal.
+4. **IAM** — instance-role S3/KMS scoped (no `*`); `house-user` MFA + stale-key
+   rotation; root MFA/no-root-keys; CloudTrail multi-region on.
+5. **CloudWatch** — log-group retention + KMS encryption; confirm uvicorn access
+   logs don't capture query-string PII (headers/bodies are not logged by default).
+6. **S3/DR** — confirm Litestream restore window; ensure the least-priv role
+   cannot delete object versions / change versioning (consider Object Lock).
+7. **Budgets** — billing alarm to cap unattended cost-abuse of the public
+   endpoints (`/api/health`, `/api/alive`, `/api/demo`, login).

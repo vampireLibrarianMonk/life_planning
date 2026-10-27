@@ -49,3 +49,6 @@ later_inclusion/
 
 # Deployment ARNs / local deploy state (resource identifiers, not committed)
 .arn-env
+
+# Stray session/transcript dumps (e.g. a bare YYYY-MM-DD file)
+/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]

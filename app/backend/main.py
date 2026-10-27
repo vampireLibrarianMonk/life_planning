@@ -147,9 +147,9 @@ def health():
     if os.getenv("HEALTH_FORCE_FAIL", "0") == "1":
         return JSONResponse(
             status_code=503,
-            content={"status": "forced_fail", "config": config.summary()},
+            content={"status": "forced_fail", "config": config.public_summary()},
         )
-    return {"status": "ok", "config": config.summary()}
+    return {"status": "ok", "config": config.public_summary()}
 
 
 @app.get("/api/alive")

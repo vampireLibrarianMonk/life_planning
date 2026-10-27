@@ -39,4 +39,27 @@ docker push "$REPO:latest"
 docker push "$REPO:$STAMP"
 
 echo "[done] pushed. App Runner auto-deploy (if enabled) will roll this out."
+
+# --- West standby: trigger an EXPLICIT deployment -------------------------
+# East auto-deploys on this push, but the us-west-2 standby does NOT: App
+# Runner's auto-deploy fires on a direct push to the watched repo, and the
+# west image arrives via *cross-region ECR replication* (no push event). So
+# without this step the standby silently lags the primary by a deploy (caught
+# in the 2026-10-27 failover drill — see PHASE2_FAILOVER.md). This triggers the
+# west service to pull the freshly-replicated :latest. Best-effort: a missing
+# standby or a brief replication lag must not fail the primary deploy.
+if [[ -n "${SERVICE_ARN_WEST:-}" ]]; then
+  echo "[west] triggering standby deployment (us-west-2)…"
+  if aws apprunner start-deployment \
+       --service-arn "$SERVICE_ARN_WEST" --region us-west-2 \
+       --query OperationId --output text 2>/dev/null; then
+    echo "[west] deployment started. (If it no-ops, ECR replication may still"
+    echo "       be in flight — re-run start-deployment in a minute.)"
+  else
+    echo "[west] WARN: could not start west deployment (replication lag or"
+    echo "       service unavailable). Re-run:"
+    echo "       aws apprunner start-deployment --service-arn \"\$SERVICE_ARN_WEST\" --region us-west-2"
+  fi
+fi
+
 echo "       watch: ./deploy/monitor.sh watch"

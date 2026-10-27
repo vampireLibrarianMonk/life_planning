@@ -9,8 +9,10 @@ provisioning work (see `01_user_provisioning.md`).
   Dashboard section below Life Maps; age-group cards → objective CRUD + marks +
   accomplishment photos + private worries note + print stage sheet. Backend +
   frontend shipped; e2e verified green against the live deploy.
-- **#3 Lineage / "Who Do You Think You Are"-style pillar** — NEW, specced below;
-  not built.
+- **#3 Lineage bounty track** — reframed (2026-10-27): the Heritage pillar
+  ALREADY covers lineage (family tree, ancestor research, migration map,
+  artifacts), so NOT a new pillar — at most a small bounty-track enrichment of
+  Heritage. Pending owner decision on whether it's worth adding.
 
 ---
 
@@ -144,46 +146,45 @@ lost today; it's a correctness check.)
 
 ---
 
-## 3. Lineage pillar — trace the child's family tree (inspired by genealogy TV)
+## 3. Lineage bounty track — ENRICH the existing Heritage pillar (not a new pillar)
 
-**Idea (owner, 2026-10-27):** a pillar themed on the *genealogy-journey* concept
-popularized by the show "Who Do You Think You Are?" — give the child **bounties
-to trace their lineage as far back as they can go**, in an abstract/structured
-way that rewards real research and family interviews.
+**Owner caught (2026-10-27): this would largely repeat the Heritage pillar.**
+Heritage & Language ALREADY covers lineage:
+- Its about-text literally says it "combines identity investigation ('Who do you
+  think you are?') with … family origins, stories, artifacts, and traditions."
+- Seeded milestones already include: "Family tree constructed", "Migration map
+  started", "Artifacts preserved/digitized" (6-12); "Ancestor research — one
+  person per year", "Faith heritage explored", "Occupation patterns identified",
+  "Health/genetic awareness" (13-18); plus "Learns basic family tree" and
+  "Lessons purchased by ancestors documented" elsewhere.
 
-### ⚠️ IP / naming guardrail (same lesson as ASQ)
-"Who Do You Think You Are?" is a **copyrighted TV format + trademark** (BBC/
-licensed productions). We take the *idea* (researching one's ancestry) — which
-is not protectable — but must **NOT** name the pillar after the show, reproduce
-its episode structure/scripts/branding, or imply affiliation. Use our own name
-(candidates: **"Roots & Lineage," "Where You Come From," "Ancestry Quest," or
-fold into the existing `heritage` pillar**). Write all content originally.
+**So: do NOT build a new pillar.** The genuinely-new part of the owner's idea is
+turning lineage research into **rewarded, evidence-backed BOUNTIES** (the current
+items are checkbox milestones, not bounty tasks with tiers/rewards/evidence).
 
-### Likely shape (to be designed with the agent panel before building)
-- **Home:** most naturally an extension of the existing **`heritage`** pillar
-  (Heritage & Language already covers family origins, stories, artifacts) — OR a
-  sibling section. Decide: new concept inside `heritage` vs. its own surface.
-- **Bounties (abstract, research-driven), e.g.:**
-  - Interview a living relative and record one story / fact per generation.
-  - Build the tree back N generations (name, birth/place, a source).
-  - Find a primary source (certificate, record, photo, headstone, ship manifest).
-  - Map a migration/route; place an ancestor in a historical moment.
-  - Tiered rewards that scale with how far back / how well-sourced (mirrors the
-    existing bounty tier + decay mechanics).
-- **Evidence:** reuse `EventAttachment` for scans/photos of records and artifacts.
-- **Privacy:** lineage is a family/heritage good — likely **family-readable**
-  (admin + child + extended-family readonly, like heritage), NOT parent-private.
-  Living relatives' PII in notes is the one sensitivity to flag in the design.
-- **Storage:** reuse `PillarEntry` + `Bounty` patterns; prefer **no new Pillar
-  enum value** (reuse `heritage` or a dashboard-section like Child Development)
-  to avoid the SQLite enum-CHECK migration wall.
+### Proposed (small, additive): a Heritage "lineage" bounty set
+- Add seeded **bounties** under the existing `heritage` pillar (reuse the Bounty
+  model + tier/decay mechanics already in the app — no new pillar, no schema
+  change). Examples:
+  - Interview a living relative; record one sourced story/fact per generation.
+  - Extend the tree back one more generation **with a primary source** (tiered:
+    deeper + better-sourced = higher tier).
+  - Find a primary record (certificate, census, ship manifest, headstone photo).
+  - Map an ancestor's migration and place them in a historical moment.
+- **Evidence:** reuse `EventAttachment` for scans/photos (already supported).
+- **Reward depth AND source quality** so it can't be farmed with unverifiable
+  claims — mirror the existing bounty criteria/decay pattern.
 
-### Open questions for design
-1. New pillar/section name (NOT the show's name) — owner pick.
-2. Live inside `heritage` vs. its own top-level section?
-3. Bounty set + tiering: what counts as "as far back as they can go," and how do
-   we reward depth vs. source quality without it becoming unverifiable?
-4. How to handle **living relatives' PII** entered during research.
+### Guardrails / notes
+- **IP:** the "Who do you think you are?" phrase is ALREADY in the heritage
+  about-text as a lowercase thematic nod, not as branding — keep it that way;
+  do not name a feature after the show or reproduce its format.
+- **Privacy:** heritage is family-readable (admin + child + extended-family
+  readonly) — appropriate for lineage. Flag: living relatives' PII entered in
+  notes is the one sensitivity.
+- **Decision for owner:** (a) is enriching Heritage with a lineage bounty set
+  worth doing, or are the existing milestones enough? (b) how many bounties /
+  what tiers?
 
-**Process when we start:** run the same panel (app-competence + mission-fit +
-reviser) + copyright pass on any content, exactly like Child Development.
+**Status: reframed — likely a small seed-data addition to Heritage, pending the
+owner decision above. Not a standalone pillar.**

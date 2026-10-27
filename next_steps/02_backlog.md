@@ -5,9 +5,11 @@ provisioning work (see `01_user_provisioning.md`).
 
 **Current state:**
 - **#1 Manager's Dashboard** — specced, not built. No blockers; ready to start.
-- **#2 Early Growth Markers** — corpus + alpha plan written, reviewed, and
-  emailed to Patrick + Sara. **BLOCKED on 5 owner answers** (see that section)
-  before any code is written.
+- **#2 Early Growth Markers** — corpus + alpha plan written, reviewed, emailed to
+  Patrick + Sara, and **restructured (2026-10-27)** as a "Child Development"
+  dashboard section (same level as Life Maps). Placement/cards/visibility
+  confirmed; **ready to start slice 1** (a few non-blocking details remain, see
+  that section). Corpus sign-off from Sara still welcome but not blocking.
 
 ---
 
@@ -49,10 +51,12 @@ don't let an admin delete/demote the last remaining admin (lockout guard).
 
 ---
 
-## 2. Early Growth Markers — early-childhood developmental tracker (ALPHA planned)
+## 2. Child Development — early-childhood section (same level as Life Maps) (ALPHA planned)
 
-Renamed from "ASQ-style tracker." Original, non-ASQ content; a formation on-ramp
-for ages ~2mo–5yr, NOT a clinical screen.
+The on-screen section is titled **"Child Development"** (its own dashboard
+section, directly below Life Maps). The underlying corpus of objectives is the
+original, non-ASQ "Early Growth Markers" content — a formation on-ramp for ages
+~2mo–5yr, NOT a clinical screen.
 
 ### Status (2026-10-26)
 - ✅ **Copyright decision locked:** original content, NO ASQ reproduction. ASQ is
@@ -71,42 +75,59 @@ for ages ~2mo–5yr, NOT a clinical screen.
   `draft_additions/early_growth_markers_alpha_plan.md` (committed `c293436`).
 
 ### Alpha build plan (from the companion doc) — NOT yet built
-- **Storage = ZERO schema change:** markers are `PillarEntry` rows under the
-  existing `education` pillar + `category="devcheck"` (milestones, family-
-  readable) and `category="devcheck_private"` (worries, parent-only). A new
-  `Pillar` enum value is AVOIDED on purpose — SQLite stores the enum as a
-  VARCHAR+CHECK that the additive boot migration can't widen.
+- **Placement (owner-confirmed 2026-10-27):** its OWN dashboard section titled
+  **"Child Development," at the same level as Life Maps and rendered directly
+  below it** — NOT a pillar card, NOT inside the education pillar. Uses the Life
+  Maps pattern (section `<h2>` + cards that open a dedicated view via a
+  `__child_development__` sentinel).
+- **Hierarchy:** Child Development → **age-group cards** → domains → **objectives**.
+- **Storage = ZERO schema change:** objectives are `PillarEntry` rows tagged
+  `category="child_development"` (family-readable) / `"child_development_private"`
+  (worries, parent-only), with the domain persisted in the category suffix
+  (e.g. `child_development:social_emotional`). `pillar` is set to an existing
+  value only to satisfy the non-null column; the UI never surfaces them there.
+  A new `Pillar` enum value is AVOIDED on purpose (SQLite VARCHAR+CHECK the
+  additive boot migration can't widen); being a dashboard section like Life Maps,
+  it doesn't need one.
+- **Per-objective CRUD menu:** add/edit/mark/delete each objective (reuses
+  `/entries` endpoints).
+- **Accomplishment photos:** upload via the existing `EventAttachment`
+  routes attached to the objective's `PillarEntry` (family-readable).
 - **Tri-state → status:** not yet→not_started, emerging→in_progress,
   practicing→complete (introduced/practicing-status/mastered reserved/unused).
-- **Interval encoding:** label in `age_band` ("12mo"); numeric months in
+- **Age-group encoding:** label in `age_band` ("12mo"); numeric months in
   `age_years` as the sort key (UI must sort by `age_years`, not string age_band).
-- **Privacy split (resolved):** milestones + "celebrating" note on the existing
-  `/entries` router (`require_profile_access` = admin + child + family readonly);
-  "worries" on a NEW sub-route gated `require_private_profile_access` (admin +
-  owning child only; readonly 403). Writes stay `require_admin_or_child`.
-- **Configure:** seed-on-demand per interval via a server-side template route
+- **Privacy split (resolved + owner-confirmed):** objectives + photos +
+  "celebrating" note on the existing `/entries` router (`require_profile_access`
+  = admin + child + family readonly); "worries" on a NEW sub-route gated
+  `require_private_profile_access` (admin + owning child only; readonly 403).
+  Writes stay `require_admin_or_child`.
+- **Configure:** seed-on-demand per age group via a server-side template route
   (mirrors `seed_data.py`), idempotent; "active" = presence-of-rows; deactivate
-  = DELETE rows. On a Profile-page "Early Growth Markers" section.
-- **Print:** `@media print` + `window.print()` stage sheet (one interval/sheet,
+  = DELETE rows.
+- **Print:** `@media print` + `window.print()` stage sheet (one age group/sheet,
   empty tri-state checkboxes, pinned banner); worries OMITTED from print in
   alpha. No server-side PDF.
-- **Filtering:** normal education views AND `/demo` must exclude both `devcheck`
-  categories.
-- **Build order (loop):** (1) backend seed/CRUD + private worries route + tests
-  → (2) configure UI (12mo first) → (3) print sheet → (4) scale all intervals.
+- **Filtering:** normal pillar/education views AND `/demo` must exclude both
+  `child_development*` categories.
+- **Build order (loop):** (1) backend seed/CRUD + private worries route + photo
+  upload + tests → (2) dashboard section + age-group view (12mo first, with the
+  objective CRUD menu + photos) → (3) print sheet → (4) scale all age groups.
 
-### ⛔ BLOCKED ON OWNER ANSWERS — need Patrick + Sara before building
-1. **Corpus sign-off:** do you + Sara approve the corpus format/wording as
-   emailed? (Gate for everything below.)
-2. **Domain encoding:** persist domain as a tag (e.g. `category="devcheck:social_emotional"`)
-   for clean grouping, or keep domain as a UI-only heading? (Recommend: persist.)
-3. **Who marks items:** parents only, or the child too (child role can write)?
-   Determines whether the child's sheet is editable or read-only.
-4. **Print scope:** one interval per sheet (recommended) or an "all active
-   intervals" booklet?
-5. **Worries on print:** omit in alpha (current plan), or provide a separate
-   parent-only print that includes them?
+### Owner decisions (confirmed 2026-10-27)
+1. ✅ **Placement:** same level as Life Maps, directly below it.
+2. ✅ **Top-level cards = age groups;** drill in → domains → objectives.
+3. ✅ **Visibility:** objectives + accomplishment photos family-readable;
+   "worries" note parent/child-only (private route).
 
-**Action when unblocked:** start alpha slice 1 (backend seed/CRUD + private
-worries route + tests). Wire into the archive export map + full-clean-delete
+### Still open (finalize with slice 2; not blocking slice 1)
+- **Corpus sign-off:** do Patrick + Sara approve the emailed corpus format/wording?
+- **Who marks/edits objectives:** parents only, or the child too (child role can
+  write)? Determines editable vs. read-only child view.
+- **Print scope:** one age group per sheet (planned) vs. an "all active groups"
+  booklet.
+- **Worries on print:** omit in alpha (planned) vs. a separate parent-only print.
+
+**Action to start:** alpha slice 1 (backend seed/CRUD + private worries route +
+photo upload + tests). Wire into the archive export map + full-clean-delete
 cascade at that point.

@@ -259,14 +259,13 @@ in code; only the cookie migration remains deferred (deliberately)._
 
 ### Owner-required infra checklist (NOT touched while unattended)
 _Update 2026-10-27 — read-only verification done; one real finding surfaced._
-1. **WAF — ⚠️ FINDING: us-west-2 standby appears to have NO web ACL.** Verified
-   live: `life-planning-waf` exists + (presumed) attached in **us-east-1**, but
-   `wafv2 list-web-acls --scope REGIONAL --region us-west-2` returns **empty**.
-   On a regional failover, the standby would serve traffic **without WAF**
-   (rate-limiting/managed rules bypassed). **Priority fix on return:** create the
-   same web ACL in us-west-2 and attach it to the west App Runner service; add a
-   rate-based rule on `/api/auth/login`. (Not done unattended — a misconfigured
-   WAF can black-hole the standby.)
+1. **WAF — ✅ FIXED (2026-10-27, owner present).** The us-west-2 standby now has
+   its own `life-planning-waf` web ACL (ARN in `.arn-env` as `WAF_ACL_ARN_WEST`),
+   created as a verbatim mirror of the east ACL (all 6 rules incl. the
+   LoginRateLimit rate-based rule) and **associated** with the west App Runner
+   service. Verified live: west behaves identically to east — `/api/health`
+   allowed (AllowHealthCheck prio 0), `/` and `/api/profiles` on the default host
+   return 403 (BlockDefaultAppRunnerHost). Failover no longer bypasses WAF.
 2. **KMS — ✅ VERIFIED multi-region.** `alias/life-planning-mr` →
    `mrk-4e4cf93c38474f2d8bb7e294180eb6f0`, MultiRegion=true, Enabled. Still
    confirm the west replica key + that west can decrypt on failover, and the key

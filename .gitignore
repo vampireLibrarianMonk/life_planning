@@ -18,6 +18,9 @@ dist/
 
 # Playwright test artifacts
 app/frontend/playwright-report/
+
+# Reference materials (source PDFs — never tracked; coverage/personal reference only)
+reference/
 app/frontend/test-results/
 app/frontend/blob-report/
 app/frontend/.cache/

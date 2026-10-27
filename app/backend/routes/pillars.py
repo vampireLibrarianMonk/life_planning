@@ -29,6 +29,11 @@ def list_entries(
         q = q.filter(PillarEntry.pillar == pillar)
     if top_level:
         q = q.filter(PillarEntry.parent_id == parent_id)
+    # Child Development objectives/notes live under pillar=education but are a
+    # SEPARATE dashboard section — never surface them in the normal pillar views.
+    q = q.filter(
+        (PillarEntry.category.is_(None)) | (~PillarEntry.category.like("child_development%"))
+    )
     return q.order_by(
         PillarEntry.is_milestone.desc(), PillarEntry.age_band, PillarEntry.created_at
     ).all()

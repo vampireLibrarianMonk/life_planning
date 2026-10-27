@@ -18,7 +18,15 @@ from fastapi import HTTPException
 def ctx(monkeypatch, tmp_path):
     monkeypatch.setenv("DEPLOY_MODE", "local")
     monkeypatch.setenv("SECRET_KEY", "z" * 40)
-    for mod in ("config", "database", "models", "auth", "storage", "main"):
+    for mod in (
+        "config",
+        "database",
+        "models",
+        "auth",
+        "storage",
+        "main",
+        "routes.archive",
+    ):
         sys.modules.pop(mod, None)
 
     from sqlalchemy import create_engine

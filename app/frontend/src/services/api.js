@@ -450,3 +450,41 @@ export async function restoreProfile(file) {
   }
   return res.json()
 }
+
+// --- Child Development section -------------------------------------------
+
+export async function fetchCDOverview(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/`, { headers: headers() })
+  return res.json()
+}
+
+export async function fetchCDAgeGroup(profileId, ageBand) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/${ageBand}`, { headers: headers() })
+  return res.json()
+}
+
+export async function seedCDAgeGroup(profileId, ageBand) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/${ageBand}/seed`, {
+    method: 'POST', headers: headers(),
+  })
+  return res.json()
+}
+
+export async function deactivateCDAgeGroup(profileId, ageBand) {
+  await fetch(`/api/profiles/${profileId}/child-development/${ageBand}`, {
+    method: 'DELETE', headers: headers(),
+  })
+}
+
+export async function fetchCDWorries(profileId, ageBand) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/${ageBand}/worries`, { headers: headers() })
+  if (!res.ok) return { content: '' }
+  return res.json()
+}
+
+export async function saveCDWorries(profileId, ageBand, content) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/${ageBand}/worries`, {
+    method: 'PUT', headers: headers(), body: JSON.stringify({ content }),
+  })
+  return res.json()
+}

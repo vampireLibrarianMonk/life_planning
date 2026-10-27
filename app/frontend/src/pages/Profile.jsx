@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, reseedProfile, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics, fetchLessons, createLesson, createLessonResponse, deleteLesson, updateLesson, archiveProfile, deleteProfile } from '../services/api'
+import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uploadAttachments, fetchAttachments, deleteAttachment, fetchChildren, uploadAvatar, fetchBounties, createBounty, updateBounty, deleteBounty, reseedProfile, fetchPillarGuide, fetchPrograms, fetchDiscernmentCategories, fetchDiscernmentEntries, createDiscernmentEntry, deleteDiscernmentEntry, fetchResearchTopics, fetchLessons, createLesson, createLessonResponse, deleteLesson, updateLesson, archiveProfile, deleteProfile, fetchCDOverview, fetchCDAgeGroup, seedCDAgeGroup, deactivateCDAgeGroup, fetchCDWorries, saveCDWorries } from '../services/api'
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
+import ChildDevelopment from '../components/ChildDevelopment'
 import Economy from './Economy'
 import { isReadonly, isAdmin } from '../services/auth'
 
@@ -99,6 +100,7 @@ export default function Profile() {
   const { id } = useParams()
   const [profile, setProfile] = useState(null)
   const [activePillar, setActivePillar] = useState(null)
+  const [cdAgeBand, setCdAgeBand] = useState(null)
   const [entries, setEntries] = useState([])
   const [allCounts, setAllCounts] = useState({})
   const [allRaw, setAllRaw] = useState([])
@@ -491,6 +493,19 @@ export default function Profile() {
           )}
         </div>
 
+        {/* Child Development — dashboard section, same level as Life Maps */}
+        <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Child Development</h2>
+        <p style={{ margin: '0 0 10px', fontSize: 12, color: '#8a6f00', background: '#fff8e6', border: '1px solid #f0e2b8', borderRadius: 8, padding: '8px 12px' }}>
+          A gentle guide, not a test, score, or diagnosis — this app is not a medical tool. Every age is a window, not a deadline. Share anything here with your pediatrician.
+        </p>
+        <div className="pillar-grid-desktop">
+          <button onClick={() => { setActivePillar('__child_development__'); setCdAgeBand(null) }} style={{ ...s.pillarCard, border: '2px solid #cfe8d6' }}>
+            <span style={{ fontSize: 28 }}>🌱</span>
+            <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Early Growth Markers</span>
+            <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Ages ~2 months – 5 years</span>
+          </button>
+        </div>
+
         {/* Development Pillars */}
         <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Development Pillars</h2>
         <input type="text" placeholder="🔍 Filter pillars..." value={pillarFilter} onChange={e => setPillarFilter(e.target.value)} className="pillar-filter" style={{ ...s.input, marginBottom: 12 }} />
@@ -586,6 +601,21 @@ export default function Profile() {
         </>
         )}
       </div>
+    )
+  }
+
+  // Child Development view — dashboard section (same level as Life Maps)
+  if (activePillar === '__child_development__') {
+    return (
+      <ChildDevelopment
+        profileId={id}
+        profileName={profile ? profile.name : ''}
+        ageBand={cdAgeBand}
+        setAgeBand={setCdAgeBand}
+        onBack={() => { setActivePillar(null); setCdAgeBand(null) }}
+        canWrite={canWrite}
+        adminUser={adminUser}
+      />
     )
   }
 

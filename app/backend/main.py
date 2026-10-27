@@ -13,6 +13,7 @@ from database import Base, engine, ensure_columns
 from models import User
 from routes import (
     archive,
+    child_development,
     demo,
     discernment,
     discernments,
@@ -86,6 +87,7 @@ app.include_router(lessons.router)
 app.include_router(funds.router)
 app.include_router(demo.router)
 app.include_router(archive.router)
+app.include_router(child_development.router)
 
 
 @app.on_event("startup")

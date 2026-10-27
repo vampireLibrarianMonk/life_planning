@@ -232,22 +232,30 @@ code. Summary of findings and what was done.
 - **Archive token** is not forgeable (HS256, server secret, profile-bound).
 
 ### Deferred — documented, NOT changed while unattended (owner decision)
-- **R1 (Medium) localStorage JWT → httpOnly cookie + CSRF.** Architecture change
-  with a CSRF tradeoff; residual risk low given clean XSS + 2h TTL + CSP. Keep as
-  an open item; do not migrate reactively.
-- **Archive token single-use/replay (Medium).** Token is 30-min, signed,
-  profile-bound, and delete is admin-only + idempotent; replay = re-deleting an
-  already-deleted profile. A single-use `jti` needs cross-region state (schema);
-  not built unattended. **Recommend** adding a spent-jti check later.
-- **Login rate limiting (Medium).** No app-layer throttle on `/api/auth/login`;
-  defense currently depends on the WAF rate rule. Prefer a **WAF rate-based rule
-  on the login path** (infra — owner) over a new stateful in-app dep across the
-  dual-region deploy.
-- **Login user-enumeration via the pre-setup 403 (Medium).** Distinct message
-  when a username exists but setup is pending. Minor (tiny closed user base);
-  confirm the invite UX before collapsing to a generic 401.
-- **A pre-commit/ESLint `no-danger` guardrail** to permanently block
-  `dangerouslySetInnerHTML` — cheap future add.
+_Update 2026-10-27 (second pass, owner pre-approved): most of these are now DONE
+in code; only the cookie migration remains deferred (deliberately)._
+- ✅ **Single-use / replay hardening of the archive token.** Token TTL cut 30→10
+  min and now **bound to the acting user id** (`uid` claim) — a leaked token is
+  short-lived and unusable by a different account. (Full single-use `jti` state
+  still skipped — needs cross-region storage; the binding + short TTL cover the
+  practical risk.) Tests in `tests/test_delete_profile.py`.
+- ✅ **Login user-enumeration.** The pre-setup case now returns the SAME generic
+  401 as a wrong password (no distinguishing 403), with a generic setup hint
+  that doesn't confirm a specific account. (`routes/users.py`.)
+- ✅ **Login rate limiting (in-app).** Process-local sliding-window throttle on
+  `/api/auth/login` (10 attempts / 5 min per IP+username → 429). Effective given
+  the single-instance App Runner pin; complements (not replaces) a WAF rate rule.
+  Tests: `tests/test_login_throttle.py`.
+- ✅ **`no-danger` guardrail.** New pre-commit hook fails the build if
+  `dangerouslySetInnerHTML`/`innerHTML`/`insertAdjacentHTML`/`document.write`
+  is ever introduced in the SPA — permanently gates the localStorage-JWT risk.
+- ⏸️ **R1 localStorage JWT → httpOnly cookie + CSRF — STILL DEFERRED (on purpose).**
+  This is a high-blast-radius auth rewrite (cookie set/read, CSRF tokens on all
+  state-changing routes, and it interacts with the new blob `?token=` scheme); a
+  mistake could lock out all users. The appsec agent explicitly advised against a
+  reactive migration, and residual risk is low now (clean XSS path + no-danger
+  lint + 2h TTL + tight CSP). **To be done WITH the owner present** so login /
+  logout / image-loading can be verified end-to-end before it goes live.
 
 ### Owner-required infra checklist (NOT touched while unattended)
 1. **WAF** — verify the documented rules are live **and attached in BOTH

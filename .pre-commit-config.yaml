@@ -103,6 +103,16 @@ repos:
         entry: scripts/npm_audit_prod.sh
         files: ^app/frontend/package(-lock)?\.json$
         pass_filenames: false
+      - id: no-danger-html
+        name: no raw-HTML sinks in the SPA (dangerouslySetInnerHTML/innerHTML)
+        language: system
+        # The SPA stores its JWT in localStorage, so any HTML-injection sink is a
+        # token/PII-theft vector. This guardrail keeps that risk permanently
+        # gated: fail if anyone introduces dangerouslySetInnerHTML / innerHTML /
+        # insertAdjacentHTML / document.write into the frontend source.
+        entry: bash -c 'if grep -RInE "dangerouslySetInnerHTML|\.innerHTML|insertAdjacentHTML|document\.write" app/frontend/src; then echo "Raw-HTML sink found (see above) — use React escaping / a sanitizer instead."; exit 1; fi'
+        files: ^app/frontend/src/.*\.(jsx?|tsx?)$
+        pass_filenames: false
 
 # --------------------------------------------------------------------------
 # NOT wired as hooks (too heavy / need built artifacts) — run on demand:

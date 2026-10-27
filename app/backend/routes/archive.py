@@ -53,7 +53,7 @@ from storage import get_storage
 router = APIRouter(prefix="/api/profiles", tags=["archive"])
 
 ARCHIVE_VERSION = 1
-ARCHIVE_TOKEN_TTL_MIN = 30
+ARCHIVE_TOKEN_TTL_MIN = 10
 
 # Per-domain export map: archive subpath -> (SQLAlchemy model, parent-join).
 # Profile-owned tables filter on profile_id; grandchild tables join via parent.
@@ -91,11 +91,12 @@ def _row_to_dict(row) -> dict:
     return out
 
 
-def _mint_archive_token(profile_id: int) -> str:
+def _mint_archive_token(profile_id: int, user_id: int) -> str:
     return jwt.encode(
         {
             "purpose": "archive",
             "profile_id": profile_id,
+            "uid": user_id,  # bind to the user who took the backup
             "exp": datetime.now(UTC) + timedelta(minutes=ARCHIVE_TOKEN_TTL_MIN),
         },
         auth.SECRET_KEY,
@@ -103,20 +104,24 @@ def _mint_archive_token(profile_id: int) -> str:
     )
 
 
-def _verify_archive_token(token: str, profile_id: int) -> None:
+def _verify_archive_token(token: str, profile_id: int, user_id: int) -> None:
     try:
         payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
     except JWTError:
         raise HTTPException(status_code=403, detail="Invalid or expired archive token.")
     if payload.get("purpose") != "archive" or payload.get("profile_id") != profile_id:
         raise HTTPException(status_code=403, detail="Archive token does not match this profile.")
+    # Bind to the acting user: a leaked token can't be used by a different
+    # account (shrinks the replay/leak blast radius alongside the short TTL).
+    if payload.get("uid") != user_id:
+        raise HTTPException(status_code=403, detail="Archive token not valid for this user.")
 
 
 @router.post("/{profile_id}/archive")
 def archive_profile(
     profile_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_private_profile_access),
+    current_user: User = Depends(require_private_profile_access),
 ):
     """Stream a .zip backup of the whole profile (admin + owning child).
 
@@ -185,7 +190,7 @@ def archive_profile(
         zf.writestr("manifest.json", json.dumps(manifest, indent=2))
 
     buf.seek(0)
-    token = _mint_archive_token(profile_id)
+    token = _mint_archive_token(profile_id, current_user.id)
     filename = f"life-plan-profile-{profile_id}-archive.zip"
     return StreamingResponse(
         buf,
@@ -203,15 +208,16 @@ def delete_profile(
     profile_id: int,
     archive_token: str,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
     """FULL clean delete (admin only) — requires a fresh archive token.
 
     Removes every DB row for the profile AND every upload blob. The caller must
     first POST /archive and pass the returned token here (query param
-    `archive_token`), proving a backup was taken.
+    `archive_token`), proving a backup was taken. The token is bound to the
+    acting admin and short-lived.
     """
-    _verify_archive_token(archive_token, profile_id)
+    _verify_archive_token(archive_token, profile_id, current_user.id)
 
     profile = db.query(Profile).filter(Profile.id == profile_id).first()
     if not profile:

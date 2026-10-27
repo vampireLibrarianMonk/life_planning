@@ -54,6 +54,7 @@ def ctx(monkeypatch, tmp_path):
 
 class _Admin:
     role = None
+    id = 1
 
 
 def _seed(models, storage, db):
@@ -93,7 +94,7 @@ def test_archive_delete_restore_roundtrip(ctx):
     pid = _seed(models, storage, db)
 
     # ARCHIVE -> stream zip + token.
-    resp = archive.archive_profile(profile_id=pid, db=db, _=admin)
+    resp = archive.archive_profile(profile_id=pid, db=db, current_user=admin)
     token = resp.headers["X-Archive-Token"]
     # Consume the StreamingResponse body (sync or async iterator of bytes/str).
     import asyncio
@@ -109,11 +110,11 @@ def test_archive_delete_restore_roundtrip(ctx):
 
     # DELETE without a token must fail.
     with pytest.raises(HTTPException) as bad:
-        archive.delete_profile(profile_id=pid, archive_token="garbage", db=db, _=admin)
+        archive.delete_profile(profile_id=pid, archive_token="garbage", db=db, current_user=admin)
     assert bad.value.status_code == 403
 
     # DELETE with the token removes rows AND blobs.
-    archive.delete_profile(profile_id=pid, archive_token=token, db=db, _=admin)
+    archive.delete_profile(profile_id=pid, archive_token=token, db=db, current_user=admin)
     assert db.query(models.Profile).filter(models.Profile.id == pid).first() is None
     assert db.query(models.BountyLog).count() == 0
     assert storage.get_storage().read("avatar_x.png") is None
@@ -154,9 +155,26 @@ def test_delete_requires_matching_profile_token(ctx):
     admin.role = models.Role.admin
     pid = _seed(models, storage, db)
     # A token minted for a DIFFERENT profile must not authorize this delete.
-    other_token = archive._mint_archive_token(pid + 999)
+    other_token = archive._mint_archive_token(pid + 999, admin.id)
     with pytest.raises(HTTPException) as exc:
-        archive.delete_profile(profile_id=pid, archive_token=other_token, db=db, _=admin)
+        archive.delete_profile(profile_id=pid, archive_token=other_token, db=db, current_user=admin)
+    assert exc.value.status_code == 403
+
+
+def test_archive_token_bound_to_acting_user(ctx):
+    archive, models, storage, db = ctx
+    admin = _Admin()
+    admin.role = models.Role.admin
+    admin.id = 1
+    pid = _seed(models, storage, db)
+    # A token minted for user 1 must NOT authorize a delete by a different user.
+    token = archive._mint_archive_token(pid, 1)
+
+    other = _Admin()
+    other.role = models.Role.admin
+    other.id = 2
+    with pytest.raises(HTTPException) as exc:
+        archive.delete_profile(profile_id=pid, archive_token=token, db=db, current_user=other)
     assert exc.value.status_code == 403
 
 

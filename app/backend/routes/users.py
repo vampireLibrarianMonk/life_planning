@@ -2,9 +2,10 @@
 
 import hashlib
 import secrets
+import time
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from auth import (
@@ -27,21 +28,63 @@ from schemas import (
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
+# --- Lightweight in-memory login throttle (defense-in-depth) -----------------
+# App Runner is pinned to a single instance, so a process-local sliding window
+# is effective (it resets on redeploy, which is acceptable for a tiny family
+# app). This complements, not replaces, a WAF rate-based rule. No new deps.
+_LOGIN_MAX_ATTEMPTS = 10
+_LOGIN_WINDOW_SECONDS = 300  # 5 minutes
+_login_attempts: dict[str, list[float]] = {}
+
+
+def _login_throttle(key: str) -> None:
+    now = time.monotonic()
+    cutoff = now - _LOGIN_WINDOW_SECONDS
+    hits = [t for t in _login_attempts.get(key, []) if t > cutoff]
+    if len(hits) >= _LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts. Please wait a few minutes and try again.",
+        )
+    hits.append(now)
+    _login_attempts[key] = hits
+    # Opportunistic cleanup so the dict can't grow unbounded.
+    if len(_login_attempts) > 1000:
+        for k in [k for k, v in _login_attempts.items() if not any(t > cutoff for t in v)]:
+            _login_attempts.pop(k, None)
+
 
 def _hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
 @router.post("/login", response_model=Token)
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    # Throttle by client IP + attempted username (defense-in-depth vs. brute force).
+    client_ip = request.client.host if request.client else "unknown"
+    _login_throttle(f"{client_ip}:{req.username}")
+
     user = db.query(User).filter(User.username == req.username).first()
     if not user or not verify_password(req.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if user.must_change_password:
-        # Account exists but the setup link hasn't been used to set a password.
+        # Uniform response whether the username exists or the password is wrong
+        # (no user-enumeration signal). The setup hint is appended generically so
+        # it doesn't confirm a specific account exists.
         raise HTTPException(
-            status_code=403,
-            detail="Password setup required. Use the setup link from your invitation email.",
+            status_code=401,
+            detail=(
+                "Invalid credentials. If you were invited and haven't set a "
+                "password yet, use the setup link from your invitation email."
+            ),
+        )
+    if user.must_change_password:
+        # Account exists but the setup link hasn't been used — same generic 401
+        # (don't distinguish this state from a wrong password to avoid enumeration).
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "Invalid credentials. If you were invited and haven't set a "
+                "password yet, use the setup link from your invitation email."
+            ),
         )
     token = create_access_token({"sub": str(user.id), "role": user.role.value})
     return {"access_token": token}

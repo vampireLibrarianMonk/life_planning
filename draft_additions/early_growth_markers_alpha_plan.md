@@ -1,10 +1,19 @@
 # Early Growth Markers — Alpha Integration Plan (companion to the corpus)
 
-> Companion to `draft_additions/developmental_checkpoints_draft.md`. This is a
-> **design / alpha-loop plan**, not code. It describes how we bring the
-> multi-stage early-childhood growth markers into the app so a parent can
+> **STATUS: BUILT & LIVE (2026-10-27).** This started as a design/alpha plan;
+> the alpha (configure + objective CRUD + accomplishment photos + private
+> worries note + print stage sheet) is now implemented as the **"Child
+> Development"** dashboard section and deployed. Code:
+> `app/backend/child_development.py`, `app/backend/routes/child_development.py`,
+> `app/frontend/src/components/ChildDevelopment.jsx`; tests
+> `app/backend/tests/test_child_development.py` + `app/frontend/tests/
+> child_development.spec.js` (e2e verified green against the live deploy). The
+> sections below are retained as the as-designed record.
+>
+> Companion to `draft_additions/developmental_checkpoints_draft.md`. Describes
+> how the multi-stage early-childhood growth markers integrate so a parent can
 > **(1) configure** which stages are active per child and **(2) print** a clean,
-> doctor-visit-friendly stage sheet — and the **iteration loop** to get there.
+> doctor-visit-friendly stage sheet — and the **iteration loop** that built it.
 >
 > Decisions below were shaped by a three-agent panel: an **app-competence**
 > agent (grounded in the real models/routes/guards), a **mission-fit** judgment

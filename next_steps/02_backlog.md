@@ -1,15 +1,16 @@
 # Backlog — larger features
 
-Captured 2026-10-23, updated 2026-10-26. Feature-level items beyond the
+Captured 2026-10-23, updated 2026-10-27. Feature-level items beyond the
 provisioning work (see `01_user_provisioning.md`).
 
 **Current state:**
 - **#1 Manager's Dashboard** — specced, not built. No blockers; ready to start.
-- **#2 Early Growth Markers** — corpus + alpha plan written, reviewed, emailed to
-  Patrick + Sara, and **restructured (2026-10-27)** as a "Child Development"
-  dashboard section (same level as Life Maps). Placement/cards/visibility
-  confirmed; **ready to start slice 1** (a few non-blocking details remain, see
-  that section). Corpus sign-off from Sara still welcome but not blocking.
+- **#2 Child Development (Early Growth Markers)** — ✅ **BUILT & LIVE (2026-10-27).**
+  Dashboard section below Life Maps; age-group cards → objective CRUD + marks +
+  accomplishment photos + private worries note + print stage sheet. Backend +
+  frontend shipped; e2e verified green against the live deploy.
+- **#3 Lineage / "Who Do You Think You Are"-style pillar** — NEW, specced below;
+  not built.
 
 ---
 
@@ -51,7 +52,7 @@ don't let an admin delete/demote the last remaining admin (lockout guard).
 
 ---
 
-## 2. Child Development — early-childhood section (same level as Life Maps) (ALPHA planned)
+## 2. Child Development — early-childhood section (same level as Life Maps) — ✅ BUILT & LIVE (2026-10-27)
 
 The on-screen section is titled **"Child Development"** (its own dashboard
 section, directly below Life Maps). The underlying corpus of objectives is the
@@ -74,7 +75,7 @@ original, non-ASQ "Early Growth Markers" content — a formation on-ramp for age
 - ✅ **Alpha integration plan written:**
   `draft_additions/early_growth_markers_alpha_plan.md` (committed `c293436`).
 
-### Alpha build plan (from the companion doc) — NOT yet built
+### As-built (shipped 2026-10-27) — matches the plan below
 - **Placement (owner-confirmed 2026-10-27):** its OWN dashboard section titled
   **"Child Development," at the same level as Life Maps and rendered directly
   below it** — NOT a pillar card, NOT inside the education pillar. Uses the Life
@@ -131,3 +132,58 @@ original, non-ASQ "Early Growth Markers" content — a formation on-ramp for age
 **Action to start:** alpha slice 1 (backend seed/CRUD + private worries route +
 photo upload + tests). Wire into the archive export map + full-clean-delete
 cascade at that point.
+
+### ⚠️ Follow-up for Child Development (archive/delete coverage)
+Child Development rows are `PillarEntry` rows, so the existing archive export +
+full-clean-delete already sweep them up **generically** (they're exported in
+`pillars/entries.json` and deleted with the profile's entries). BUT confirm the
+private `child_development_private` worries note and objective photos also travel
+correctly on restore, and that normal pillar export doesn't double-handle them.
+Add a round-trip assertion when touching archive next. (Not urgent — nothing is
+lost today; it's a correctness check.)
+
+---
+
+## 3. Lineage pillar — trace the child's family tree (inspired by genealogy TV)
+
+**Idea (owner, 2026-10-27):** a pillar themed on the *genealogy-journey* concept
+popularized by the show "Who Do You Think You Are?" — give the child **bounties
+to trace their lineage as far back as they can go**, in an abstract/structured
+way that rewards real research and family interviews.
+
+### ⚠️ IP / naming guardrail (same lesson as ASQ)
+"Who Do You Think You Are?" is a **copyrighted TV format + trademark** (BBC/
+licensed productions). We take the *idea* (researching one's ancestry) — which
+is not protectable — but must **NOT** name the pillar after the show, reproduce
+its episode structure/scripts/branding, or imply affiliation. Use our own name
+(candidates: **"Roots & Lineage," "Where You Come From," "Ancestry Quest," or
+fold into the existing `heritage` pillar**). Write all content originally.
+
+### Likely shape (to be designed with the agent panel before building)
+- **Home:** most naturally an extension of the existing **`heritage`** pillar
+  (Heritage & Language already covers family origins, stories, artifacts) — OR a
+  sibling section. Decide: new concept inside `heritage` vs. its own surface.
+- **Bounties (abstract, research-driven), e.g.:**
+  - Interview a living relative and record one story / fact per generation.
+  - Build the tree back N generations (name, birth/place, a source).
+  - Find a primary source (certificate, record, photo, headstone, ship manifest).
+  - Map a migration/route; place an ancestor in a historical moment.
+  - Tiered rewards that scale with how far back / how well-sourced (mirrors the
+    existing bounty tier + decay mechanics).
+- **Evidence:** reuse `EventAttachment` for scans/photos of records and artifacts.
+- **Privacy:** lineage is a family/heritage good — likely **family-readable**
+  (admin + child + extended-family readonly, like heritage), NOT parent-private.
+  Living relatives' PII in notes is the one sensitivity to flag in the design.
+- **Storage:** reuse `PillarEntry` + `Bounty` patterns; prefer **no new Pillar
+  enum value** (reuse `heritage` or a dashboard-section like Child Development)
+  to avoid the SQLite enum-CHECK migration wall.
+
+### Open questions for design
+1. New pillar/section name (NOT the show's name) — owner pick.
+2. Live inside `heritage` vs. its own top-level section?
+3. Bounty set + tiering: what counts as "as far back as they can go," and how do
+   we reward depth vs. source quality without it becoming unverifiable?
+4. How to handle **living relatives' PII** entered during research.
+
+**Process when we start:** run the same panel (app-competence + mission-fit +
+reviser) + copyright pass on any content, exactly like Child Development.

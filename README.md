@@ -131,6 +131,7 @@ After selecting a profile, you see:
 - **Roadmap** showing per-phase progress across all pillars with the current phase highlighted (accordion — tap to expand any phase)
 - **Core Metric** — the one question the whole system answers
 - **14 pillar cards** with progress bars showing completion percentage (filterable)
+- **Child Development** — an early-childhood section (ages ~2 months–5 years) just below Life Maps: activate age groups, mark objectives (not yet / emerging / practicing), attach accomplishment photos, keep a private parent/child "questions & worries" note, and print a stage sheet for a pediatrician visit. A gentle, non-diagnostic guide — not a test or screen.
 - **Programs & Economy** — Bounty Board + Programs card (14 structured tracks)
 - **Discernment & Reflections** — 10 category cards (Health, Math, Science, Civics, Relationships, Faith, Tradition, Law, Network, Calling)
 

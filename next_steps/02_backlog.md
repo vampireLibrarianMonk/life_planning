@@ -323,6 +323,65 @@ posture (~5s RPO east→west OK, dual-region failure out of scope):
   + Litestream backups + S3 versioning (drop the standby entirely), which also
   matches the risk tolerance and saves more than this automation would.
 
+### App Runner → ECS Express Mode migration: ARM feasibility + cost (researched 2026-10-29)
+
+**ARM/Graviton feasibility — YES, with a one-line fix.** Verified against the
+actual image: `node:22-alpine` + `python:3.12-slim` both publish arm64; every
+compiled Python dep (pydantic-core, cryptography, bcrypt, uvloop/httptools)
+ships aarch64 wheels. **Only blocker:** the Dockerfile hardcodes the Litestream
+`linux-amd64` binary — change to `linux-arm64` and build `--platform=linux/arm64`.
+ARM Fargate is ~20% cheaper than x86 (API-verified: $0.03238 vs $0.04048 per
+vCPU-hr; $0.00356 vs $0.004445 per GB-hr). Take ARM in any migration.
+
+**ALB question — RESOLVED from the AWS ECS FAQ (verified 2026-10-29):** "By
+default, Express Mode creates services using AWS Fargate and **includes an
+Application Load Balancer (ALB)**... with a default URL provided by AWS." And:
+"no additional charge for Express Mode; you pay for the resources created — AWS
+Fargate, **Application Load Balancer**, and CloudWatch." So Express Mode's
+default = Fargate + a per-service ALB you pay for.
+
+**Rates (all AWS Pricing API-verified, us-east-1 = us-west-2):** Fargate x86
+$0.04048/vCPU-hr + $0.004445/GB-hr; ARM 20% less; ALB $0.0225/hr (~$16.43/mo) +
+$0.008/LCU-hr; public IPv4 $0.005/hr (~$3.65/mo). Your task = 0.25 vCPU/0.5 GB.
+
+**Cost scenarios (TOTAL monthly app bill; ~$28 non-compute infra stays):**
+
+| Scenario | Compute | Ingress | **Total** | vs $33 |
+|---|---|---|---|---|
+| Current App Runner (both regions) | $4.75 | bundled | **~$33** | — |
+| Express default, x86 + ALB (2 regions) | $18.02 | $32.85 | **~$79** | +$46 |
+| Express default, ARM + ALB (2 regions) | $14.42 | $32.85 | **~$76** | +$43 |
+| **No-ALB: Fargate public-IP, ARM (2 regions)** | $14.42 | $7.30 | **~$50** | +$17 |
+| No-ALB: Fargate public-IP, x86 (2 regions) | $18.02 | $7.30 | ~$54 | +$21 |
+| Single-region Express (ARM + 1 ALB) | $7.21 | $16.43 | **~$40** | +$7 |
+| **Single-region, no-ALB public-IP, ARM** | $7.21 | $3.65 | **~$27** | **−$6** |
+
+**The no-ALB option (owner asked to consider):** a Fargate task can run with
+`assignPublicIp=ENABLED` and be reached directly — **no load balancer at all**,
+paying only the ~$3.65/mo public-IPv4 charge instead of ~$16.43/mo per ALB. This
+is the single biggest lever (ALB is the dominant new cost, more than the compute
+itself). Tradeoffs/caveats of the no-ALB path:
+- You lose the ALB's managed TLS + the auto-provisioned default URL. You'd
+  terminate TLS at the app (or front it with **CloudFront**, which bills per-
+  request + data and can be cheaper than an ALB at this traffic) and point
+  Route 53 at the task's public IP (which changes on redeploy — needs a small
+  updater, or use CloudFront/a stable endpoint in front).
+- It's NOT the Express Mode "default" — Express Mode wants to give you an ALB. A
+  no-ALB build is really "plain ECS/Fargate task," i.e. you'd skip Express Mode's
+  convenience to save the ALB. So "Express Mode" and "no ALB" are somewhat at
+  odds; the no-ALB number is the plain-Fargate figure.
+- The IP-per-task churn + manual TLS is real operational work — weigh it against
+  the ~$9/mo (dual) or ~$13/mo (vs ALB, single) saving.
+
+**Takeaways:**
+1. A 1:1 dual-region lift to Express-Mode-default is the WORST case (~$76-79/mo,
+   over the $70 cap) — a second ALB on a standby serving ~no traffic is wasteful.
+2. The ALB-per-service model argues strongly for **single-region** on migration:
+   single-region Express+ALB ≈ **$40/mo**; single-region no-ALB public-IP ARM ≈
+   **$27/mo** (actually CHEAPER than today, but with the TLS/IP caveats above).
+3. No urgency — App Runner runs indefinitely. When migrating: go **ARM**, and
+   decide ALB-vs-no-ALB and dual-vs-single-region together (they interact).
+
 **Status: DESIGN ONLY — not built. Blocked on the owner decision (a)/(b)/(c).
 App Runner platform-status claim VERIFIED (2026-10-29): closed to new customers
 2026-04-30, existing services keep running, maintenance-mode only — this

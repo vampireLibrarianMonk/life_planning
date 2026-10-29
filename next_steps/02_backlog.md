@@ -259,12 +259,27 @@ Both agents independently flagged the same load-bearing problems:
    costs — in exchange for ~5 new moving parts that must themselves be correct,
    tested (in failure modes that are hard to test), and maintained.
 
-### ⚠️ Unverified risk to confirm
-A subagent asserted **App Runner stops accepting new customers 2026-04-30**
-(platform wind-down). This was NOT verified against a live AWS source (no web
-access during the review) — **confirm on the AWS App Runner status/announcements
-page before investing** in bespoke pause/resume automation on this platform. If
-true, it argues for migrating off App Runner over building more on it.
+### ✅ App Runner platform status — VERIFIED 2026-10-29 (official AWS source)
+Confirmed against the official AWS App Runner product page
+(https://aws.amazon.com/apprunner/), verbatim:
+
+> "**End of support notice** — AWS App Runner will no longer accept new
+> customers starting on **April 30, 2026**. Your existing App Runner services
+> will remain operational and accessible. AWS continues to invest in security
+> and availability, but we do not plan to introduce new features."
+
+Implications for this app:
+- **Our existing east + west services keep running** — not evicted. No immediate
+  action forced.
+- **No new features / maintenance-mode** — the platform is being wound down;
+  closed to new customers is the classic first step toward eventual EOL (no EOL
+  date published yet).
+- **Strategic read:** do NOT invest in bespoke App Runner-specific automation
+  (pause/resume orchestration). This materially strengthens the "DON'T BUILD
+  (option a)" verdict for this item, and suggests a separate future backlog
+  item: **plan a migration off App Runner** (e.g. ECS Fargate + ALB, or
+  App2Container/Lightsail Containers) before AWS announces a hard EOL. Not
+  urgent, but should be tracked.
 
 ### Panel verdicts (they split — recorded honestly)
 - **Adversarial agent: ABANDON.** "Cure worse than the disease" for a $33/mo
@@ -303,5 +318,8 @@ posture (~5s RPO east→west OK, dual-region failure out of scope):
   + Litestream backups + S3 versioning (drop the standby entirely), which also
   matches the risk tolerance and saves more than this automation would.
 
-**Status: DESIGN ONLY — not built. Blocked on the owner decision (a)/(b)/(c) and
-on verifying the App Runner platform-status claim.**
+**Status: DESIGN ONLY — not built. Blocked on the owner decision (a)/(b)/(c).
+App Runner platform-status claim VERIFIED (2026-10-29): closed to new customers
+2026-04-30, existing services keep running, maintenance-mode only — this
+strengthens option (a) DON'T BUILD and adds a separate "migrate off App Runner"
+item to consider.**

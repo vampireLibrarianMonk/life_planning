@@ -387,3 +387,35 @@ App Runner platform-status claim VERIFIED (2026-10-29): closed to new customers
 2026-04-30, existing services keep running, maintenance-mode only — this
 strengthens option (a) DON'T BUILD and adds a separate "migrate off App Runner"
 item to consider.**
+
+### DECISION (owner, 2026-10-29): STAY ON APP RUNNER — migration PARKED
+
+The owner decided to **stay on AWS App Runner**. Rationale, backed by this
+session's verified pricing research: App Runner is the cheapest, simplest fit
+for this tiny single-region-plus-warm-standby workload. **Every** migration
+alternative we priced came out MORE expensive or added material operational work
+— the ALB-per-service model alone (~$16.43/mo/region) more than doubles the bill
+on a 1:1 dual-region lift, and the only cheaper option (single-region no-ALB
+public-IP) trades away managed TLS + a stable URL. App Runner bundles exactly the
+ingress/TLS/URL that the alternatives charge for.
+
+**Why App Runner was closed to new customers (informed analysis, NOT an AWS
+statement):** this reads as *consolidation, not failure* — ECS Express Mode
+solves the same "hand AWS a container, it manages LB/scaling/TLS/URL" problem,
+rebuilt on the ECS control plane so it inherits the full ECS ecosystem instead
+of being a standalone silo. "Closed to new customers + existing keep running +
+no new features" is AWS's standard graceful-wind-down playbook (honor existing
+commitments, steer the future to one platform). It validates the owner's instinct
+— the simplicity that made App Runner attractive is precisely what Express Mode
+is trying to replicate (just with an ALB bill attached).
+
+**Revisit triggers (the ONLY reasons to reopen this):**
+1. A **hard EOL / shutdown date** is announced (none exists today; "closed to
+   new customers" is typically step one, years before any shutdown, and
+   well-telegraphed). The existing SNS alerting + this analysis mean we're ready.
+2. We hit an **App Runner feature limitation** — since it's maintenance-mode / no
+   new features, any capability gap won't be fixed and becomes the migrate signal.
+
+Until one of those occurs, the full migration analysis above is **parked for
+reference**, not an open task. The automated-failover design (#4 top) remains
+DESIGN-ONLY / not recommended (option (a) DON'T BUILD stands).

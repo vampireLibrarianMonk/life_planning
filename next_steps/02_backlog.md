@@ -277,9 +277,14 @@ Implications for this app:
 - **Strategic read:** do NOT invest in bespoke App Runner-specific automation
   (pause/resume orchestration). This materially strengthens the "DON'T BUILD
   (option a)" verdict for this item, and suggests a separate future backlog
-  item: **plan a migration off App Runner** (e.g. ECS Fargate + ALB, or
-  App2Container/Lightsail Containers) before AWS announces a hard EOL. Not
-  urgent, but should be tracked.
+  item: **plan a migration off App Runner to AWS's named successor,
+  Amazon ECS Express Mode** — the App Runner page explicitly states: "For
+  deploying and running containerized applications, we recommend Amazon ECS
+  Express Mode, a new capability in Amazon ECS" and links official migration
+  guidance (verified 2026-10-29). ECS Express Mode is a like-for-like
+  successor (give it a container; it manages LB/scaling/networking), so the
+  migration should be relatively direct. Not urgent (existing services keep
+  running), but track it before any hard EOL.
 
 ### Panel verdicts (they split — recorded honestly)
 - **Adversarial agent: ABANDON.** "Cure worse than the disease" for a $33/mo

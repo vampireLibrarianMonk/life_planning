@@ -15,15 +15,24 @@ Resource IDs: see git-ignored `.arn-env`.
       (2026-10-27) — the `life-planning-east` / `life-planning-west` alarms
       now notify on both DOWN and recovery (state-neutral names so a recovery
       email never says "down").
-- [x] **Cost-allocation tagging.** All 13 Life Plan resources tagged
+- [x] **Cost-allocation tagging.** All Life Plan resources tagged
       `project=life-planning` (Route 53 hosted zone excluded as shared infra).
       The `project` user-defined cost-allocation tag was activated in the
-      Billing console on 2026-10-20.
-- [ ] **Check isolated cost in ~24h.** In Cost Explorer, group/filter by
-      Tag → `project` = `life-planning` to see this app's spend separated from
-      other projects (Bedrock/Textract/etc.). Tag activation applies going
-      forward (from the start of the current month), not retroactively before
-      the tag existed. Expected steady-state: ~$20–27/mo.
+      Billing console on 2026-10-20. **Re-audited 2026-10-29** after the Phase 2
+      dual-region expansion: tagged 3 resources created later that had been
+      missed — the us-west-2 WAF ACL (`life-planning-waf`) and the two
+      CloudWatch alarms (`life-planning-east`, `life-planning-west`). Full set
+      now consistent (both App Runner services, 4 S3 buckets, 4 secrets, both
+      KMS MR keys, both WAF ACLs, SNS, CRR role, both autoscaling configs, ECR,
+      both IAM roles, both Route 53 health checks).
+- [x] **Isolated cost (checked 2026-10-29).** Cost Explorer filtered by
+      Tag → `project=life-planning`: steady-state **~$1.11/day ≈ $33/mo**
+      (MTD Oct 1–29 = $9.58). This is ABOVE the earlier ~$20–27/mo estimate
+      because that predated the dual-region build — the delta is the second
+      App Runner instance + a second WAF ACL (~$9/mo each for WAF). MTD split:
+      App Runner $4.75, WAF $3.06, KMS $0.72, Secrets $0.57, Route 53 $0.43,
+      S3 $0.04, ECR $0.01, SNS $0. Still well within the $70/mo budget cap.
+      (Sept = $0: the tag/deploy predate it, not real savings.)
 - [ ] **Store admin password + AWS recovery off the deploy laptop.** Deploys
       require local Docker + AWS creds on one machine; that laptop is a single
       operational point of failure. Keep the Secrets Manager admin password and

@@ -188,3 +188,120 @@ items are checkbox milestones, not bounty tasks with tiers/rewards/evidence).
 
 **Status: reframed — likely a small seed-data addition to Heritage, pending the
 owner decision above. Not a standalone pillar.**
+
+---
+
+## 4. Automated cross-region failover/fail-back with staged alerting — DESIGN (not built)
+
+> **Origin:** owner asked whether west can be shut down and auto-booted only on
+> an east outage, with the user alerted at every lifecycle stage. Explored
+> interactively 2026-10-29 and pressure-tested with a 2-agent panel
+> (adversarial + advocate/researcher). This entry is the **design + decision
+> record**, not an approved build.
+
+### Goal (as the owner specified it)
+On an **east outage**: alert user → boot west → alert "west booting" → alert
+"west up" → keep monitoring east → on **east recovery**: alert → transition back
+to east → alert "shifting back" → alert "east up" → shut west down → alert "west
+down". A fully narrated, auto-driven failover **and** fail-back loop.
+
+### What DR pattern this is
+Textbook **Pilot Light** (AWS Well-Architected REL13-BP02): data-replication
+resources always on (S3 + Litestream + CRR), app compute **off** (west App
+Runner paused) until a disaster "lights the pilot." This is a deliberate
+*downgrade* from the current **Warm Standby** (west running 24/7) — trading a
+slower RTO for ~$5-7/mo of west compute.
+
+### Chosen architecture (after narrowing options with the owner)
+- **Mutual cross-region monitors:** Orchestrator-West (Lambda in us-west-2)
+  watches/rescues east; Orchestrator-East (Lambda in us-east-1) watches/rescues
+  west. Each lives OUTSIDE the region it rescues (so the watcher survives its
+  target's death). Global Route 53 health checks remain the user-facing routing
+  signal.
+- **Compute:** EventBridge Scheduler → Lambda (~30-60s poll) as a code-driven
+  state machine. **Rejected:** Step Functions Standard (~$25-50/mo of state-
+  transition cost for a 24/7 loop — would ~double the app's bill); Route 53 ARC
+  (~$1,800/mo — correct but absurd at this scale).
+- **Split-brain arbiter:** a leased `current_primary` record + monotonic
+  **fencing token** (loser-refuses-to-write), doubling as the lifecycle phase
+  tracker.
+- **West off/on:** App Runner pause/resume. **Fail-back:** gated by a west→east
+  reconciliation copy (CRR is east→west only).
+
+### ⚠️ Panel findings — the design as first sketched is NOT safe; corrections required
+Both agents independently flagged the same load-bearing problems:
+1. **DynamoDB *Global Table* is the WRONG arbiter.** Cross-region replication is
+   eventually-consistent / last-writer-wins, so during the exact partition you
+   need it, **both** regions' conditional writes can succeed locally → the
+   arbiter itself splits brain. **Fix:** a SINGLE authoritative lease table in a
+   **neutral third region** (e.g. us-east-2); both orchestrators do conditional
+   writes against that one table (real single-region strong consistency), so the
+   arbiter survives either primary/standby region failing.
+2. **Fencing must be ENFORCED AT THE WRITER, not just held.** SQLite/Litestream/
+   S3 don't enforce a token. Litestream's own docs warn: two writers into the
+   same bucket/path **can corrupt the replica beyond restore**. **Fix:** write a
+   generation sentinel to the S3 path on promotion; the Litestream writer
+   refuses to run unless it holds the current generation; use per-generation S3
+   prefixes (`/db/gen=k/`) so a stale writer can only orphan its own prefix.
+3. **Auto fail-back is the real data-loss trap.** CRR is east→west ONLY — west's
+   outage-window writes have NO path back to east. Automatic fail-back on a 60s
+   TTL **discards them faster than a human could intervene** — i.e. the
+   automation *guarantees* the loss it's meant to prevent. **Fix:** fail-back is
+   a deliberate, manual-gated step: quiesce west writes → copy west replica →
+   east BEFORE east resumes → then re-point. Never fully automate this direction.
+4. **Scale-to-zero introduces a HARD-DOWN window that doesn't exist today.** A
+   paused west fails its health check, so Route 53 has no healthy secondary
+   during the ~3-6 min cold boot (App Runner resume + `litestream restore`). The
+   current warm standby has ~1-2 min RTO with no hard-down gap.
+5. **RTO gets WORSE, not better:** automated pilot-light path ~3-6 min
+   (poll + async resume + cold restore + TTL) vs. ~1-2 min warm today.
+6. **Net saving is only ~$4-6/mo** after the new Lambda/DynamoDB/SNS/cross-region
+   costs — in exchange for ~5 new moving parts that must themselves be correct,
+   tested (in failure modes that are hard to test), and maintained.
+
+### ⚠️ Unverified risk to confirm
+A subagent asserted **App Runner stops accepting new customers 2026-04-30**
+(platform wind-down). This was NOT verified against a live AWS source (no web
+access during the review) — **confirm on the AWS App Runner status/announcements
+page before investing** in bespoke pause/resume automation on this platform. If
+true, it argues for migrating off App Runner over building more on it.
+
+### Panel verdicts (they split — recorded honestly)
+- **Adversarial agent: ABANDON.** "Cure worse than the disease" for a $33/mo
+  app: removes the warm secondary, speeds up the data-destroying fail-back,
+  relies on a non-enforcing fence + a splittable lease, all to save a few
+  dollars on a possibly-retiring platform. Current warm standby already meets
+  the owner's stated risk posture.
+- **Advocate agent: BUILD-SIMPLIFIED.** Pilot light is the right altitude and
+  RTO/RPO easily satisfy the owner; but build only the safe subset and fix the
+  arbiter first.
+
+### Recommended path IF pursued (phased; safe subset only)
+- **Phase 0 — Prove the MANUAL runbook first** (pause/resume, restore, R53 flip,
+  west→east reconciliation copy). Time a real manual failover + fail-back. (This
+  largely exists already as `deploy/failover_control.sh` — extend it.)
+- **Phase 1 — Lease + writer-enforced fencing, no automation.** Authoritative
+  lease table in a neutral 3rd region; generation numbers; per-generation S3
+  prefixes; prove split-brain is impossible by trying to force two writers.
+- **Phase 2 — Detection + staged SNS alerts, human-in-the-loop** (actions
+  proposed, executed by a click). Add flap hysteresis (N≥3 fail / M≥5 ok +
+  cooldown).
+- **Phase 3 — Automate ONLY the east→west "up" direction** (the safe one).
+- **Phase 4 — Fail-back stays MANUAL / explicitly gated** (the dangerous one);
+  automate last, if ever, and only after the reconciliation copy is proven.
+
+### Owner decision needed
+Given it nets ~$4-6/mo, **worsens** RTO, adds a hard-down window + real
+corruption surface, and the current warm standby already meets the stated risk
+posture (~5s RPO east→west OK, dual-region failure out of scope):
+- **(a) DON'T BUILD** — keep warm standby at ~$33/mo (simplest, safest, matches
+  posture). *Default recommendation.*
+- **(b) BUILD-SIMPLIFIED as an EDUCATIONAL exercise** — Phases 0-2 + Phase 3
+  only, fail-back manual, arbiter in a 3rd region. Accept the cost/RTO tradeoffs
+  as tuition, not savings.
+- **(c) Go the OTHER way** — if $/simplicity matter most, consider single-region
+  + Litestream backups + S3 versioning (drop the standby entirely), which also
+  matches the risk tolerance and saves more than this automation would.
+
+**Status: DESIGN ONLY — not built. Blocked on the owner decision (a)/(b)/(c) and
+on verifying the App Runner platform-status claim.**

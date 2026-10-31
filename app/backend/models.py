@@ -62,6 +62,10 @@ class User(Base):
     # One-time setup link: store only the SHA-256 hash of the token + expiry.
     setup_token_hash = Column(String(255), nullable=True)
     setup_token_expires = Column(DateTime, nullable=True)
+    # Bumped to invalidate all outstanding JWTs for this user (logout-all /
+    # password change). The JWT carries this as a `tv` claim; get_current_user
+    # rejects a token whose tv != the current column value.
+    token_version = Column(Integer, nullable=False, default=0)
 
     # A child user links to their profile
     profile = relationship("Profile", back_populates="user", uselist=False)

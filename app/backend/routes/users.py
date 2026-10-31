@@ -21,6 +21,7 @@ from config import IS_AWS
 from database import get_db
 from models import User
 from schemas import (
+    ChangePasswordRequest,
     LoginRequest,
     SetPasswordRequest,
     SetupTokenRequest,
@@ -112,7 +113,9 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
                 "password yet, use the setup link from your invitation email."
             ),
         )
-    token = create_access_token({"sub": str(user.id), "role": user.role.value})
+    token = create_access_token(
+        {"sub": str(user.id), "role": user.role.value, "tv": user.token_version or 0}
+    )
     _set_auth_cookie(response, token)
     # The JWT is delivered ONLY via the httpOnly cookie (no token in the body) —
     # the SPA uses the cookie + /api/auth/me. Not returning the raw token avoids
@@ -121,9 +124,59 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
 
 
 @router.post("/logout")
-def logout(response: Response):
-    """Clear the auth cookie. (Header-based clients just drop their token.)"""
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    """Clear the auth cookie AND revoke outstanding tokens for this user.
+
+    Best-effort revocation: if the request carries a valid token we bump the
+    user's token_version so any other copy of that token (incl. a leaked one)
+    stops working immediately. The cookie is always cleared regardless.
+    """
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    if token:
+        try:
+            from auth import decode_token
+
+            payload = decode_token(token)
+            uid = payload.get("sub")
+            if uid is not None:
+                user = db.query(User).filter(User.id == int(uid)).first()
+                if user is not None:
+                    user.token_version = (user.token_version or 0) + 1
+                    db.commit()
+        except Exception:
+            pass  # never let revocation failure block logout
     _clear_auth_cookie(response)
+    return {"ok": True}
+
+
+@router.post("/change-password")
+def change_password(
+    req: ChangePasswordRequest,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Self-service password change: verify the CURRENT password, set the new
+    one, and revoke all outstanding tokens (bump token_version) so other
+    sessions are logged out. Re-issues a fresh cookie for this session."""
+    if not verify_password(req.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=403, detail="Current password is incorrect.")
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
+    current_user.hashed_password = hash_password(req.new_password)
+    current_user.token_version = (current_user.token_version or 0) + 1
+    current_user.must_change_password = 0
+    db.commit()
+    db.refresh(current_user)
+    # Re-issue a cookie carrying the new token_version so THIS session stays in.
+    token = create_access_token(
+        {
+            "sub": str(current_user.id),
+            "role": current_user.role.value,
+            "tv": current_user.token_version,
+        }
+    )
+    _set_auth_cookie(response, token)
     return {"ok": True}
 
 

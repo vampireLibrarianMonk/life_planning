@@ -97,6 +97,12 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
+    # Token revocation: a token's `tv` claim must match the user's current
+    # token_version. Bumping token_version (logout / password change) instantly
+    # invalidates all previously-issued tokens. Tokens minted before this claim
+    # existed (payload has no `tv`) default to 0 to match the column default.
+    if payload.get("tv", 0) != (user.token_version or 0):
+        raise credentials_exception
     return user
 
 

@@ -100,6 +100,11 @@ class SetPasswordRequest(BaseModel):
     new_password: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 # Profiles
 class ProfileCreate(BaseModel):
     name: str

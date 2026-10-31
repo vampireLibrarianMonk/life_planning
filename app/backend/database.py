@@ -1,12 +1,15 @@
 """Database connection and session management."""
 
+import os
 from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+# Default to a file next to the backend; allow override via DATABASE_URL so
+# tests (and local experiments) don't clobber the dev database.
 DB_PATH = Path(__file__).parent / "life_plan.db"
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -39,6 +42,7 @@ def ensure_columns():
         "must_change_password": "must_change_password INTEGER NOT NULL DEFAULT 0",
         "setup_token_hash": "setup_token_hash VARCHAR(255)",
         "setup_token_expires": "setup_token_expires DATETIME",
+        "token_version": "token_version INTEGER NOT NULL DEFAULT 0",
     }
     with engine.begin() as conn:
         existing = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}

@@ -563,14 +563,14 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
 - [x] **TODO-14 (LOW):** DONE 2026-10-31 — ECR `imageTagMutability=IMMUTABLE` on
   both regions; deploy is now digest-addressed (see TODO-8). A tag can no longer
   be overwritten (supply-chain integrity) and prod deploys by exact digest.
-- [~] **TODO-15 (LOW):** MOSTLY DONE (2026-10-31). ✅ CloudWatch 90-day retention
-  set on all 4 log groups (east+west); ✅ archive-delete token moved to the
-  `X-Archive-Token` header (out of the query string / access logs; query kept as
-  deprecated fallback); ✅ bcrypt 72-byte length guard (done in TODO-7 batch);
-  ✅ account id + secret-name suffixes scrubbed to `<ACCOUNT_ID>` / `-XXXXXX`
-  placeholders in `.env.example` + deploy docs. ⏸️ Log-group MRK encryption still
-  TODO — needs a KMS key-policy change to grant CloudWatch Logs, deferred as a
-  careful key-policy edit.
+- [x] **TODO-15 (LOW):** DONE 2026-10-31. ✅ CloudWatch 90-day retention on all 4
+  log groups; ✅ archive-delete token moved to the `X-Archive-Token` header
+  (out of query string / logs); ✅ bcrypt 72-byte guard; ✅ account id + secret
+  suffixes scrubbed to placeholders; ✅ **log-group CMK encryption** — augmented
+  both MRK key policies with a scoped `logs.<region>.amazonaws.com` grant (root
+  `kms:*` statement preserved — no lockout) and associated the MRK with all 4
+  log groups. Verified the app's decrypt path intact (login 200) after the
+  key-policy edits. (Original key policies backed up off-repo.)
 
 **Status: REVIEW COMPLETE, findings recorded.**
 
@@ -582,10 +582,21 @@ allow-list), TODO-12 (grandchild profile-scope), TODO-15-partial (bcrypt 72-byte
 guard). Commit `b635b4a`, both regions RUNNING; all 3 users + image loading +
 wishlist/url fixes verified live.
 
-**Still OPEN — the HIGH infra items need owner go-ahead (lockout/data risk):**
-- TODO-3 (WAF Count overrides → Block, both regions)
-- TODO-4 (drop `s3:DeleteObject` on DB buckets + S3 Object Lock)
-- TODO-5 (JWT `token_version` revocation + self-service change-password — app code,
-  but a schema/migration change; do next)
-- TODO-8 (server-side CI + immutable-tag deploy), TODO-9 (rate-limit expensive
-  endpoints), TODO-10/13/14/15-rest (infra/CSP/ECR/logging hygiene).
+**FINAL STATUS (2026-10-31): all 15 §12 TODOs remediated in code/infra.** Every
+item is DONE and verified live across both regions (TODO-1…15), including the
+infra set: WAF XSS-body Block (TODO-3), DB buckets recreated with S3 Object Lock
++ DeleteObject removed (TODO-4), east secrets on the MRK (TODO-10), ECR IMMUTABLE
++ digest-promote deploy (TODO-8/14), CloudWatch retention + CMK log encryption
+(TODO-15). App-code items (wishlist authz, JWT revocation + change-password,
+PyJWT, cookie-only tokens, rate-limiting, CSP, url/IDOR hardening) shipped,
+tested (68 backend tests), and deployed. Both regions RUNNING; 3 users verified.
+
+**Only remaining item is a GitHub UI toggle (owner):** enable branch protection
+on `master` requiring the CI checks (`gates`, `backend-tests`, `frontend`,
+`image-scan`) so the pipeline gate is blocking. Repo → Settings → Branches →
+add ruleset for `master` → Require status checks to pass. (Checks appear in the
+picker after the CI workflow runs once.)
+
+Off-repo backups retained for revert: `~/lp_db_backup_*` (pre-recreation DB),
+`~/lp_role_policy_backup_*` (instance role), `~/lp_kms_policy_*_backup_*` (MRK
+key policies east+west).

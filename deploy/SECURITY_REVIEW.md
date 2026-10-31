@@ -387,3 +387,165 @@ _Owner approved working through the deferred list. Status below._
   (App-layer now has its own body-size cap, reducing the urgency.)
 - ⏸️ **`?token=` blob fallback + login token-in-body.** Left as-is pending owner
   call (low; the SPA no longer uses either path).
+
+---
+
+## 12. Re-review results (10-agent panel, 2026-10-31) — new vectors + confirmations
+
+A 10-agent review: **5 adversarial** agents (auth/session · authz/IDOR · web/injection/
+upload · cloud/IAM/secrets · supply-chain/business-logic) + **5 research/confirmation**
+agents that independently verified the top findings against live code, the live AWS
+account (read-only), React's source, and external advisories. Every item below was
+spot-checked directly before recording; confidence is noted.
+
+### NEW exploitable findings (verified)
+
+- **HIGH — Supply chain: image runs as ROOT + unverified Litestream binary.**
+  `Dockerfile:32` `ADD https://.../litestream-...-linux-amd64.tar.gz` with **no
+  checksum/signature**, extracted into `/usr/local/bin`; the runtime stage has **no
+  `USER` directive** so uvicorn runs as **uid 0** carrying the App Runner instance
+  role (Secrets + S3). A tampered/retagged release = root RCE with AWS creds.
+  *Verified: Dockerfile read directly (no USER; ADD present).* Fix: pin + verify a
+  SHA256 before extract; add a non-root `USER`.
+
+- **HIGH — Business logic: a CHILD can self-approve/complete their own wishlist
+  item.** `routes/economy.py:870 update_wishlist_item` is `Depends(require_admin_or_child)`
+  then a blind `setattr` loop (`:884-885`) with no role/field whitelist, and
+  `WishlistUpdate.status` is a free string. A child can PATCH their own item to
+  `status=approved`/`purchased` (parent-approval bypass) and lower `cost_cents`.
+  This is the exact pattern we already fixed on the bounty handler, missed here.
+  *Verified directly in code + confirmation agent.* Fix: mirror the bounty
+  field-whitelist (non-admins may set only title/description/url/priority; forbid
+  status + cost_cents) and make `status` an enum.
+
+- **HIGH (infra, drift) — WAF managed rules disabled in BOTH regions.**
+  `SizeRestrictions_BODY` and `CrossSiteScripting_BODY` are set to **Count** (non-
+  blocking) in the east AND west web ACLs. *Live-verified via `wafv2 get-web-acl`
+  (byte-identical overrides both regions).* XSS-in-body + oversized-body managed
+  protections don't block (app CSP + the in-app body-size cap are the only backstop).
+  Fix: remove the overrides (restore Block), or scope them to the upload routes only.
+
+- **HIGH (infra) — Instance role can DELETE/overwrite the DR backups; no Object
+  Lock.** The App Runner instance role inline policy grants `s3:DeleteObject` on BOTH
+  Litestream DB buckets (east + west); `s3api get-object-lock-configuration` →
+  `ObjectLockConfigurationNotFoundError` on both (versioning on, 60-day noncurrent
+  expiry). *Live-verified.* A compromised instance can purge/overwrite disaster-
+  recovery data. Fix: drop `s3:DeleteObject` on the DB buckets (Litestream needs only
+  Get/Put/List); enable S3 Object Lock on both.
+
+- **MEDIUM — Stateless JWT cannot be revoked + credential-leak channels.** Logout
+  only clears the cookie; no `jti`/`token_version`/denylist, so a captured token/
+  cookie is valid the full 2h TTL with no kill switch; there's no self-service
+  password change. Leak channels: the `?token=` blob URL (logs/history) and the JWT
+  still returned in the **login JSON body** (`routes/users.py` — SPA ignores it).
+  *All four sub-claims verified.* Rated **MEDIUM for this single-family app** (httpOnly
+  + SameSite=strict + Secure + CSRF-Origin + CSP cap real-world capture). Fix:
+  `token_version` claim checked in `get_current_user` (instant revoke on logout/pw-
+  change); drop the body token; drop the `?token=` fallback (cookie already works for
+  `<img>`).
+
+- **MEDIUM — Supply chain: `python-jose==3.4.0` (unmaintained; standing advisories).**
+  Only HS256 is used and `algorithms=["HS256"]` is pinned everywhere, so alg-confusion
+  exposure is low, but the lib is stale (pre-commit already *ignores* `PYSEC-2026-4298`
+  et al). *Specific CVE numbers NOT independently confirmed — treat as maintenance/
+  known-advisory risk, not a verified CVE.* Fix: migrate to **PyJWT** (low-risk, HS256-
+  only), which also clears the stale ecdsa/pyasn1 transitive advisories.
+
+- **MEDIUM — No CI enforcement + unguarded `:latest` auto-deploy to prod.** All gating
+  is local pre-commit (bypassable via `--no-verify`); no `.github/workflows`;
+  `build_push.sh` pushes `:latest` which auto-rolls both regions with no test/approval
+  gate. *Verified: no `.github/` dir.* Fix: server-side CI (re-run lint/sast/audits +
+  tests + image scan, block on fail) and an immutable-tag + explicit-promote deploy.
+
+- **MEDIUM — No rate limit on expensive endpoints.** `/archive` (child-callable; builds
+  the whole-profile ZIP in memory), `/restore`, `/reseed`, `/backup` have no throttle →
+  cheap DoS on the single instance. Fix: throttle these + stream the archive to a temp
+  file instead of RAM.
+
+### LOWER-severity / hardening (verified)
+
+- **LOW — Open-redirect/phishing (NOT XSS) via unvalidated `url` fields.** Wishlist
+  `url` (child-settable) + lesson `url` (admin) are free strings rendered into `href`.
+  *Confirmation agent verified React 18.3.1's `sanitizeURL` neutralizes `javascript:`
+  and the CSP blocks inline script — so the earlier "stored XSS" framing is REFUTED;*
+  residual risk is a child planting an external phishing link a parent clicks
+  (`rel=noopener` already set). Fix: http(s)-only scheme allow-list (server + client).
+- **LOW — Residual grandchild IDOR (consistency-only).** `delete_transaction`
+  (funds), `delete_response` (lessons), `delete_bounty_log` (economy) scope to the
+  immediate parent id but don't re-join parent→`profile_id` like their siblings.
+  *Confirmation agent: admin-only reach in a single-child household (no privilege
+  gained); degrades to a child-triggerable cross-profile delete of low-value rows only
+  in a multi-profile setup.* Fix: add the parent→profile_id join (match siblings).
+- **MEDIUM (infra) — East secrets on the AWS-managed key, west replicas on the
+  customer MRK.** *Live-verified (`KmsKeyId` null on east, MRK on west).* Fix:
+  re-encrypt the two east secrets with the east MRK for consistent CMK control.
+- **MEDIUM (infra) — No rotation** on admin creds or JWT secret (both regions); the
+  JWT dual-verify (current+previous) support already exists to make rotation low-
+  friction.
+- **LOW — ECR tag mutability MUTABLE** (scan-on-push on, not public). Fix: IMMUTABLE +
+  deploy by digest.
+- **LOW — CloudWatch log groups: no retention + not CMK-encrypted;** archive-delete
+  token passed as `?archive_token=` query (can land in access logs). Fix: set
+  retention + MRK encryption; move the token to a header/body.
+- **LOW — bcrypt 72-byte truncation** not guarded (long passphrases silently truncated).
+- **LOW — Account id + secret ARNs committed** in `.env.example` + deploy docs
+  (`.arn-env` itself correctly git-ignored). Identifiers, not secrets. Fix: scrub to
+  placeholders.
+- **LOW — CSP hardening:** add explicit `script-src 'self'`; tighten `img-src`/
+  `media-src` off blanket `https:`; enforce body-size even when Content-Length absent;
+  add a path-containment guard on the SPA catch-all.
+
+### Confirmed CLEAN by the panel (no action)
+No new SQL/ORM injection (all parameterized); no CRLF/header injection (static
+Content-Disposition); markdown renderer + `original_name` are React-escaped; no SSRF
+in request paths; role is re-checked from the DB (JWT claim not trusted for authz);
+setup-token entropy/hashing/single-use/expiry correct; mass-assignment on CREATE can't
+inject protected columns; `/demo` is static (no DB); S3 posture strong (BPA, SSE-KMS,
+TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in app roles.
+
+### TODO — prioritized remediation list (output of this review)
+
+**P1 — exploitable now / highest blast radius**
+- [ ] **TODO-1 (HIGH):** Wishlist self-approval — add non-admin field whitelist to
+  `update_wishlist_item` (forbid `status`/`cost_cents`) + make `WishlistUpdate.status`
+  an enum. Test like the bounty case. *(app code, test-covered, safe)*
+- [ ] **TODO-2 (HIGH):** Dockerfile — SHA256-verify the Litestream download before
+  extract; add a non-root `USER`. *(build; verify container still boots + Litestream
+  restore works)*
+- [ ] **TODO-3 (HIGH, infra):** Remove the WAF `Count` overrides on
+  `SizeRestrictions_BODY` + `CrossSiteScripting_BODY` in BOTH regions (restore Block).
+  *(owner infra; re-verify uploads still pass with the in-app caps)*
+- [ ] **TODO-4 (HIGH, infra):** Drop `s3:DeleteObject` on both DB backup buckets from
+  the instance role + enable S3 Object Lock on both. *(owner infra; confirm Litestream
+  replication unaffected)*
+
+**P2 — real but lower likelihood / hardening with clear value**
+- [ ] **TODO-5 (MED):** JWT revocation — `token_version` column + claim + check in
+  `get_current_user`; bump on logout/password-change. Add a self-service
+  change-password endpoint (verifies current password). *(app code)*
+- [ ] **TODO-6 (MED):** Drop the JWT from the login JSON body; remove the `?token=`
+  blob query fallback (rely on the cookie). *(app code + confirm images still load)*
+- [ ] **TODO-7 (MED):** Migrate `python-jose` → `PyJWT` (keep `algorithms=["HS256"]`);
+  removes stale transitive advisories. *(app code, test-covered)*
+- [ ] **TODO-8 (MED):** Add a server-side CI pipeline (lint/mypy/bandit/pip-audit/
+  npm-audit/trivy + tests, block on fail); split build from deploy (immutable tag +
+  explicit promote) instead of `:latest` auto-deploy. *(CI/CD)*
+- [ ] **TODO-9 (MED):** Rate-limit `/archive`, `/restore`, `/reseed`, `/backup`; stream
+  the archive to a temp file instead of building the ZIP in RAM. *(app code)*
+- [ ] **TODO-10 (MED, infra):** Re-encrypt the two east secrets with the east MRK; set
+  up rotation (JWT via current+previous dual-verify; admin via `ADMIN_FORCE_SYNC`).
+
+**P3 — low-severity hardening / hygiene**
+- [ ] **TODO-11 (LOW):** http(s)-only scheme allow-list on wishlist + lesson `url`
+  (server validator + client `safeHref`).
+- [ ] **TODO-12 (LOW):** Add the parent→`profile_id` join to `delete_transaction`,
+  `delete_response`, `delete_bounty_log` (match siblings).
+- [ ] **TODO-13 (LOW):** CSP — explicit `script-src 'self'`; tighten `img-src`/
+  `media-src`; body-size guard when Content-Length absent; SPA catch-all path guard.
+- [ ] **TODO-14 (LOW):** ECR `imageTagMutability=IMMUTABLE` + deploy by digest.
+- [ ] **TODO-15 (LOW):** CloudWatch log retention + MRK encryption; move
+  `archive_token` out of the query string; bcrypt 72-byte length guard; scrub account
+  id/ARNs from `.env.example` + deploy docs to placeholders.
+
+**Status: REVIEW COMPLETE, findings recorded — NO code/infra changed in this pass
+(review only). Awaiting owner go-ahead on the TODO list above (P1 recommended first).**

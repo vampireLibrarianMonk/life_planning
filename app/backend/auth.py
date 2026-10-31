@@ -3,9 +3,10 @@
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
+import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jwt import InvalidTokenError as JWTError
 from sqlalchemy.orm import Session
 
 import config
@@ -15,6 +16,9 @@ from models import Role, User
 SECRET_KEY = config.get_jwt_secret()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours (short-lived; re-login as needed)
+# bcrypt silently truncates input beyond 72 bytes; cap so long passphrases are
+# fully honored (and newer bcrypt builds that raise on >72 bytes don't 500).
+_BCRYPT_MAX_BYTES = 72
 
 
 def decode_token(token: str) -> dict:
@@ -22,8 +26,7 @@ def decode_token(token: str) -> dict:
 
     Verifying against a small key set makes a secret rotation non-disruptive:
     tokens minted by the other region or before the rotation still validate
-    during the window (see config.get_jwt_decode_secrets). Raises JWTError if no
-    key validates.
+    during the window (see config.get_jwt_decode_secrets). Raises on no match.
     """
     last_err: Exception | None = None
     for key in config.get_jwt_decode_secrets():
@@ -58,11 +61,13 @@ def extract_token(
 
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    # Truncate to bcrypt's 72-byte limit explicitly (it would truncate silently
+    # anyway, and some bcrypt builds raise on longer input).
+    return bcrypt.hashpw(password.encode()[:_BCRYPT_MAX_BYTES], bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
+    return bcrypt.checkpw(plain.encode()[:_BCRYPT_MAX_BYTES], hashed.encode())
 
 
 def create_access_token(data: dict) -> str:

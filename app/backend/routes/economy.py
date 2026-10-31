@@ -499,6 +499,12 @@ def delete_bounty_log(
 ):
     from models import BountyLog
 
+    # Re-scope the parent bounty to the path profile_id (matches list/create).
+    bounty = (
+        db.query(Bounty).filter(Bounty.id == bounty_id, Bounty.profile_id == profile_id).first()
+    )
+    if not bounty:
+        raise HTTPException(status_code=404, detail="Bounty not found")
     log = (
         db.query(BountyLog).filter(BountyLog.id == log_id, BountyLog.bounty_id == bounty_id).first()
     )
@@ -872,7 +878,7 @@ def update_wishlist_item(
     item_id: int,
     req: WishlistUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_child),
+    current_user: User = Depends(require_admin_or_child),
 ):
     item = (
         db.query(WishlistItem)
@@ -881,6 +887,19 @@ def update_wishlist_item(
     )
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
+    # A child may edit only descriptive fields of their own wishlist item. The
+    # approval/purchase workflow (status) and the item price (cost_cents) are a
+    # PARENT decision — otherwise a child could PATCH status=approved/purchased
+    # to self-grant approval, or lower cost_cents to fake "affordable". Mirrors
+    # the bounty handler's field whitelist.
+    if current_user.role != Role.admin:
+        _child_allowed = {"title", "description", "url", "priority"}
+        forbidden = set(req.model_dump(exclude_unset=True)) - _child_allowed
+        if forbidden:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Only an admin can change: {', '.join(sorted(forbidden))}.",
+            )
     for field, value in req.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
     db.commit()

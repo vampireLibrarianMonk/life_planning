@@ -27,10 +27,28 @@ WORKDIR /app/backend
 COPY app/backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# curl + ca-certificates are needed to fetch + checksum-verify Litestream below;
+# removed in the same layer to keep the runtime image lean.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install Litestream (SQLite -> S3 continuous replication) so the DB survives
 # App Runner's ephemeral container filesystem across redeploys.
-ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz /tmp/litestream.tar.gz
-RUN tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz && rm /tmp/litestream.tar.gz
+# SECURITY: pin + verify the release checksum before extracting (the binary runs
+# with the instance role's AWS creds, so a tampered/retagged asset = RCE). SHA256
+# computed from the official GitHub release artifact for v0.3.13 linux-amd64.
+# pipefail so a failed download/checksum aborts the piped sha256sum -c.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ARG LITESTREAM_VERSION=v0.3.13
+ARG LITESTREAM_SHA256=eb75a3de5cab03875cdae9f5f539e6aedadd66607003d9b1e7a9077948818ba0
+RUN set -eux; \
+    curl -fsSL -o /tmp/litestream.tar.gz \
+      "https://github.com/benbjohnson/litestream/releases/download/${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-amd64.tar.gz"; \
+    echo "${LITESTREAM_SHA256}  /tmp/litestream.tar.gz" | sha256sum -c -; \
+    tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz; \
+    rm /tmp/litestream.tar.gz
 
 # Copy backend source.
 COPY app/backend/ ./
@@ -40,6 +58,13 @@ COPY app/backend/ ./
 COPY --from=frontend /build/frontend/dist /app/frontend/dist
 
 RUN chmod +x /app/backend/entrypoint.sh
+
+# SECURITY: run as a non-root user. The app writes the SQLite DB + uploads under
+# /app/backend at runtime (Litestream restores there), so grant ownership of /app.
+RUN useradd -r -u 10001 -d /app appuser \
+    && mkdir -p /app/backend/uploads \
+    && chown -R appuser:appuser /app
+USER 10001
 
 EXPOSE 8000
 

@@ -3,12 +3,13 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin, require_admin_or_child, require_profile_access
 from database import get_db
 from models import LessonPlan, LessonResponse, User
+from schemas import _validate_http_url
 
 router = APIRouter(
     prefix="/api/profiles/{profile_id}/lessons",
@@ -26,6 +27,8 @@ class LessonCreate(BaseModel):
     pillar: str | None = None
     age_band: str | None = None
 
+    _v_url = field_validator("url")(_validate_http_url)
+
 
 class LessonUpdate(BaseModel):
     title: str | None = None
@@ -35,6 +38,8 @@ class LessonUpdate(BaseModel):
     pillar: str | None = None
     age_band: str | None = None
     status: str | None = None
+
+    _v_url = field_validator("url")(_validate_http_url)
 
 
 class ResponseCreate(BaseModel):
@@ -198,6 +203,14 @@ def delete_response(
     _: User = Depends(require_admin),
 ):
     """Delete a lesson response."""
+    # Re-scope the parent lesson to the path profile_id (matches create_response).
+    lesson = (
+        db.query(LessonPlan)
+        .filter(LessonPlan.id == lesson_id, LessonPlan.profile_id == profile_id)
+        .first()
+    )
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
     resp = (
         db.query(LessonResponse)
         .filter(LessonResponse.id == response_id, LessonResponse.lesson_id == lesson_id)

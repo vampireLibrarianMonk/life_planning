@@ -206,6 +206,11 @@ def delete_transaction(
     _: User = Depends(require_admin_or_child),
 ):
     """Delete a transaction (reverses the disbursement)."""
+    # Re-scope the parent fund to the path profile_id (defense against a
+    # mismatched-path delete); matches create/list_transactions.
+    fund = db.query(Fund).filter(Fund.id == fund_id, Fund.profile_id == profile_id).first()
+    if not fund:
+        raise HTTPException(status_code=404, detail="Fund not found")
     txn = (
         db.query(FundTransaction)
         .filter(FundTransaction.id == txn_id, FundTransaction.fund_id == fund_id)

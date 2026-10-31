@@ -23,9 +23,10 @@ import json
 import zipfile
 from datetime import UTC, datetime, timedelta
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
-from jose import JWTError, jwt
+from jwt import InvalidTokenError as JWTError
 from sqlalchemy.orm import Session
 
 import auth

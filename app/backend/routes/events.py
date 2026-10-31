@@ -149,24 +149,21 @@ def _profile_id_for_upload(db: Session, filename: str) -> int | None:
 def serve_upload(
     filename: str,
     request: Request,
-    token: str | None = None,
     db: Session = Depends(get_db),
 ):
     """Serve an attachment, AUTHORIZED to the owning profile.
 
-    The JWT is taken from the httpOnly auth cookie (preferred — <img>/<video>/<a>
-    tags send cookies automatically) or, as a fallback, a `?token=` query param.
-    It resolves the file's owning profile and applies the same access rule as
-    the rest of that profile's data (admin / readonly / owning child / granted).
-    Unknown keys, bad tokens, and keys the caller can't access all return 404
-    (no existence oracle).
+    The JWT is taken ONLY from the httpOnly auth cookie (<img>/<video>/<a> tags
+    send it automatically). The former `?token=` query fallback was removed — a
+    full session token in a URL leaks via logs/history. It resolves the file's
+    owning profile and applies the same access rule as the rest of that profile's
+    data (admin / readonly / owning child / granted). Unknown keys, bad tokens,
+    and keys the caller can't access all return 404 (no existence oracle).
 
     Local mode: stream the file from disk (as an attachment, benign type).
     AWS mode: redirect to a short-lived presigned S3 URL (minted ONLY after the
     access check passes).
     """
-    from jose import JWTError
-
     import auth as _auth
 
     not_found = HTTPException(status_code=404, detail="Not found")
@@ -175,8 +172,8 @@ def serve_upload(
     if "/" in filename or "\\" in filename or ".." in filename:
         raise not_found
 
-    # Cookie-first, then the query-param token fallback.
-    jwt_token = request.cookies.get(_auth.AUTH_COOKIE_NAME) or token
+    # Cookie-only (the ?token= query fallback was removed — token-in-URL leaks).
+    jwt_token = request.cookies.get(_auth.AUTH_COOKIE_NAME)
     if not jwt_token:
         raise not_found
     try:
@@ -185,7 +182,7 @@ def serve_upload(
         if sub is None:
             raise not_found
         current_user = db.query(User).filter(User.id == int(sub)).first()
-    except (JWTError, TypeError, ValueError):
+    except (_auth.JWTError, TypeError, ValueError):
         raise not_found
     if current_user is None:
         raise not_found

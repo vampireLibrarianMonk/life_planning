@@ -4,7 +4,23 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def _validate_http_url(v: str | None) -> str | None:
+    """Reject non-http(s) URLs (defense-in-depth vs. javascript:/data: links).
+
+    React already neutralizes javascript: hrefs and the CSP blocks inline script,
+    so this is belt-and-suspenders + anti-phishing: a stored link must be an
+    ordinary web URL. Empty/None is allowed (the field is optional).
+    """
+    if v is None or v.strip() == "":
+        return v
+    s = v.strip()
+    if not (s.lower().startswith("http://") or s.lower().startswith("https://")):
+        raise ValueError("url must start with http:// or https://")
+    return s
+
 
 # Reusable constrained-int aliases (money is in integer cents; never negative).
 Cents = Annotated[int, Field(ge=0, le=1_000_000_000)]  # 0 .. $10,000,000
@@ -277,6 +293,14 @@ class WishlistCreate(BaseModel):
     url: str | None = None
     priority: Annotated[int, Field(ge=1, le=10)] = 1
 
+    _v_url = field_validator("url")(_validate_http_url)
+
+
+class WishlistStatus(str, Enum):
+    saving = "saving"
+    approved = "approved"
+    purchased = "purchased"
+
 
 class WishlistUpdate(BaseModel):
     title: str | None = None
@@ -284,7 +308,9 @@ class WishlistUpdate(BaseModel):
     cost_cents: OptCents | None = None
     url: str | None = None
     priority: Annotated[int, Field(ge=1, le=10)] | None = None
-    status: str | None = None
+    status: WishlistStatus | None = None
+
+    _v_url = field_validator("url")(_validate_http_url)
 
 
 class WishlistResponse(BaseModel):

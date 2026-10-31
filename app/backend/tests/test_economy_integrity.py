@@ -128,3 +128,90 @@ def test_bounty_logs_scoped_to_profile(ctx):
     # Correct profile path works (returns a list).
     out = economy.list_bounty_logs(profile_id=2, bounty_id=b.id, db=db, _=viewer)
     assert isinstance(out, list)
+
+
+def _seed_wishlist(models, db, profile_id):
+    item = models.WishlistItem(
+        profile_id=profile_id, title="Bike", cost_cents=10000, status="saving"
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def test_child_cannot_self_approve_wishlist(ctx):
+    import schemas
+
+    economy, models, db = ctx
+    item = _seed_wishlist(models, db, profile_id=1)
+    child = _mk_user(models, models.Role.child, uid=6, profile_id=1)
+    # Child tries to self-approve -> 403, status unchanged.
+    with pytest.raises(HTTPException) as e:
+        economy.update_wishlist_item(
+            profile_id=1,
+            item_id=item.id,
+            req=schemas.WishlistUpdate(status="approved"),
+            db=db,
+            current_user=child,
+        )
+    assert e.value.status_code == 403
+    db.refresh(item)
+    assert item.status == "saving"
+    # Child tries to lower the price -> 403.
+    with pytest.raises(HTTPException) as e2:
+        economy.update_wishlist_item(
+            profile_id=1,
+            item_id=item.id,
+            req=schemas.WishlistUpdate(cost_cents=1),
+            db=db,
+            current_user=child,
+        )
+    assert e2.value.status_code == 403
+
+
+def test_child_may_edit_wishlist_description(ctx):
+    import schemas
+
+    economy, models, db = ctx
+    item = _seed_wishlist(models, db, profile_id=1)
+    child = _mk_user(models, models.Role.child, uid=6, profile_id=1)
+    economy.update_wishlist_item(
+        profile_id=1,
+        item_id=item.id,
+        req=schemas.WishlistUpdate(description="new mountain bike"),
+        db=db,
+        current_user=child,
+    )
+    db.refresh(item)
+    assert item.description == "new mountain bike"
+
+
+def test_admin_can_approve_wishlist(ctx):
+    import schemas
+
+    economy, models, db = ctx
+    item = _seed_wishlist(models, db, profile_id=1)
+    admin = _mk_user(models, models.Role.admin, uid=1)
+    economy.update_wishlist_item(
+        profile_id=1,
+        item_id=item.id,
+        req=schemas.WishlistUpdate(status="approved"),
+        db=db,
+        current_user=admin,
+    )
+    db.refresh(item)
+    assert item.status == "approved"
+
+
+def test_wishlist_rejects_javascript_url():
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    import schemas
+
+    with _pytest.raises(ValidationError):
+        schemas.WishlistCreate(title="x", url="javascript:alert(1)")
+    # http(s) is accepted
+    ok = schemas.WishlistCreate(title="x", url="https://example.com/item")
+    assert ok.url == "https://example.com/item"

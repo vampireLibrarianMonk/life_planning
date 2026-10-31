@@ -25,7 +25,6 @@ from schemas import (
     SetPasswordRequest,
     SetupTokenRequest,
     SetupTokenResponse,
-    Token,
     UserCreate,
     UserResponse,
 )
@@ -85,7 +84,7 @@ def _clear_auth_cookie(response: Response) -> None:
     response.delete_cookie(key=AUTH_COOKIE_NAME, path="/", samesite="strict", secure=IS_AWS)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 def login(req: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     # Throttle by client IP + attempted username (defense-in-depth vs. brute force).
     client_ip = request.client.host if request.client else "unknown"
@@ -115,9 +114,10 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
         )
     token = create_access_token({"sub": str(user.id), "role": user.role.value})
     _set_auth_cookie(response, token)
-    # Still return the token in the body for API clients + the migration window;
-    # the SPA now relies on the httpOnly cookie instead of storing this.
-    return {"access_token": token}
+    # The JWT is delivered ONLY via the httpOnly cookie (no token in the body) —
+    # the SPA uses the cookie + /api/auth/me. Not returning the raw token avoids
+    # re-exposing it to JS / response logs.
+    return {"ok": True}
 
 
 @router.post("/logout")

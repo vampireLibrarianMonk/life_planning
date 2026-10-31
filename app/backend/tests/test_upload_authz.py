@@ -101,13 +101,17 @@ def ctx(monkeypatch, tmp_path):
 
 
 def _serve(events, db, filename, token, cookie_token=None):
-    # Minimal stand-in for a Starlette Request exposing .cookies.
+    # Auth is now cookie-ONLY (the ?token= query fallback was removed). The
+    # positional `token` (and the explicit cookie_token) are supplied via the
+    # request cookie, which is the sole accepted path.
     import auth as _auth
 
-    class _Req:
-        cookies = {_auth.AUTH_COOKIE_NAME: cookie_token} if cookie_token else {}
+    effective = cookie_token if cookie_token is not None else token
 
-    return events.serve_upload(filename=filename, request=_Req(), token=token, db=db)
+    class _Req:
+        cookies = {_auth.AUTH_COOKIE_NAME: effective} if effective else {}
+
+    return events.serve_upload(filename=filename, request=_Req(), db=db)
 
 
 def test_no_token_is_404(ctx):

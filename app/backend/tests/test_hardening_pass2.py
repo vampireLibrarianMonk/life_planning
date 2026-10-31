@@ -62,7 +62,7 @@ def test_decode_accepts_previous_secret(monkeypatch):
     monkeypatch.setenv("SECRET_KEY_PREVIOUS", "old-secret-" + "b" * 32)
     for m in ("config", "auth"):
         sys.modules.pop(m, None)
-    from jose import jwt
+    import jwt
 
     # Token minted under the PREVIOUS secret.
     old_token = jwt.encode(
@@ -80,7 +80,8 @@ def test_decode_rejects_unknown_secret(monkeypatch):
     monkeypatch.delenv("SECRET_KEY_PREVIOUS", raising=False)
     for m in ("config", "auth"):
         sys.modules.pop(m, None)
-    from jose import JWTError, jwt
+    import jwt
+    from jwt import InvalidTokenError as JWTError
 
     import auth
 

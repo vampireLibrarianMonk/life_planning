@@ -29,7 +29,7 @@ def test_bcrypt_hash_roundtrip(monkeypatch):
 
 def test_jwt_create_and_decode(monkeypatch):
     auth = _fresh_auth(monkeypatch, DEPLOY_MODE="local", SECRET_KEY="y" * 40)
-    from jose import jwt
+    import jwt
 
     token = auth.create_access_token({"sub": "1", "role": "admin"})
     payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])

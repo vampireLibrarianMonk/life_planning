@@ -48,11 +48,11 @@ Resource IDs: see git-ignored `.arn-env`.
       confirm login still works. Rotating the JWT secret instantly invalidates
       all outstanding tokens — a useful "log everyone out" lever. Document the
       runbook: *update secret → redeploy → done.*
-- [ ] **Tag a `:stable` ECR image for guaranteed rollback.** Auto-deploy ships
-      `:latest` straight to the single instance with no staging. `build_push.sh`
-      already stamps a timestamp tag; additionally tag a known-good image
-      `:stable` so a bad deploy can be rolled back by pointing the service at
-      `:stable`. Document the rollback command.
+- [x] **Rollback via immutable digest (DONE 2026-10-31, supersedes `:stable`).**
+      The old plan (a movable `:stable` tag) is **incompatible with the now-
+      IMMUTABLE ECR repo** and with the digest-promote deploy model. Rollback is
+      now `./deploy/promote.sh <known-good-timestamp-tag>`, which resolves that
+      tag's immutable digest and `update-service`s both regions. No mutable tag.
 - [ ] **Independent daily DB snapshot (separate from Litestream).** Litestream
       is *replication*, not *backup* — it faithfully propagates a bad delete or
       corruption within ~1s. Add a daily timestamped copy of the SQLite replica
@@ -64,9 +64,9 @@ Resource IDs: see git-ignored `.arn-env`.
       data are present AND the entrypoint log shows `restore` ran (not a fresh
       empty DB). Keep as a periodic check.
 - [ ] **Read the ECR image scan results once.** Scan-on-push is enabled; pull
-      findings for the current image and triage any HIGH/CRITICAL. Consider
-      pinning the App Runner image to a digest instead of `:latest` so you know
-      exactly what is deployed.
+      findings for the current image and triage any HIGH/CRITICAL. (Digest
+      pinning is already DONE 2026-10-31 — the service runs a specific immutable
+      digest, not `:latest`, and CI runs a Trivy scan on every build.)
 
 ---
 

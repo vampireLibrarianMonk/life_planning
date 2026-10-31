@@ -13,7 +13,7 @@ package "us-east-1  —  PRIMARY (active)" as east #F4F6FF {
   rectangle "AWS WAF\n(regional web ACL)" as wafE #EAF7EE
   rectangle "App Runner\nFastAPI + built SPA\n(1 instance, single-writer)" as appE
   database "SQLite + Litestream\n(WAL → S3)" as dbE #FFF8E0
-  rectangle "S3: uploads + db\n(SSE-KMS, versioned)" as s3E #FFF8E0
+  rectangle "S3: uploads + db\n(SSE-KMS, versioned, Object Lock 7d)" as s3E #FFF8E0
   wafE --> appE
   appE --> dbE
   appE --> s3E
@@ -23,7 +23,7 @@ package "us-west-2  —  STANDBY (warm)" as west #FFF9F3 {
   rectangle "AWS WAF\n(mirror of east ACL)" as wafW #EAF7EE
   rectangle "App Runner\nFastAPI + built SPA\n(1 instance, read-until-promoted)" as appW
   database "SQLite + Litestream\n(continuous restore)" as dbW #FFF8E0
-  rectangle "S3: uploads + db\n(SSE-KMS, versioned)" as s3W #FFF8E0
+  rectangle "S3: uploads + db\n(SSE-KMS, versioned, Object Lock 7d)" as s3W #FFF8E0
   wafW --> appW
   appW --> dbW
   appW --> s3W

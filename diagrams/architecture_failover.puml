@@ -21,16 +21,19 @@ dns -> west : promote SECONDARY
 b -> west : traffic now served by west\n(Litestream has the replicated data)
 note over b : RegionFailoverBanner shows\nduring the DNS gap, then clears
 
-== Recovery / fail-back ==
+== Recovery / fail-back (GATED — manual) ==
 east -> dns : /api/health healthy again
-note over dns : PRIMARY healthy →\nreturn to east
-dns -> east : traffic back to primary
-west -> east : WAL reconciles (single-writer invariant)
+note over dns #FDECEC : ⚠ Auto-return to east would\nDISCARD writes made on west\n(CRR is east→west ONLY)
+note over west, east #FDECEC : If west took writes during the outage:\nHOLD east, reconcile west→east\n(deploy/failover_control.sh), THEN release
+dns -> east : traffic back to primary\n(only after reconcile, or if no west writes)
 
 legend bottom
   Active/passive, single-writer SQLite — exactly one region writes at a time.
   Drill trigger: flip the primary health-check path to /api/profiles/ (401).
-  Verified 2026-10-27: failover + cookie auth on west + clean fail-back.
+  Forward failover (east→west) VERIFIED 2026-10-27 (+ on the recreated
+  Object-Lock buckets 2026-10-31). FAIL-BACK is gated/manual: CRR is one-way
+  (east→west), so west's outage-window writes have no automatic path back —
+  "no data divergence" on auto-fail-back is UNVERIFIED. See PHASE2_FAILOVER.md.
 end legend
 
 @enduml

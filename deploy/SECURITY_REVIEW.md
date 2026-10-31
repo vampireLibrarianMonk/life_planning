@@ -5,6 +5,27 @@ This is the baseline document for a 3-agent security re-review. Every claim belo
 is grounded in code/config in this repo; file references are given so reviewers
 can verify._
 
+> **⚠️ READING NOTE — §1–§11 are a point-in-time NARRATIVE; §12 + the TODO
+> statuses are the AUTHORITATIVE current state (2026-10-31).** The review
+> panels (§10/§11/§12) describe findings *as discovered*, then the §12 TODO list
+> records what was remediated. Several baseline claims in §1–§11 were SUPERSEDED
+> by the remediations and should be read through §12:
+> - **Auth is an httpOnly `SameSite=strict` cookie, NOT `localStorage`.** Any
+>   "JWT in localStorage" / "CSP is the main barrier to token theft" wording in
+>   §2/§5/§8-R1/§9/§10 is historical — the cookie migration is DONE (§12 + README).
+> - **The `/api/uploads?token=` query fallback was REMOVED** (TODO-6). Blob
+>   serving is cookie-only; §4/§10 mentions of `?token=` are historical.
+> - **DB buckets have S3 Object Lock (GOVERNANCE/7d) and the instance role has
+>   NO `s3:DeleteObject` on them** (TODO-4). §4's "SSE-KMS/versioned" bucket
+>   description predates this.
+> - **JWT lib is PyJWT** (not python-jose, TODO-7); **2-hour TTL** with a
+>   `token_version` revocation claim (TODO-5).
+> - **ECR is IMMUTABLE + digest-promote deploy** (TODO-8/14), not `:latest`
+>   auto-deploy.
+> - **WAF `CrossSiteScripting_BODY` = Block** (TODO-3); only `SizeRestrictions_
+>   BODY` stays Count.
+> See §12 "FINAL STATUS" for the full done-list.
+
 ---
 
 ## 1. System summary

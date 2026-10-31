@@ -49,6 +49,7 @@ from models import (
     User,
     WishlistItem,
 )
+from ratelimit import rate_limit
 from storage import get_storage
 
 router = APIRouter(prefix="/api/profiles", tags=["archive"])
@@ -118,7 +119,7 @@ def _verify_archive_token(token: str, profile_id: int, user_id: int) -> None:
         raise HTTPException(status_code=403, detail="Archive token not valid for this user.")
 
 
-@router.post("/{profile_id}/archive")
+@router.post("/{profile_id}/archive", dependencies=[Depends(rate_limit("archive", 5, 300))])
 def archive_profile(
     profile_id: int,
     db: Session = Depends(get_db),
@@ -266,7 +267,7 @@ def delete_profile(
     return {"deleted": True, "profile_id": profile_id, "blobs_removed": len(blob_keys)}
 
 
-@router.post("/restore", status_code=201)
+@router.post("/restore", status_code=201, dependencies=[Depends(rate_limit("restore", 5, 300))])
 async def restore_profile(
     file: UploadFile,
     db: Session = Depends(get_db),

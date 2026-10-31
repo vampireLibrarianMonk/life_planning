@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from auth import get_current_user, require_admin, require_admin_or_child
 from database import get_db
 from models import Bounty, BountyTier, Pillar, PillarEntry, Profile, ProfileAccess, User
+from ratelimit import rate_limit
 from schemas import ProfileAccessCreate, ProfileCreate, ProfileResponse
 from seed_data import BOUNTIES, MILESTONES
 from storage import get_storage
@@ -148,7 +149,9 @@ def link_profile_user(
     return profile
 
 
-@router.post("/{profile_id}/reseed", status_code=200)
+@router.post(
+    "/{profile_id}/reseed", status_code=200, dependencies=[Depends(rate_limit("reseed", 5, 300))]
+)
 def reseed_milestones(
     profile_id: int,
     db: Session = Depends(get_db),
@@ -275,7 +278,7 @@ async def upload_avatar(
 # --- Database Backup ---
 
 
-@router.post("/backup", status_code=200)
+@router.post("/backup", status_code=200, dependencies=[Depends(rate_limit("backup", 5, 300))])
 def backup_database(_: User = Depends(require_admin)):
     """Create a timestamped backup of the SQLite database."""
     import shutil

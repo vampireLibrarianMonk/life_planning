@@ -519,19 +519,18 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   50MB upload) instead. Verified live: a multipart avatar upload still returns 200
   through the WAF with XSS_BODY=Block (tested on a throwaway profile, then deleted).
   *(reversible: re-add the override to revert.)*
-- [~] **TODO-4 (HIGH, infra):** PARTIAL (2026-10-31). **DONE:** removed
-  `s3:DeleteObject` from the instance role on BOTH DB backup buckets (kept it on
-  the uploads buckets, where user-delete is a feature). A compromised instance
-  can no longer delete/purge the Litestream DR backups. Verified live: east
-  cold-booted to RUNNING (Litestream restore = Get/List works) and wrote a new
-  generation (Put works) under the new policy. Trade-off: Litestream can't prune
-  old segments (slow storage growth; negligible for a ~137KB DB). Reversible.
-  **BLOCKED — needs owner/AWS Support:** S3 Object Lock cannot be self-enabled on
-  these buckets — AWS only allows Object Lock at bucket *creation* (or via a
-  Support request for existing buckets). Options: (a) open an AWS Support case to
-  enable Object Lock on the existing versioned DB buckets, or (b) recreate the DB
-  buckets with ObjectLockEnabled + re-point Litestream/CRR (disruptive). Left for
-  owner decision; the DeleteObject removal already removes the primary tamper path.
+- [x] **TODO-4 (HIGH, infra):** DONE 2026-10-31. Removed `s3:DeleteObject` on the
+  DB buckets from the instance role AND **recreated both DB buckets with S3 Object
+  Lock (GOVERNANCE/7d)** — the primary could not be lock-enabled in place (AWS
+  requires Object Lock at creation), so: backed up both buckets + a verified-
+  restorable standalone DB (integrity ok, 9 users, 602 rows); created new
+  Object-Locked + versioned + SSE-KMS(MRK) + BPA + TLS-only buckets east & west;
+  seeded them from the verified backup; re-pointed both App Runner services'
+  `DB_REPLICA_BUCKET`; reconfigured CRR new-east→new-west; verified live data
+  intact (Robert, 590 entries) on east AND via a full failover drill on west;
+  then purged + deleted the old buckets and cleaned dead ARNs from both IAM
+  roles. `.arn-env` updated with the new bucket names. DR backups are now
+  immutable for 7 days even to a compromised instance.
 
 **P2 — real but lower likelihood / hardening with clear value**
 - [x] **TODO-5 (MED):** JWT revocation — `token_version` column + claim + check in

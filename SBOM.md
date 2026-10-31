@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
 **Project:** Life Plan Tracker
-**Version:** 0.5.1
-**Generated:** 2026-07-10
+**Version:** 0.6.0
+**Generated:** 2026-10-31
 
 ---
 
@@ -21,38 +21,41 @@
 
 ### Direct Dependencies (`requirements.txt`)
 
-| Package | Pinned | Installed | Purpose | License |
-|---------|--------|-----------|---------|---------|
-| fastapi | 0.115.0 | 0.136.3 | Web framework / API | MIT |
-| uvicorn[standard] | 0.30.0 | 0.48.0 | ASGI server | BSD-3 |
-| sqlalchemy | 2.0.35 | 2.0.50 | ORM / database models | MIT |
-| pydantic | 2.9.0 | 2.13.4 | Request/response validation | MIT |
-| python-jose[cryptography] | 3.3.0 | 3.5.0 | JWT token encoding/decoding | MIT |
-| passlib[bcrypt] | 1.7.4 | 1.7.4 | Password hashing (bcrypt backend) | BSD-3 |
-| python-multipart | 0.0.9 | 0.0.30 | Form data / file upload parsing | Apache-2.0 |
-| alembic | 1.13.0 | — | DB migrations (listed but unused) | MIT |
+Versions are **exact pins** (`==`) — the running version equals the pin.
 
-Note: Pinned versions in `requirements.txt` are floor pins. The installed versions are what's actually running after `pip install -r requirements.txt` resolves latest compatible versions.
+| Package | Pinned | Purpose | License |
+|---------|--------|---------|---------|
+| fastapi | 0.120.4 | Web framework / API | MIT |
+| starlette | 0.49.2 | ASGI toolkit (FastAPI core; pinned for CVE-2025-62727) | BSD-3 |
+| uvicorn[standard] | 0.30.0 | ASGI server | BSD-3 |
+| sqlalchemy | 2.0.35 | ORM / database models | MIT |
+| pydantic | 2.9.0 | Request/response validation | MIT |
+| PyJWT | 2.15.0 | JWT encode/decode (HS256) | MIT |
+| passlib[bcrypt] | 1.7.4 | (pinned but UNUSED — auth.py uses raw `bcrypt`; dead dep) | BSD-3 |
+| python-multipart | 0.0.31 | Form data / file upload parsing | Apache-2.0 |
+| alembic | 1.13.0 | (listed but unused — no migrations/ dir) | MIT |
+| boto3 | 1.35.76 | AWS SDK (S3 + Secrets Manager, AWS mode) | Apache-2.0 |
 
-### Transitive Dependencies (installed)
+> **2026-10-31:** `python-jose[cryptography]` was **removed** and replaced with
+> **PyJWT 2.15.0** (stale-advisory + transitive ecdsa/pyasn1 cleanup). JWT uses
+> HS256 only, with `algorithms=["HS256"]` pinned on decode.
 
-| Package | Version | License |
-|---------|---------|---------|
-| annotated-types | 0.7.0 | MIT |
-| anyio | 4.13.0 | MIT |
-| bcrypt | 5.0.0 | Apache-2.0 |
-| click | 8.4.1 | BSD-3 |
-| ecdsa | 0.19.2 | MIT |
-| greenlet | 3.5.1 | MIT |
-| h11 | 0.16.0 | MIT |
-| idna | 3.18 | BSD-3 |
-| pyasn1 | 0.6.3 | BSD-2 |
-| pydantic_core | 2.46.4 | MIT |
-| rsa | 4.9.1 | Apache-2.0 |
-| six | 1.17.0 | MIT |
-| starlette | 1.2.1 | BSD-3 |
-| typing-inspection | 0.4.2 | MIT |
-| typing_extensions | 4.15.0 | PSF |
+### Transitive Dependencies (notable)
+
+| Package | License | Notes |
+|---------|---------|-------|
+| bcrypt | Apache-2.0 | password hashing (used directly by auth.py) |
+| annotated-types | MIT | pydantic |
+| anyio | MIT | starlette/async |
+| click | BSD-3 | uvicorn CLI |
+| h11 | MIT | uvicorn HTTP |
+| idna | BSD-3 | |
+| pydantic_core | MIT | pydantic (Rust) |
+| starlette | BSD-3 | FastAPI core |
+| typing_extensions | PSF | |
+
+> The former python-jose transitive deps (**ecdsa, rsa, pyasn1, six**) are **no
+> longer present** after the PyJWT migration — PyJWT has no such dependencies.
 
 ---
 
@@ -94,8 +97,11 @@ Note: Pinned versions in `requirements.txt` are floor pins. The installed versio
 | SQLite database | `app/backend/life_plan.db` | Contains child PII (name, DOB), behavior incidents, financial data, bounty history, discernment reflections |
 | Database backups | `app/backend/backups/` | Timestamped copies (last 10 retained) |
 | Uploaded files | `app/backend/uploads/` | Event attachments (images, videos, documents) |
-| JWT secret | Environment variable or hardcoded default | Must be changed in production |
+| JWT secret | AWS Secrets Manager (AWS mode) / `SECRET_KEY` env (local) | AWS mode **refuses to boot** without `JWT_SECRET_ARN`; no hardcoded prod default |
 | Planning documents | `docs/*.md` | 25 pillar/discernment/program guides + addenda, served filtered via API (admin only) |
+
+> **Runtime binary:** Litestream v0.5.17 (Apache-2.0) is downloaded in the
+> Docker build (SHA256-verified) for continuous SQLite→S3 replication.
 
 ---
 
@@ -103,8 +109,8 @@ Note: Pinned versions in `requirements.txt` are floor pins. The installed versio
 
 | Metric | Value |
 |--------|-------|
-| Seeded milestones | 540 |
-| Seeded bounties | 136 |
+| Seeded milestones | 590 |
+| Seeded bounties | 209 |
 | Pillars | 14 |
 | Programs | 10 (all populated) |
 | Discernment categories | 10 |
@@ -116,12 +122,21 @@ Note: Pinned versions in `requirements.txt` are floor pins. The installed versio
 
 ## Security Notes
 
-- Passwords are hashed with passlib/bcrypt (cost factor 12)
-- Authentication uses JWT with 24-hour expiry
-- Role-based access control: admin (full CRUD), child (own profile + bounties), readonly (view only — enforced at API level)
-- No external network calls — fully self-contained
-- SQLite file should be backed up regularly (`POST /api/profiles/backup`) and protected with filesystem permissions
-- Default admin password (`changeme`) must be changed after first login
+- Passwords are hashed with **bcrypt** directly (`bcrypt.gensalt()`, default cost
+  factor 12); input is truncated to bcrypt's 72-byte limit. (passlib is pinned
+  but no longer used.)
+- Authentication uses a **JWT (HS256, 2-hour expiry)** carried in an **httpOnly,
+  `SameSite=strict`, `Secure` cookie** (`lp_auth`), cookie-first with a Bearer
+  header fallback; a `token_version` claim enables instant revocation
+  (logout / password change). The token is **not** readable by JS.
+- Role-based access control: admin (full CRUD), child (own profile + bounties),
+  readonly (view only — enforced at API level via router-level guards).
+- No external network calls at request time; AWS mode uses S3 + Secrets Manager
+  via the instance role.
+- SQLite is continuously replicated to S3 (Litestream) with S3 Object Lock
+  (GOVERNANCE/7d) on the backup buckets; local backups via `POST /api/profiles/backup`.
+- **AWS mode refuses to boot** with the default `admin`/`changeme` credentials
+  (sourced from Secrets Manager instead).
 
 ---
 
@@ -139,4 +154,5 @@ This is a private family application not intended for public deployment. If expo
 
 | Package | Status | Notes |
 |---------|--------|-------|
-| alembic | Listed in requirements.txt, not installed, not used | No alembic.ini or migrations/ directory exists. Can be removed from requirements.txt when convenient. |
+| alembic | Listed in requirements.txt, unused | No `alembic.ini` or `migrations/` directory. Schema changes use the additive `ensure_columns()` migration in `database.py`. Removable. |
+| passlib[bcrypt] | Listed in requirements.txt, unused | `auth.py` hashes with raw `bcrypt` directly; passlib is not imported anywhere. Removable. |

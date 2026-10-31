@@ -1,0 +1,44 @@
+# Trivy ignore list — each entry MUST carry a justification + exposure note.
+# Reviewed 2026-10-31. Only genuinely-unfixable-or-not-exploitable items belong
+# here; everything else must be fixed, not suppressed.
+
+# --- Starlette CVEs whose ONLY fix is Starlette 1.x ---
+# FastAPI (even latest 0.120.x) pins `starlette<0.50.0`, so we cannot adopt the
+# 1.x fix lines without FastAPI itself moving to Starlette 1.x (future upstream).
+# We DID fix the one 0.49.x-addressable CVE (CVE-2025-62727) by pinning
+# starlette==0.49.2. The two below are accepted with the exposure noted:
+#
+# CVE-2026-48818 — StaticFiles SSRF / UNC-path credential theft.
+#   Exposure: our only StaticFiles mount serves the built SPA /assets dir
+#   (server-controlled, no user-supplied paths); the SPA catch-all has a
+#   path-containment guard (main.py). Not reachable with attacker-controlled input.
+CVE-2026-48818
+#
+# CVE-2026-54283 — request.form() size limits silently ignored (form DoS).
+#   Exposure: the app enforces its own request-body-size cap in the security
+#   middleware (1MB JSON / 50MB upload via Content-Length), which bounds this.
+CVE-2026-54283
+
+# NOTE: Litestream was upgraded v0.3.13 -> v0.5.17 (2026-10-31), which cut the
+# binary's findings from ~60 (incl. 3 CRITICAL) to the 11 HIGH below.
+#
+# --- Litestream v0.5.17 Go-binary CVEs (unfixable in our control) ---
+# These live in packages statically compiled into the `litestream` binary
+# (x/crypto/ssh, x/net, grpc-go, Go stdlib, klauspost/compress). Trivy marks
+# them "fixed" because newer *library* versions exist — but the fix would
+# require a newer *Litestream* build, and v0.5.17 is the latest release. We
+# cannot rebuild a third-party binary. Exposure: every one is a DoS/auth issue
+# in an SSH server, gRPC server, DNS/HTTP2 server, or TLS-server path. Our
+# Litestream use is an S3 *client* only (PUT/GET for SQLite replication) — it
+# runs no SSH/gRPC/HTTP2/DNS server and accepts no untrusted network input, so
+# these paths are not reached. Re-review when a newer Litestream release ships.
+CVE-2026-63209   # klauspost/compress — dict DoS (compress path; bounded inputs)
+CVE-2026-56854   # x/crypto/ssh — SSH auth bypass (no SSH server in use)
+CVE-2026-46600   # x/net/dns — DNS parse DoS (no untrusted DNS input)
+CVE-2026-56851   # x/text — Nickname-profile DoS (unused codepath)
+CVE-2026-84304   # grpc-go — HTTP/2 DATA-frame DoS (no gRPC server)
+CVE-2026-84445   # grpc-go — malformed-RPC DoS (no gRPC server)
+CVE-2026-111943  # Go stdlib crypto/x509 — MITM via intermediates (S3 TLS is AWS)
+CVE-2026-78667   # Go stdlib net/http — Range-header DoS (no inbound HTTP server here)
+CVE-2026-78669   # Go stdlib/x-net http2 — SETTINGS-frame DoS (no inbound HTTP2 server)
+CVE-2026-97031   # Go stdlib crypto/tls — ECH DoS (client-only TLS to S3)

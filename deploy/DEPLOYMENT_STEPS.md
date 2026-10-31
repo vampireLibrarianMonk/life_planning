@@ -27,14 +27,25 @@ how it was built — not a plan. For the design rationale see
 App Runner's CLI/API source-build only supports **managed runtimes** (no
 Docker). Our app needs a multi-stage Dockerfile (build the React frontend, then
 run FastAPI serving both). So we build the image locally and push to **ECR**,
-and App Runner deploys from the ECR image with **auto-deploy on `:latest`**.
+and App Runner deploys from that image.
+
+> **⚠️ DEPLOY MODEL UPDATED 2026-10-31 (supersedes the `:latest` auto-deploy
+> described below).** ECR is now **IMMUTABLE**. `build_push.sh` pushes a unique
+> immutable `:<timestamp>` tag (no `:latest`), resolves its **digest**, and
+> **explicitly promotes that digest** to BOTH regions via `update-service`
+> (`AutoDeploymentsEnabled=false`) — east first, then west after a ~30s wait for
+> ECR cross-region replication. There is **no auto-deploy**. Any text below that
+> says "`:latest` auto-deploy / App Runner auto-rolls / AutoDeploymentsEnabled=
+> true" is historical. Rollback = `./deploy/promote.sh <good-timestamp-tag>`.
 
 A GitHub connection (`life-planning-github`) was created and is `AVAILABLE`, but
 is **not** the active source — it is retained for a possible future switch to
 source-based builds.
 
-Redeploy = `./deploy/build_push.sh` (build → push `:latest` + timestamp tag →
-App Runner auto-rolls). ECR lifecycle policy prunes to the newest 5 images.
+Redeploy = `./deploy/build_push.sh` — builds, pushes an immutable `:<timestamp>`
+tag, resolves the digest, and promotes it to east + west by `update-service`.
+ECR lifecycle policy prunes to the newest 5 images (ensure it never prunes a
+digest a service still points at).
 
 ---
 
@@ -90,14 +101,24 @@ Random-suffix names (not guessable). For **each** bucket apply: Block Public
 Access (all 4), versioning, SSE-KMS default (the key above), a TLS-only bucket
 policy (deny `aws:SecureTransport=false`), and a lifecycle rule to expire
 noncurrent versions after 60 days.
+
+> **UPDATED 2026-10-31 (TODO-4):** the two **DB replica buckets were recreated
+> with S3 Object Lock enabled (GOVERNANCE / 7-day default retention)** — Object
+> Lock can only be set at bucket *creation*, so recreation was required. Current
+> DB buckets: `life-planning-db-986c194983eeadd8a9813e5b` (east),
+> `life-planning-db-f9adedad09bd4575ca856d9e-west`. The uploads buckets are
+> unchanged (no Object Lock — user-delete is a feature there). To recreate a DB
+> bucket, add `--object-lock-enabled-for-bucket` to `create-bucket` and a
+> `put-object-lock-configuration` with GOVERNANCE/7d.
+
 ```bash
 set -a; . ./.arn-env; set +a
 for B in "$UPLOADS_BUCKET" "$DB_REPLICA_BUCKET"; do
-  aws s3api create-bucket --bucket "$B" --region us-east-1
+  aws s3api create-bucket --bucket "$B" --region us-east-1   # DB bucket: add --object-lock-enabled-for-bucket
   aws s3api put-public-access-block --bucket "$B" --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
   aws s3api put-bucket-versioning --bucket "$B" --versioning-configuration Status=Enabled
   aws s3api put-bucket-encryption --bucket "$B" --server-side-encryption-configuration "{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"aws:kms\",\"KMSMasterKeyID\":\"$KMS_KEY_ARN\"},\"BucketKeyEnabled\":true}]}"
-  # + TLS-only bucket policy + lifecycle (expire noncurrent 60d)
+  # + TLS-only bucket policy + lifecycle (expire noncurrent 60d); DB buckets also get Object Lock GOVERNANCE/7d
 done
 # -> record UPLOADS_BUCKET, DB_REPLICA_BUCKET in .arn-env
 ```
@@ -105,8 +126,10 @@ done
 ### 4. Instance role (least-privilege, app assumes this)
 Trust: `tasks.apprunner.amazonaws.com`. Inline policy (specific ARNs, **no
 wildcards**): `secretsmanager:GetSecretValue` on both secrets;
-`s3:Get/Put/Delete/ListBucket` on BOTH buckets (uploads + DB replica);
-`kms:Decrypt/Encrypt/GenerateDataKey` on the key.
+`s3:Get/Put/List` on all buckets, **`s3:DeleteObject` on the UPLOADS buckets
+ONLY — NOT on the DB buckets** (TODO-4: a compromised instance must not be able
+to delete the Object-Locked Litestream DR backups; Litestream needs only
+Get/Put/List); `kms:Decrypt/Encrypt/GenerateDataKey` on the MRK.
 ```bash
 # -> record APPRUNNER_ROLE_ARN in .arn-env
 ```
@@ -119,7 +142,7 @@ aws ecr create-repository --repository-name life-planning \
 aws ecr put-lifecycle-policy --repository-name life-planning \
   --lifecycle-policy-text '{"rules":[{"rulePriority":1,"description":"keep newest 5","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},"action":{"type":"expire"}}]}' --region us-east-1
 # -> record ECR_REPO_URI in .arn-env
-./deploy/build_push.sh    # builds the Dockerfile, pushes :latest
+./deploy/build_push.sh    # builds the Dockerfile, pushes an immutable :<timestamp> tag
 ```
 
 ### 6. ECR access role (App Runner pulls the private image)
@@ -131,9 +154,11 @@ Trust: `build.apprunner.amazonaws.com`. Attach managed
 ```
 
 ### 7. App Runner service (from ECR image)
-`create-service` with `ImageRepository` (type ECR, `:latest`),
-`AutoDeploymentsEnabled=true`, `AccessRoleArn` = ECR access role,
-`InstanceRoleArn` = instance role, port 8000, and env vars below.
+`create-service` with `ImageRepository` (type ECR, pinned to an immutable image
+**digest** — not `:latest`), **`AutoDeploymentsEnabled=false`**, `AccessRoleArn`
+= ECR access role, `InstanceRoleArn` = instance role, port 8000, and env vars
+below. (Deploys happen by explicit digest promote via `build_push.sh`/
+`promote.sh`, not auto-deploy — see the deploy-model banner at the top.)
 
 > **Health-check path = `/api/alive`** (always 200), NOT `/api/health`. App
 > Runner gates deployments on this path; `/api/health` is toggleable to 503 for
@@ -166,9 +191,10 @@ Rules by priority: (0) **Allow** `/api/health` exact-match; (1) rate-based
 Block on `/api/auth/login` (limit 100/IP); (2-4) managed CommonRuleSet,
 KnownBadInputs, AmazonIpReputationList; (5) **Block** when `Host` contains
 `awsapprunner.com` (locks the default domain; custom domain still served).
-Within CommonRuleSet, override `SizeRestrictions_BODY` and
-`CrossSiteScripting_BODY` to **Count** — otherwise file uploads (>8KB bodies)
-are blocked.
+Within CommonRuleSet, override **`SizeRestrictions_BODY` to `Count`** — otherwise
+file uploads (>8KB bodies) are blocked (the app enforces its own 1MB JSON /
+50MB upload caps). **`CrossSiteScripting_BODY` is left at its default `Block`**
+(restored 2026-10-31, TODO-3 — multipart image uploads pass it fine).
 ```bash
 # NOTE: WAF ByteMatch SearchString values must be base64-encoded in the --rules file.
 aws wafv2 create-web-acl --name life-planning-waf --scope REGIONAL --region us-east-1 ...
@@ -332,8 +358,10 @@ is, and the 72h expiry; no password is ever emailed or stored.
 - **Health / status / logs:** `./deploy/monitor.sh {all|status|health|logs|dns|watch|smoke}`
 - **Redeploy new code:** `./deploy/build_push.sh` (auto-deploys)
 - **Admin password:** `aws secretsmanager get-secret-value --secret-id life-planning/admin-credentials --region us-east-1 --query SecretString --output text`
-- **Rollback:** `build_push.sh` stamps a timestamp tag per build; re-point the
-  service at a known-good tag (see FOLLOW_UPS for tagging a `:stable`).
+- **Rollback:** `./deploy/promote.sh <known-good-timestamp-tag>` — resolves that
+  tag's immutable digest and `update-service`s both regions to it. (ECR is
+  IMMUTABLE, so there is no movable `:stable` tag — roll back by promoting a
+  specific prior timestamp tag's digest.)
 
 ---
 

@@ -224,19 +224,21 @@ the standby.
 > `lp_auth` (HttpOnly/SameSite=strict/Secure), `/api/auth/me` + `/api/profiles/`
 > authorized by cookie alone. Clean fail-back to east in ~95s.
 >
-> **⚠️ OPERATIONAL FINDING — west was running STALE code before this drill.**
-> Although both services have `AutoDeploymentsEnabled=true` on `:latest`, App
-> Runner's auto-deploy fires on a **direct push** to the watched repo, **not**
-> on a **cross-region-replicated** image landing. So after each
-> `build_push.sh`, east auto-deploys but **west keeps running its old image**
-> (the new digest WAS present in west ECR — same sha — but the service hadn't
-> rolled it). The standby had been stale since 2026-10-21 until a manual
-> `aws apprunner start-deployment --service-arn "$SERVICE_ARN_WEST"` this drill.
-> **FIX APPLIED (2026-10-27):** `deploy/build_push.sh` now triggers an explicit
-> `aws apprunner start-deployment` for the WEST service after the push (gated on
-> `$SERVICE_ARN_WEST`, best-effort so replication lag can't fail the primary
-> deploy). Both regions now roll the same image on every deploy. If west ever
-> no-ops due to replication lag, just re-run the printed `start-deployment`.
+> **⚠️ OPERATIONAL FINDING (2026-10-27) — west ran STALE code: SUPERSEDED, see
+> the 2026-10-31 note below.** Historically both services had
+> `AutoDeploymentsEnabled=true` on `:latest`, and App Runner's auto-deploy fires
+> on a **direct push**, not on a **cross-region-replicated** image landing — so
+> west silently lagged east after each `build_push.sh`. The 2026-10-27 interim
+> fix added a best-effort `aws apprunner start-deployment` for west.
+>
+> **✅ FULLY RESOLVED (2026-10-31, TODO-8/14):** the deploy model changed to
+> **immutable-tag + explicit digest promote**. `build_push.sh` now pushes an
+> immutable `:<timestamp>` tag, resolves the digest, and calls `update-service`
+> on **BOTH** regions (east, then west after ~30s for CRR) with
+> `AutoDeploymentsEnabled=false`. ECR is IMMUTABLE. There is **no auto-deploy
+> and no `start-deployment` call** anymore — both regions are promoted to the
+> exact same digest every deploy, so the stale-standby class of bug is
+> structurally gone. (The `start-deployment` best-effort note above is obsolete.)
 
 We need the primary `/api/health` to start failing WITHOUT deleting anything.
 Options, least-destructive first:

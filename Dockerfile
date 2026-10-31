@@ -37,15 +37,17 @@ RUN apt-get update \
 # Install Litestream (SQLite -> S3 continuous replication) so the DB survives
 # App Runner's ephemeral container filesystem across redeploys.
 # SECURITY: pin + verify the release checksum before extracting (the binary runs
-# with the instance role's AWS creds, so a tampered/retagged asset = RCE). SHA256
-# computed from the official GitHub release artifact for v0.3.13 linux-amd64.
+# with the instance role's AWS creds, so a tampered/retagged asset = RCE).
+# Upgraded to v0.5.17 (2026-10-31) — the old v0.3.13 build triggered ~60 Trivy
+# findings from its stale Go stdlib/x-crypto; v0.5.17 is built with a current Go.
+# SHA256 is for the official v0.5.17 linux-x86_64 release artifact.
 # pipefail so a failed download/checksum aborts the piped sha256sum -c.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-ARG LITESTREAM_VERSION=v0.3.13
-ARG LITESTREAM_SHA256=eb75a3de5cab03875cdae9f5f539e6aedadd66607003d9b1e7a9077948818ba0
+ARG LITESTREAM_VERSION=0.5.17
+ARG LITESTREAM_SHA256=cfb371176d164437ae869f8351cfde49bd1804ae71c61923f75c9cba9c9c006d
 RUN set -eux; \
     curl -fsSL -o /tmp/litestream.tar.gz \
-      "https://github.com/benbjohnson/litestream/releases/download/${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-amd64.tar.gz"; \
+      "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-x86_64.tar.gz"; \
     echo "${LITESTREAM_SHA256}  /tmp/litestream.tar.gz" | sha256sum -c -; \
     tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz; \
     rm /tmp/litestream.tar.gz

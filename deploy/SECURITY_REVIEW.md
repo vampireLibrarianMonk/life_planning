@@ -541,9 +541,16 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   blob query fallback (rely on the cookie). *(app code + confirm images still load)*
 - [x] **TODO-7 (MED):** Migrate `python-jose` → `PyJWT` (keep `algorithms=["HS256"]`);
   removes stale transitive advisories. *(app code, test-covered)*
-- [ ] **TODO-8 (MED):** Add a server-side CI pipeline (lint/mypy/bandit/pip-audit/
-  npm-audit/trivy + tests, block on fail); split build from deploy (immutable tag +
-  explicit promote) instead of `:latest` auto-deploy. *(CI/CD)*
+- [~] **TODO-8 (MED):** PARTIAL (2026-10-31). **DONE:** server-side CI pipeline
+  `.github/workflows/ci.yml` — runs the full pre-commit gate (ruff/mypy/bandit/
+  pip-audit/gitleaks/hadolint/no-danger) for exact local parity, backend pytest,
+  frontend build, and a Trivy HIGH/CRITICAL image scan; runs on every PR + push
+  to master. **STILL TODO:** split build from deploy (immutable tag + explicit
+  promote) — currently `build_push.sh` pushes mutable `:latest` and auto-rolls;
+  changing that is coupled to **TODO-14** (ECR IMMUTABLE would break the current
+  `:latest` auto-deploy), so both are deferred together as a deploy-pipeline
+  rework. Enable branch protection (require the `CI` checks) in the GitHub repo
+  settings to make the gate blocking.
 - [x] **TODO-9 (MED):** Rate-limit `/archive`, `/restore`, `/reseed`, `/backup`; stream
   the archive to a temp file instead of building the ZIP in RAM. *(app code)*
 - [x] **TODO-10 (MED, infra):** DONE 2026-10-31 — re-encrypt the two east secrets with the east MRK; set

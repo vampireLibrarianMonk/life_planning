@@ -512,15 +512,19 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
 - [x] **TODO-2 (HIGH):** Dockerfile — SHA256-verify the Litestream download before
   extract; add a non-root `USER`. *(build; verify container still boots + Litestream
   restore works)*
-- [ ] **TODO-3 (HIGH, infra):** Remove the WAF `Count` overrides on
-  `SizeRestrictions_BODY` + `CrossSiteScripting_BODY` in BOTH regions (restore Block).
-  *(owner infra; re-verify uploads still pass with the in-app caps)*
+- [x] **TODO-3 (HIGH, infra):** DONE 2026-10-31 (both regions). **CrossSiteScripting_BODY
+  restored to Block** (the real XSS-body gap). **SizeRestrictions_BODY kept as Count**
+  on purpose — its default Block caps bodies at 8KB which would break multipart
+  photo/attachment uploads; the app enforces its own body-size caps (1MB JSON /
+  50MB upload) instead. Verified live: a multipart avatar upload still returns 200
+  through the WAF with XSS_BODY=Block (tested on a throwaway profile, then deleted).
+  *(reversible: re-add the override to revert.)*
 - [ ] **TODO-4 (HIGH, infra):** Drop `s3:DeleteObject` on both DB backup buckets from
   the instance role + enable S3 Object Lock on both. *(owner infra; confirm Litestream
   replication unaffected)*
 
 **P2 — real but lower likelihood / hardening with clear value**
-- [ ] **TODO-5 (MED):** JWT revocation — `token_version` column + claim + check in
+- [x] **TODO-5 (MED):** JWT revocation — `token_version` column + claim + check in
   `get_current_user`; bump on logout/password-change. Add a self-service
   change-password endpoint (verifies current password). *(app code)*
 - [x] **TODO-6 (MED):** Drop the JWT from the login JSON body; remove the `?token=`
@@ -530,7 +534,7 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
 - [ ] **TODO-8 (MED):** Add a server-side CI pipeline (lint/mypy/bandit/pip-audit/
   npm-audit/trivy + tests, block on fail); split build from deploy (immutable tag +
   explicit promote) instead of `:latest` auto-deploy. *(CI/CD)*
-- [ ] **TODO-9 (MED):** Rate-limit `/archive`, `/restore`, `/reseed`, `/backup`; stream
+- [x] **TODO-9 (MED):** Rate-limit `/archive`, `/restore`, `/reseed`, `/backup`; stream
   the archive to a temp file instead of building the ZIP in RAM. *(app code)*
 - [ ] **TODO-10 (MED, infra):** Re-encrypt the two east secrets with the east MRK; set
   up rotation (JWT via current+previous dual-verify; admin via `ADMIN_FORCE_SYNC`).
@@ -540,7 +544,7 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   (server validator + client `safeHref`).
 - [x] **TODO-12 (LOW):** Add the parent→`profile_id` join to `delete_transaction`,
   `delete_response`, `delete_bounty_log` (match siblings).
-- [ ] **TODO-13 (LOW):** CSP — explicit `script-src 'self'`; tighten `img-src`/
+- [x] **TODO-13 (LOW):** CSP — explicit `script-src 'self'`; tighten `img-src`/
   `media-src`; body-size guard when Content-Length absent; SPA catch-all path guard.
 - [ ] **TODO-14 (LOW):** ECR `imageTagMutability=IMMUTABLE` + deploy by digest.
 - [ ] **TODO-15 (LOW):** CloudWatch log retention + MRK encryption; move

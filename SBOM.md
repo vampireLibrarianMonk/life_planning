@@ -25,7 +25,8 @@ Versions are **exact pins** (`==`) — the running version equals the pin.
 
 | Package | Pinned | Purpose | License |
 |---------|--------|---------|---------|
-| fastapi | 0.118.3 | Web framework / API | MIT |
+| fastapi | 0.120.4 | Web framework / API | MIT |
+| starlette | 0.49.2 | ASGI toolkit (FastAPI core; pinned for CVE-2025-62727) | BSD-3 |
 | uvicorn[standard] | 0.30.0 | ASGI server | BSD-3 |
 | sqlalchemy | 2.0.35 | ORM / database models | MIT |
 | pydantic | 2.9.0 | Request/response validation | MIT |
@@ -99,7 +100,7 @@ Versions are **exact pins** (`==`) — the running version equals the pin.
 | JWT secret | AWS Secrets Manager (AWS mode) / `SECRET_KEY` env (local) | AWS mode **refuses to boot** without `JWT_SECRET_ARN`; no hardcoded prod default |
 | Planning documents | `docs/*.md` | 25 pillar/discernment/program guides + addenda, served filtered via API (admin only) |
 
-> **Runtime binary:** Litestream v0.3.13 (Apache-2.0) is downloaded in the
+> **Runtime binary:** Litestream v0.5.17 (Apache-2.0) is downloaded in the
 > Docker build (SHA256-verified) for continuous SQLite→S3 replication.
 
 ---

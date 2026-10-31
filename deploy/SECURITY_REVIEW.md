@@ -540,16 +540,14 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   blob query fallback (rely on the cookie). *(app code + confirm images still load)*
 - [x] **TODO-7 (MED):** Migrate `python-jose` → `PyJWT` (keep `algorithms=["HS256"]`);
   removes stale transitive advisories. *(app code, test-covered)*
-- [~] **TODO-8 (MED):** PARTIAL (2026-10-31). **DONE:** server-side CI pipeline
-  `.github/workflows/ci.yml` — runs the full pre-commit gate (ruff/mypy/bandit/
-  pip-audit/gitleaks/hadolint/no-danger) for exact local parity, backend pytest,
-  frontend build, and a Trivy HIGH/CRITICAL image scan; runs on every PR + push
-  to master. **STILL TODO:** split build from deploy (immutable tag + explicit
-  promote) — currently `build_push.sh` pushes mutable `:latest` and auto-rolls;
-  changing that is coupled to **TODO-14** (ECR IMMUTABLE would break the current
-  `:latest` auto-deploy), so both are deferred together as a deploy-pipeline
-  rework. Enable branch protection (require the `CI` checks) in the GitHub repo
-  settings to make the gate blocking.
+- [x] **TODO-8 (MED):** DONE 2026-10-31. CI pipeline `.github/workflows/ci.yml`
+  (full pre-commit gate + pytest + frontend build + Trivy scan). **Deploy rework
+  also DONE:** `build_push.sh` now pushes an IMMUTABLE timestamp tag and PROMOTES
+  by explicit digest to both regions (`update-service`, `AutoDeploymentsEnabled=
+  false`) — no more mutable `:latest` auto-deploy. New `deploy/promote.sh` for
+  standalone digest promotion. Verified live: both regions redeployed + RUNNING
+  on the digest-pinned image. (Owner: enable branch protection requiring the CI
+  checks to make the gate blocking.)
 - [x] **TODO-9 (MED):** Rate-limit `/archive`, `/restore`, `/reseed`, `/backup`; stream
   the archive to a temp file instead of building the ZIP in RAM. *(app code)*
 - [x] **TODO-10 (MED, infra):** DONE 2026-10-31 — re-encrypt the two east secrets with the east MRK; set
@@ -562,9 +560,9 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   `delete_response`, `delete_bounty_log` (match siblings).
 - [x] **TODO-13 (LOW):** CSP — explicit `script-src 'self'`; tighten `img-src`/
   `media-src`; body-size guard when Content-Length absent; SPA catch-all path guard.
-- [~] **TODO-14 (LOW):** DEFERRED — coupled to TODO-8's deploy-pipeline rework
-  (flipping ECR to IMMUTABLE breaks the current `:latest` auto-deploy). Do both
-  together: immutable/digest-addressed tags + explicit promote.
+- [x] **TODO-14 (LOW):** DONE 2026-10-31 — ECR `imageTagMutability=IMMUTABLE` on
+  both regions; deploy is now digest-addressed (see TODO-8). A tag can no longer
+  be overwritten (supply-chain integrity) and prod deploys by exact digest.
 - [~] **TODO-15 (LOW):** MOSTLY DONE (2026-10-31). ✅ CloudWatch 90-day retention
   set on all 4 log groups (east+west); ✅ archive-delete token moved to the
   `X-Archive-Token` header (out of the query string / access logs; query kept as

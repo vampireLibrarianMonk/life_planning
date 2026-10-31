@@ -506,10 +506,10 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
 ### TODO — prioritized remediation list (output of this review)
 
 **P1 — exploitable now / highest blast radius**
-- [ ] **TODO-1 (HIGH):** Wishlist self-approval — add non-admin field whitelist to
+- [x] **TODO-1 (HIGH):** Wishlist self-approval — add non-admin field whitelist to
   `update_wishlist_item` (forbid `status`/`cost_cents`) + make `WishlistUpdate.status`
   an enum. Test like the bounty case. *(app code, test-covered, safe)*
-- [ ] **TODO-2 (HIGH):** Dockerfile — SHA256-verify the Litestream download before
+- [x] **TODO-2 (HIGH):** Dockerfile — SHA256-verify the Litestream download before
   extract; add a non-root `USER`. *(build; verify container still boots + Litestream
   restore works)*
 - [ ] **TODO-3 (HIGH, infra):** Remove the WAF `Count` overrides on
@@ -523,9 +523,9 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
 - [ ] **TODO-5 (MED):** JWT revocation — `token_version` column + claim + check in
   `get_current_user`; bump on logout/password-change. Add a self-service
   change-password endpoint (verifies current password). *(app code)*
-- [ ] **TODO-6 (MED):** Drop the JWT from the login JSON body; remove the `?token=`
+- [x] **TODO-6 (MED):** Drop the JWT from the login JSON body; remove the `?token=`
   blob query fallback (rely on the cookie). *(app code + confirm images still load)*
-- [ ] **TODO-7 (MED):** Migrate `python-jose` → `PyJWT` (keep `algorithms=["HS256"]`);
+- [x] **TODO-7 (MED):** Migrate `python-jose` → `PyJWT` (keep `algorithms=["HS256"]`);
   removes stale transitive advisories. *(app code, test-covered)*
 - [ ] **TODO-8 (MED):** Add a server-side CI pipeline (lint/mypy/bandit/pip-audit/
   npm-audit/trivy + tests, block on fail); split build from deploy (immutable tag +
@@ -536,9 +536,9 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   up rotation (JWT via current+previous dual-verify; admin via `ADMIN_FORCE_SYNC`).
 
 **P3 — low-severity hardening / hygiene**
-- [ ] **TODO-11 (LOW):** http(s)-only scheme allow-list on wishlist + lesson `url`
+- [x] **TODO-11 (LOW):** http(s)-only scheme allow-list on wishlist + lesson `url`
   (server validator + client `safeHref`).
-- [ ] **TODO-12 (LOW):** Add the parent→`profile_id` join to `delete_transaction`,
+- [x] **TODO-12 (LOW):** Add the parent→`profile_id` join to `delete_transaction`,
   `delete_response`, `delete_bounty_log` (match siblings).
 - [ ] **TODO-13 (LOW):** CSP — explicit `script-src 'self'`; tighten `img-src`/
   `media-src`; body-size guard when Content-Length absent; SPA catch-all path guard.
@@ -547,5 +547,20 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   `archive_token` out of the query string; bcrypt 72-byte length guard; scrub account
   id/ARNs from `.env.example` + deploy docs to placeholders.
 
-**Status: REVIEW COMPLETE, findings recorded — NO code/infra changed in this pass
-(review only). Awaiting owner go-ahead on the TODO list above (P1 recommended first).**
+**Status: REVIEW COMPLETE, findings recorded.**
+
+**Remediation progress (2026-10-31):** DONE + deployed + live-verified —
+TODO-1 (wishlist self-approval), TODO-2 (Dockerfile non-root + checksummed
+Litestream), TODO-6 (cookie-only token; no body token; no `?token=`),
+TODO-7 (python-jose→PyJWT 2.15.0, pip-audit now clean), TODO-11 (url scheme
+allow-list), TODO-12 (grandchild profile-scope), TODO-15-partial (bcrypt 72-byte
+guard). Commit `b635b4a`, both regions RUNNING; all 3 users + image loading +
+wishlist/url fixes verified live.
+
+**Still OPEN — the HIGH infra items need owner go-ahead (lockout/data risk):**
+- TODO-3 (WAF Count overrides → Block, both regions)
+- TODO-4 (drop `s3:DeleteObject` on DB buckets + S3 Object Lock)
+- TODO-5 (JWT `token_version` revocation + self-service change-password — app code,
+  but a schema/migration change; do next)
+- TODO-8 (server-side CI + immutable-tag deploy), TODO-9 (rate-limit expensive
+  endpoints), TODO-10/13/14/15-rest (infra/CSP/ECR/logging hygiene).

@@ -24,7 +24,7 @@ import zipfile
 from datetime import UTC, datetime, timedelta
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from jwt import InvalidTokenError as JWTError
 from sqlalchemy.orm import Session
@@ -208,18 +208,30 @@ def archive_profile(
 @router.delete("/{profile_id}")
 def delete_profile(
     profile_id: int,
-    archive_token: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
+    x_archive_token: str | None = Header(default=None),
+    archive_token: str | None = None,
 ):
     """FULL clean delete (admin only) — requires a fresh archive token.
 
     Removes every DB row for the profile AND every upload blob. The caller must
-    first POST /archive and pass the returned token here (query param
-    `archive_token`), proving a backup was taken. The token is bound to the
-    acting admin and short-lived.
+    first POST /archive and pass the returned token here via the
+    `X-Archive-Token` HEADER (preferred — keeps the token out of URLs/access
+    logs). The `?archive_token=` query param is still accepted as a deprecated
+    fallback. The token is bound to the acting admin and short-lived.
     """
-    _verify_archive_token(archive_token, profile_id, current_user.id)
+    # x_archive_token comes from the X-Archive-Token header (preferred);
+    # archive_token is the deprecated ?query= fallback. Guard against a non-str
+    # (e.g. a Header default sentinel when the function is called directly).
+    token = None
+    if isinstance(x_archive_token, str):
+        token = x_archive_token
+    elif isinstance(archive_token, str):
+        token = archive_token
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing archive token.")
+    _verify_archive_token(token, profile_id, current_user.id)
 
     profile = db.query(Profile).filter(Profile.id == profile_id).first()
     if not profile:

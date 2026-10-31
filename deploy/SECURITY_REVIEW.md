@@ -563,10 +563,17 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   `delete_response`, `delete_bounty_log` (match siblings).
 - [x] **TODO-13 (LOW):** CSP — explicit `script-src 'self'`; tighten `img-src`/
   `media-src`; body-size guard when Content-Length absent; SPA catch-all path guard.
-- [ ] **TODO-14 (LOW):** ECR `imageTagMutability=IMMUTABLE` + deploy by digest.
-- [ ] **TODO-15 (LOW):** CloudWatch log retention + MRK encryption; move
-  `archive_token` out of the query string; bcrypt 72-byte length guard; scrub account
-  id/ARNs from `.env.example` + deploy docs to placeholders.
+- [~] **TODO-14 (LOW):** DEFERRED — coupled to TODO-8's deploy-pipeline rework
+  (flipping ECR to IMMUTABLE breaks the current `:latest` auto-deploy). Do both
+  together: immutable/digest-addressed tags + explicit promote.
+- [~] **TODO-15 (LOW):** MOSTLY DONE (2026-10-31). ✅ CloudWatch 90-day retention
+  set on all 4 log groups (east+west); ✅ archive-delete token moved to the
+  `X-Archive-Token` header (out of the query string / access logs; query kept as
+  deprecated fallback); ✅ bcrypt 72-byte length guard (done in TODO-7 batch);
+  ✅ account id + secret-name suffixes scrubbed to `<ACCOUNT_ID>` / `-XXXXXX`
+  placeholders in `.env.example` + deploy docs. ⏸️ Log-group MRK encryption still
+  TODO — needs a KMS key-policy change to grant CloudWatch Logs, deferred as a
+  careful key-policy edit.
 
 **Status: REVIEW COMPLETE, findings recorded.**
 

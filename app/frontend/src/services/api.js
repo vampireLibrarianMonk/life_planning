@@ -418,10 +418,11 @@ export async function archiveProfile(profileId) {
 
 /** Full clean delete (admin only) — requires a fresh archive token. */
 export async function deleteProfile(profileId, archiveToken) {
-  const res = await fetch(
-    `/api/profiles/${profileId}?archive_token=${encodeURIComponent(archiveToken)}`,
-    { method: 'DELETE' },
-  )
+  // Send the token as a header (keeps it out of URLs/access logs).
+  const res = await fetch(`/api/profiles/${profileId}`, {
+    method: 'DELETE',
+    headers: { 'X-Archive-Token': archiveToken },
+  })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.detail || 'Delete failed')

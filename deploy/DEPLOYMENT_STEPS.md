@@ -6,7 +6,7 @@ how it was built — not a plan. For the design rationale see
 `DEPLOYMENT_STRATEGY.md`; for per-step security verification see
 `SECURITY_GATES.md`; for deferred work see `FOLLOW_UPS.md`.
 
-- **Account:** 809784555426  **Region:** us-east-1
+- **Account:** <ACCOUNT_ID>  **Region:** us-east-1
 - **Admin identity:** IAM user `house-user` (console/CLI only — never used by
   the app; the app assumes its own role)
 - **Route 53 zones:** `my-deployment.com` = `Z0101762W5VWFT32BT2B` (app domain),
@@ -203,7 +203,7 @@ aws cloudwatch put-metric-alarm --alarm-name life-planning-west --namespace AWS/
   --dimensions Name=HealthCheckId,Value=<WEST_HC> --statistic Minimum --period 60 --evaluation-periods 2 \
   --threshold 1 --comparison-operator LessThanThreshold --treat-missing-data breaching \
   --alarm-actions <TOPIC> --ok-actions <TOPIC>
-aws budgets create-budget --account-id 809784555426 ...  # $70/mo -> SNS
+aws budgets create-budget --account-id <ACCOUNT_ID> ...  # $70/mo -> SNS
 # -> record ALERT_TOPIC_ARN, HEALTHCHECK_ID in .arn-env
 ```
 

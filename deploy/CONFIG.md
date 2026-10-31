@@ -46,7 +46,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
    |----------|-------|
    | `DEPLOY_MODE` | `aws` |
    | `AWS_REGION` | `us-east-1` |
-   | `ADMIN_SECRET_ARN` | `arn:aws:secretsmanager:us-east-1:809784555426:secret:life-planning/admin-credentials-dPvvor` |
+   | `ADMIN_SECRET_ARN` | `arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:life-planning/admin-credentials-XXXXXX` |
    | `JWT_SECRET_ARN` | *(created during infra bring-up)* |
    | `UPLOADS_BUCKET` | *(created during infra bring-up)* |
    | `PRESIGN_TTL_SECONDS` | `900` |
@@ -72,7 +72,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 A strong (43-char, 256-bit) random admin password is already stored at:
 
 ```
-arn:aws:secretsmanager:us-east-1:809784555426:secret:life-planning/admin-credentials-dPvvor
+arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:life-planning/admin-credentials-XXXXXX
 ```
 
 Retrieve it when needed:

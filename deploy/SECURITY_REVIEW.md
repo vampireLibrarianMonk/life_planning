@@ -519,9 +519,19 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   50MB upload) instead. Verified live: a multipart avatar upload still returns 200
   through the WAF with XSS_BODY=Block (tested on a throwaway profile, then deleted).
   *(reversible: re-add the override to revert.)*
-- [ ] **TODO-4 (HIGH, infra):** Drop `s3:DeleteObject` on both DB backup buckets from
-  the instance role + enable S3 Object Lock on both. *(owner infra; confirm Litestream
-  replication unaffected)*
+- [~] **TODO-4 (HIGH, infra):** PARTIAL (2026-10-31). **DONE:** removed
+  `s3:DeleteObject` from the instance role on BOTH DB backup buckets (kept it on
+  the uploads buckets, where user-delete is a feature). A compromised instance
+  can no longer delete/purge the Litestream DR backups. Verified live: east
+  cold-booted to RUNNING (Litestream restore = Get/List works) and wrote a new
+  generation (Put works) under the new policy. Trade-off: Litestream can't prune
+  old segments (slow storage growth; negligible for a ~137KB DB). Reversible.
+  **BLOCKED — needs owner/AWS Support:** S3 Object Lock cannot be self-enabled on
+  these buckets — AWS only allows Object Lock at bucket *creation* (or via a
+  Support request for existing buckets). Options: (a) open an AWS Support case to
+  enable Object Lock on the existing versioned DB buckets, or (b) recreate the DB
+  buckets with ObjectLockEnabled + re-point Litestream/CRR (disruptive). Left for
+  owner decision; the DeleteObject removal already removes the primary tamper path.
 
 **P2 — real but lower likelihood / hardening with clear value**
 - [x] **TODO-5 (MED):** JWT revocation — `token_version` column + claim + check in
@@ -536,7 +546,7 @@ TLS-only, versioning); CRR role tightly scoped; no `Action:*`/`Resource:*` in ap
   explicit promote) instead of `:latest` auto-deploy. *(CI/CD)*
 - [x] **TODO-9 (MED):** Rate-limit `/archive`, `/restore`, `/reseed`, `/backup`; stream
   the archive to a temp file instead of building the ZIP in RAM. *(app code)*
-- [ ] **TODO-10 (MED, infra):** Re-encrypt the two east secrets with the east MRK; set
+- [x] **TODO-10 (MED, infra):** DONE 2026-10-31 — re-encrypt the two east secrets with the east MRK; set
   up rotation (JWT via current+previous dual-verify; admin via `ADMIN_FORCE_SYNC`).
 
 **P3 — low-severity hardening / hygiene**

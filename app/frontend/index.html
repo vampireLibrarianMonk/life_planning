@@ -22,11 +22,33 @@
       gap: 12px;
     }
 
+    /* Bounty row wrapper is layout-transparent on desktop (cells stay in one row). */
+    .bounty-meta, .bounty-actions { display: contents; }
+
     /* Roadmap phases */
     .roadmap-phase summary::-webkit-details-marker { display: none; }
 
     /* Mobile: <768px */
     @media (max-width: 767px) {
+      /* Bounty row becomes a card:
+           [status]  Title / description / toggles
+                     13-18   $25.00          [log][edit][x]
+         The desktop column header is hidden because the columns are gone. */
+      /* Cards are taller than the 300px desktop scroll box; let the page scroll
+         instead of trapping touch scrolling inside a nested box. */
+      .tier-list { max-height: none !important; overflow: visible !important; border: none !important; padding: 0 !important; }
+      .bounty-head { display: none !important; }
+      .bounty-row { flex-wrap: wrap; align-items: flex-start !important; padding: 10px !important; margin-bottom: 8px !important; border: 1px solid #e8e8e8; }
+      .bounty-main { flex: 1 1 calc(100% - 54px) !important; min-width: 0 !important; }
+      .bounty-meta { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding-top: 6px; border-top: 1px solid #f0f0f0; }
+      .bounty-age { width: auto !important; min-width: 40px; }
+      .bounty-reward { width: auto !important; margin-right: auto; }
+      /* Buttons wrap as one group (never one orphaned button) on narrow phones. */
+      .bounty-actions { display: flex; gap: 0; margin-left: auto; }
+      /* Roadmap row: stack title above the pillar badges instead of
+         squeezing the badges into a ~76px column beside it. */
+      .roadmap-phase { flex-direction: column; gap: 4px !important; }
+      .roadmap-phase > div { padding-left: 0 !important; }
       .pillar-grid-desktop {
         display: flex !important;
         overflow-x: auto;
@@ -45,6 +67,34 @@
       .pillar-filter {
         display: block !important;
       }
+    }
+
+    /* Touch devices: comfortable tap targets (WCAG 2.2 SC 2.5.8 / HIG 44px).
+       Keyed off data-touch (set by src/services/device.js) so mouse-driven
+       desktop layouts are untouched. */
+    html[data-touch="true"] .back-btn,
+    html[data-touch="true"] .roadmap-phase summary {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    html[data-touch="true"] .back-btn { padding: 0 8px !important; }
+    /* Icon-only row buttons (status dot, log, edit, delete): keep the small
+       glyph but give it a 44px hit area. */
+    /* Expandable Requirements/Reference/Criteria toggles inside bounty rows.
+       28px, not 44px: there are ~3 per bounty across 200+ bounties, and 44px
+       would triple the list height. Clears the 24px WCAG 2.2 minimum. */
+    html[data-touch="true"] .bounty-main details > summary {
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+    }
+    html[data-touch="true"] .tap-target {
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     /* Milestone items — responsive */

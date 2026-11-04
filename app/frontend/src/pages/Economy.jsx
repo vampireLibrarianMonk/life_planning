@@ -255,7 +255,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
           return (
             <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#15803d' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
               {canWrite ? (
-                <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
+                <button className="tap-target" onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
                   <span style={{ fontSize: 16 }}>{wishIcon}</span>
                 </button>
               ) : (
@@ -277,7 +277,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
                 )}
               </div>
               {item.cost_cents > 0 && <span style={{ fontWeight: 600, fontSize: 14 }}>${(item.cost_cents / 100).toFixed(2)}</span>}
-              {canWrite && <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>}
+              {canWrite && <button className="tap-target" onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>}
             </div>
           )
         })}
@@ -419,7 +419,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
               <span style={{ fontSize: 11, color: '#595959', minWidth: 70 }}>{TRAIT_LABELS[inc.trait]?.slice(0, 8)}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{inc.description}</span>
               <span style={{ fontSize: 11, color: '#595959' }}>{inc.date}</span>
-              {isAdminUser && <button onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>}
+              {isAdminUser && <button className="tap-target" onClick={() => handleDeleteIncident(inc.id)} style={st.delBtn}>&times;</button>}
             </div>
           ))}
         </div>
@@ -505,7 +505,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
         <div key={tier} style={{ marginBottom: 24 }}>
           <h4 style={{ margin: '0 0 8px', color: TIER_TEXT_COLORS[tier], textTransform: 'capitalize', fontSize: 14 }}>{tier} Tier <span style={{ fontSize: 11, color: '#595959', fontWeight: 400 }}>({bounties.filter(b => b.tier === tier).length})</span></h4>
           {/* Column headers */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 10px', fontSize: 10, color: '#595959', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #eee', marginBottom: 4 }}>
+          <div className="bounty-head" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 10px', fontSize: 10, color: '#595959', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #eee', marginBottom: 4 }}>
             <span style={{ width: 28, textAlign: 'center' }}>Status</span>
             <span style={{ flex: 1, paddingLeft: 4 }}>Task</span>
             <span style={{ width: 40, textAlign: 'center' }}>Age</span>
@@ -513,10 +513,10 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
             <span style={{ width: 44 }}></span>
           </div>
           {/* Scrollable tier list */}
-          <div tabIndex={0} role="region" aria-label={`${tier} tier bounties`} style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 8, padding: '4px 0' }}>
+          <div className="tier-list" tabIndex={0} role="region" aria-label={`${tier} tier bounties`} style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 8, padding: '4px 0' }}>
             {bounties.filter(b => b.tier === tier).map(b => (
               <div key={b.id}>
-                <div style={st.bountyItem}>
+                <div className={editingBounty === b.id ? undefined : 'bounty-row'} style={st.bountyItem}>
                 {editingBounty === b.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -573,7 +573,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
                 ) : (
                   <>
                     {canWrite ? (
-                      <button onClick={() => cycleBountyStatus(b)} style={st.statusDot} title={`${b.status} — click to advance`}>
+                      <button className="tap-target" onClick={() => cycleBountyStatus(b)} style={st.statusDot} title={`${b.status} — click to advance`}>
                         <span style={{ color: b.status === 'paid' ? '#15803d' : b.status === 'complete' ? '#15803d' : b.status === 'claimed' ? '#a86b00' : '#767676', fontSize: 16 }}>
                           {b.status === 'paid' ? '✓' : b.status === 'complete' ? '●' : b.status === 'claimed' ? '◐' : '○'}
                         </span>
@@ -585,7 +585,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
                         </span>
                       </span>
                     )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="bounty-main" style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ textDecoration: b.status === 'paid' ? 'line-through' : 'none', color: b.status === 'paid' ? '#595959' : '#1a1a1a' }}>{b.title}</span>
                       {b.repeatable ? <span style={{ fontSize: 10, marginLeft: 6, color: '#595959' }}>🔄×{b.times_completed}{b.streak_count > 0 ? <span style={{ color: b.streak_count >= 52 ? '#c23600' : b.streak_count >= 12 ? '#8a6f00' : b.streak_count >= 4 ? '#15803d' : '#595959' }}> 🔥{b.streak_count}</span> : ''}{b.reset_days && b.times_completed > 0 && b.last_completed_at ? (() => {
                         const daysElapsed = Math.floor((Date.now() - new Date(b.last_completed_at).getTime()) / 86400000)
@@ -601,11 +601,15 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
                         </div>
                       )}
                     </div>
-                    <span style={{ width: 40, textAlign: 'center', fontSize: 10, padding: '2px 4px', borderRadius: 8, background: b.age_band ? '#f0f4ff' : 'transparent', color: '#2563b0' }}>{b.age_band || ''}</span>
-                    <span style={{ width: 70, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#333' }}>${(b.current_reward / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 9, color: '#595959', textDecoration: 'line-through', marginLeft: 3 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
-                    <button onClick={() => toggleBountyLog(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: expandedLog === b.id ? '#2563b0' : '#aaa' }} title="Log">📝</button>
-                    {canWrite && <button onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>}
-                    {canWrite && <button onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>}
+                    <div className="bounty-meta">
+                    <span className="bounty-age" style={{ width: 40, textAlign: 'center', fontSize: 10, padding: '2px 4px', borderRadius: 8, background: b.age_band ? '#f0f4ff' : 'transparent', color: '#2563b0' }}>{b.age_band || ''}</span>
+                    <span className="bounty-reward" style={{ width: 70, textAlign: 'right', fontWeight: 600, fontSize: 13, color: '#333' }}>${(b.current_reward / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 9, color: '#595959', textDecoration: 'line-through', marginLeft: 3 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
+                    <div className="bounty-actions">
+                    <button className="tap-target" onClick={() => toggleBountyLog(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: expandedLog === b.id ? '#2563b0' : '#aaa' }} title="Log">📝</button>
+                    {canWrite && <button className="tap-target" onClick={() => startEditBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>}
+                    {canWrite && <button className="tap-target" onClick={() => handleDeleteBounty(b.id)} style={st.delBtn}>&times;</button>}
+                    </div>
+                    </div>
                   </>
                 )}
               </div>
@@ -748,7 +752,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
         return (
           <div key={item.id} style={{ ...st.bountyItem, borderLeft: `3px solid ${item.status === 'purchased' ? '#15803d' : item.status === 'approved' ? '#f5a623' : '#e0e0e0'}` }}>
             {canWrite ? (
-              <button onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
+              <button className="tap-target" onClick={() => cycleWishStatus(item)} style={st.statusDot} title={item.status}>
                 <span style={{ fontSize: 16 }}>{item.status === 'purchased' ? '✓' : item.status === 'approved' ? '👍' : '💭'}</span>
               </button>
             ) : (
@@ -773,7 +777,7 @@ export default function Economy({ profileId, isAdmin: isAdminProp = true, wishli
               {item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#2563b0' }}>View item ↗</a>}
             </div>
             <span style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>${(item.cost_cents / 100).toFixed(2)}</span>
-            {canWrite && <button onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>}
+            {canWrite && <button className="tap-target" onClick={() => handleDeleteWish(item.id)} style={st.delBtn}>&times;</button>}
           </div>
         )
       })}

@@ -37,6 +37,46 @@ npm test             # everything
 Point at a different host with `LP_BASE_URL`, and override credentials with
 `LP_ADMIN_USER` / `LP_ADMIN_PASS`.
 
+## Desktop + mobile evaluation
+
+`tests/device_eval.spec.js` runs the same checks in five Playwright projects:
+`desktop` (1280px), `mobile-pixel` (Pixel 7), `mobile-iphone` (iPhone 14),
+`mobile-small` (iPhone SE, 320px) and `tablet-768` (one pixel above the
+breakpoint, so it must get the desktop layout). The phone projects are Chromium
+with the device's viewport, touch and mobile UA; real Safari/WebKit is not covered.
+
+Mode detection lives in `src/services/device.js`. It sets `data-device="mobile|desktop"`
+and `data-touch="true|false"` on `<html>`, using the same 767px breakpoint as the CSS
+in `index.html`.
+
+Per view (login, dashboard, profile, programs, bounty board) it gates on: detected mode
+matches the viewport, no horizontal page overflow, touch targets of at least 24px on
+touch devices, no console or page errors, axe serious/critical violations, and the
+mode-specific layout (mobile pillars scroll sideways, desktop pillars wrap in a grid;
+the open roadmap row isn't squeezed). Touch targets under 44px are reported, not gated.
+
+```bash
+scripts/eval_ui.sh                       # builds, boots an isolated server + throwaway DB, runs all 5 projects
+scripts/eval_ui.sh --project=mobile-small
+LP_SKIP_BUILD=1 scripts/eval_ui.sh       # reuse the existing dist/
+```
+
+Output goes to `app/frontend/eval-results/` (a screenshot per view and project, plus
+`summary-<project>.json`). It never touches the dev database or a deployed system.
+
+### Read-only account and role checks
+
+- `tests/readonly_ui.spec.js` logs in as a throwaway read-only (grandparent) user and checks
+  that no create/edit/delete control is usable, the Discernment section is not offered, and
+  the bounty board shows no edit/delete/status buttons or private ledgers. `scripts/eval_ui.sh`
+  creates that user and runs it on every device project.
+- `tests/role_controls.spec.js` regression-tests that an admin sees admin-only controls after
+  logging in (Profile.jsx once read the role at module load, before login).
+
+**Run the suites one at a time.** The backend throttles logins to 10 per 5 minutes per IP and
+user, so running walkthrough, a11y, child_development and role_controls together makes later
+tests fail at the login screen. `scripts/eval_ui.sh` avoids this by logging in once.
+
 ## Accessibility mode: gating vs. report-only
 
 The a11y scans **gate by default** — they fail the run on any serious/critical

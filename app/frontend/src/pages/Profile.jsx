@@ -7,9 +7,6 @@ import ChildDevelopment from '../components/ChildDevelopment'
 import Economy from './Economy'
 import { isReadonly, isAdmin, uploadUrl } from '../services/auth'
 
-const canWrite = !isReadonly()
-const adminUser = isAdmin()
-
 const PILLARS = [
   { key: 'spiritual', label: 'Spiritual', icon: '✝️', placeholder: "e.g. 'First prayer unprompted'", about: "As your child comes to study their place in this world, a question will surface that no other pillar can answer: What is real beyond what I can measure, and how do I live in light of it? This pillar exists because the spiritual dimension is not optional — it is the environment in which everything else operates. The goal is not a child who performs religion. The goal is a person who can recognize what is genuinely good and pursue it, recognize what wears the mask of good and test it, recognize what attacks them spiritually and name it, stand firm when structures are compromised — even structures that claim holiness — and transmit what they've learned without coercion. The primary tool is the Fruit Test (Matthew 7:15–20): not by words, office, or credentials, but by what a person or institution produces over time." },
   { key: 'financial', label: 'Financial', icon: '💰', placeholder: "e.g. 'Opened savings account'", about: "Financial development builds real investment literacy from birth through generational wealth planning. Starting with savings jars and compound interest stories, progressing through custodial accounts, Roth IRAs, portfolio allocation, and behavioral finance. The child learns not just to save but to understand markets, manage risk, and eventually build wealth structures that outlast them." },
@@ -83,6 +80,8 @@ const BELONGING_BOUNTY_TEMPLATE = [
 ]
 
 const STATUS_COLORS = { not_started: '#e0e0e0', introduced: '#a0d2db', in_progress: '#f5a623', practicing: '#c39bd3', complete: '#15803d', mastered: '#1a7a4c', pending: '#e0e0e0' }
+// Text colour for the status pill: dark on the pastel statuses, white on the dark greens.
+const STATUS_PILL_TEXT = { not_started: '#1a1a1a', introduced: '#1a1a1a', in_progress: '#1a1a1a', practicing: '#1a1a1a', complete: '#fff', mastered: '#fff', pending: '#1a1a1a' }
 const STATUS_LABELS = { not_started: '○', introduced: '◔', in_progress: '◑', practicing: '◕', complete: '●', mastered: '★', pending: '○' }
 const STATUS_CYCLE = { not_started: 'introduced', introduced: 'in_progress', in_progress: 'practicing', practicing: 'complete', complete: 'mastered', mastered: 'not_started', pending: 'in_progress' }
 const STATUS_DISPLAY = { not_started: 'Not Started', introduced: 'Introduced', in_progress: 'In Progress', practicing: 'Practicing', complete: 'Complete', mastered: 'Mastered', pending: 'Pending' }
@@ -98,6 +97,11 @@ function renderInline(text) {
 
 export default function Profile() {
   const { id } = useParams()
+  // Read the role per render, NOT at module load: the session claims arrive
+  // after login, so a module-level read is frozen at "no role" and admins never
+  // see admin-only controls (and readonly users see write buttons).
+  const canWrite = !isReadonly()
+  const adminUser = isAdmin()
   const [profile, setProfile] = useState(null)
   const [activePillar, setActivePillar] = useState(null)
   const [cdAgeBand, setCdAgeBand] = useState(null)
@@ -495,9 +499,6 @@ export default function Profile() {
 
         {/* Child Development — dashboard section, same level as Life Maps */}
         <h2 style={{ ...s.sectionTitle, marginTop: 32 }}>Child Development</h2>
-        <p style={{ margin: '0 0 10px', fontSize: 12, color: '#8a6f00', background: '#fff8e6', border: '1px solid #f0e2b8', borderRadius: 8, padding: '8px 12px' }}>
-          A gentle guide, not a test, score, or diagnosis — this app is not a medical tool. Every age is a window, not a deadline. Share anything here with your pediatrician.
-        </p>
         <div className="pillar-grid-desktop">
           <button onClick={() => { setActivePillar('__child_development__'); setCdAgeBand(null) }} style={{ ...s.pillarCard, border: '2px solid #cfe8d6' }}>
             <span style={{ fontSize: 28 }}>🌱</span>
@@ -623,7 +624,7 @@ export default function Profile() {
   if (activePillar === '__life_chart__') {
     return (
       <div style={s.container}>
-        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <button className="back-btn" onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
           <span style={{ fontSize: 32 }}>🕰️</span>
           <div>
@@ -654,7 +655,7 @@ export default function Profile() {
                   <strong style={{ fontSize: 13 }}>{section.title}</strong>
                 </div>
                 <p style={{ margin: '0 0 8px', fontSize: 12, color: '#4d5b6b', fontStyle: 'italic', lineHeight: 1.5 }}>{section.question}</p>
-                <p style={{ margin: 0, fontSize: 11, color: '#7a8795', lineHeight: 1.5 }}>{section.examples.join(' · ')}</p>
+                <p style={{ margin: 0, fontSize: 11, color: '#566370', lineHeight: 1.5 }}>{section.examples.join(' · ')}</p>
               </div>
             ))}
           </div>
@@ -667,7 +668,7 @@ export default function Profile() {
     const belonging = BELONGING_VARIANTS[belongingVariant]
     return (
       <div style={s.container}>
-        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <button className="back-btn" onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
           <span style={{ fontSize: 32 }}>◎</span>
           <div>
@@ -750,7 +751,7 @@ export default function Profile() {
       const STATUS_LABELS = { assigned: '📋 Assigned', in_progress: '🔄 In Progress', rebrief_done: '✅ Rebrief Done', expansion_done: '✅ Expansion Done', teachback_done: '✅ Teachback Done', complete: '🏆 Complete' }
       return (
         <div style={s.container}>
-          <button onClick={() => setActiveLesson(null)} style={s.backBtn}>&larr; Back to Lessons</button>
+          <button className="back-btn" onClick={() => setActiveLesson(null)} style={s.backBtn}>&larr; Back to Lessons</button>
           <div style={{ margin: '24px 0 16px' }}>
             <h2 style={{ margin: 0 }}>{lesson.title}</h2>
             <p style={{ margin: '4px 0', fontSize: 13, color: '#595959' }}>{lesson.source || 'No source'} · {lesson.pillar || 'General'} · {STATUS_LABELS[lesson.status] || lesson.status}</p>
@@ -787,7 +788,7 @@ export default function Profile() {
 
     return (
       <div style={s.container}>
-        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <button className="back-btn" onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 32 }}>📖</span>
@@ -841,10 +842,10 @@ export default function Profile() {
     if (!programs.length) { fetchPrograms(id).then(d => Array.isArray(d) && setPrograms(d)); fetchResearchTopics(id).then(setResearchTopics) }
     if (activeProgram) {
       const prog = programs.find(p => p.key === activeProgram)
-      if (!prog) return <div style={s.container}><button onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back</button><p>Loading...</p></div>
+      if (!prog) return <div style={s.container}><button className="back-btn" onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back</button><p>Loading...</p></div>
       return (
         <div style={s.container}>
-          <button onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back to Programs</button>
+          <button className="back-btn" onClick={() => setActiveProgram(null)} style={s.backBtn}>&larr; Back to Programs</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
             <span style={{ fontSize: 32 }}>{prog.icon}</span>
             <div style={{ flex: 1 }}>
@@ -973,7 +974,7 @@ export default function Profile() {
     }
     return (
       <div style={s.container}>
-        <button onClick={() => { setActivePillar(null); setPrograms([]) }} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <button className="back-btn" onClick={() => { setActivePillar(null); setPrograms([]) }} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
           <span style={{ fontSize: 32 }}>📋</span>
           <h2 style={{ margin: 0 }}>Programs</h2>
@@ -1033,7 +1034,7 @@ export default function Profile() {
 
     return (
       <div style={s.container}>
-        <button onClick={() => { setActivePillar(null); setActiveDiscern(null); setDiscernEntries([]) }} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <button className="back-btn" onClick={() => { setActivePillar(null); setActiveDiscern(null); setDiscernEntries([]) }} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 8px' }}>
           <span style={{ fontSize: 32 }}>{meta.icon}</span>
           <div>
@@ -1079,7 +1080,7 @@ export default function Profile() {
         {canWrite && (
         <form onSubmit={handleSubmitDiscern} style={{ ...s.form, marginTop: 20 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: '#555' }}>{adminUser ? 'New Parent Note' : 'New Reflection'}</label>
-          {adminUser && <p style={{ margin: '0 0 6px', fontSize: 11, color: '#888', fontStyle: 'italic' }}>The child&rsquo;s own reflections are private to them and are not shown here. Notes you add are visible to you and the child.</p>}
+          {adminUser && <p style={{ margin: '0 0 6px', fontSize: 11, color: '#595959', fontStyle: 'italic' }}>The child&rsquo;s own reflections are private to them and are not shown here. Notes you add are visible to you and the child.</p>}
           <input placeholder="Summary (e.g. 'What I understand about my body now')" value={discernForm.title} onChange={e => setDiscernForm({ ...discernForm, title: e.target.value })} style={s.input} />
           <textarea placeholder="Write your reflection... What do you understand? What changed? What don't you know yet?" value={discernForm.reflection} onChange={e => setDiscernForm({ ...discernForm, reflection: e.target.value })} style={{ ...s.input, minHeight: 100, resize: 'vertical' }} />
           <button type="submit" className="write-action" style={s.submitBtn}>{adminUser ? 'Save Note' : 'Save Reflection'}</button>
@@ -1122,7 +1123,7 @@ export default function Profile() {
   if (activePillar === '__wishlist__') {
     return (
       <div style={s.container}>
-        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <button className="back-btn" onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
           <span style={{ fontSize: 32 }}>🎁</span>
           <h2 style={{ margin: 0 }}>Ask and You Shall Receive</h2>
@@ -1137,7 +1138,7 @@ export default function Profile() {
   if (activePillar === '__economy__') {
     return (
       <div style={s.container}>
-        <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+        <button className="back-btn" onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
           <span style={{ fontSize: 32 }}>💵</span>
           <h2 style={{ margin: 0 }}>Bounty Board</h2>
@@ -1193,12 +1194,12 @@ export default function Profile() {
             {isMilestone && <span style={{ fontSize: 10, color: '#595959', marginLeft: 4 }}>{isExpanded ? '▾' : '▸'} details</span>}
           </div>
           <div className="milestone-actions">
-            <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 8, background: STATUS_COLORS[item.status] || '#e0e0e0', color: '#fff', whiteSpace: 'nowrap' }}>{STATUS_DISPLAY[item.status] || item.status}</span>
+            <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 8, background: STATUS_COLORS[item.status] || '#e0e0e0', color: STATUS_PILL_TEXT[item.status] || '#1a1a1a', whiteSpace: 'nowrap' }}>{STATUS_DISPLAY[item.status] || item.status}</span>
             {item.category && <span style={s.categoryBadge}>{item.category}</span>}
             {item.score != null && <span style={s.scoreBadge}>{item.score}/5</span>}
-            <button onClick={() => loadAttachments(item.id)} style={s.editBtn} title="Attachments">📎</button>
-            {canWrite && <button onClick={() => startEdit(item)} style={s.editBtn} title="Edit">✎</button>}
-            {canWrite && showDelete && <button onClick={() => handleDelete(item.id)} style={s.deleteBtn} title="Delete">&times;</button>}
+            <button className="tap-target" onClick={() => loadAttachments(item.id)} style={s.editBtn} title="Attachments">📎</button>
+            {canWrite && <button className="tap-target" onClick={() => startEdit(item)} style={s.editBtn} title="Edit">✎</button>}
+            {canWrite && showDelete && <button className="tap-target" onClick={() => handleDelete(item.id)} style={s.deleteBtn} title="Delete">&times;</button>}
           </div>
         </div>
         {expandedAttachments === item.id && (
@@ -1215,7 +1216,7 @@ export default function Profile() {
                 ) : (
                   <a href={uploadUrl(a.filename)} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#2563b0' }}>📄 {a.original_name}</a>
                 )}
-                {canWrite && <button onClick={() => handleDeleteAttachment(item.id, a.id)} style={{ ...s.deleteBtn, fontSize: 14 }} title="Remove">×</button>}
+                {canWrite && <button className="tap-target" onClick={() => handleDeleteAttachment(item.id, a.id)} style={{ ...s.deleteBtn, fontSize: 14 }} title="Remove">×</button>}
               </div>
             ))}
           </div>
@@ -1259,7 +1260,7 @@ export default function Profile() {
 
   return (
     <div style={s.container}>
-      <button onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
+      <button className="back-btn" onClick={() => setActivePillar(null)} style={s.backBtn}>&larr; Back to Dashboard</button>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 16px', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1439,8 +1440,8 @@ export default function Profile() {
                   <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: {'bronze':'#fdf0e0','silver':'#f0f0f0','gold':'#fff8e0','platinum':'#e8f0ff','diamond':'#effcff'}[b.tier], color: {'bronze':'#cd7f32','silver':'#595959','gold':'#b8860b','platinum':'#2563b0','diamond':'#0088aa'}[b.tier] }}>{b.tier}</span>
                   {b.age_band && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#f0f4ff', color: '#2563b0' }}>{b.age_band}</span>}
                   <span style={{ fontWeight: 600, fontSize: 14 }}>${((b.current_reward ?? b.reward_amount) / 100).toFixed(2)}{b.repeatable && b.current_reward !== b.reward_amount ? <span style={{ fontSize: 10, color: '#595959', textDecoration: 'line-through', marginLeft: 4 }}>${(b.reward_amount / 100).toFixed(2)}</span> : null}</span>
-                  {canWrite && <button onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>}
-                  {canWrite && <button onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>}
+                  {canWrite && <button className="tap-target" onClick={() => startEditPBounty(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#595959' }} title="Edit">✎</button>}
+                  {canWrite && <button className="tap-target" onClick={() => handleDeletePillarBounty(b.id)} style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer' }}>&times;</button>}
                 </>
               )}
             </div>
@@ -1525,7 +1526,7 @@ const s = {
   learningTitle: { margin: '0 0 8px', fontSize: 18, color: '#1f344a' },
   learningText: { margin: '0 0 8px', fontSize: 13, lineHeight: 1.6, color: '#34495e' },
   learningList: { margin: '8px 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.6, color: '#34495e' },
-  learningSource: { margin: '10px 0 0', fontSize: 10, color: '#7f8c8d', fontStyle: 'italic' },
+  learningSource: { margin: '10px 0 0', fontSize: 10, color: '#566370', fontStyle: 'italic' },
   mapHeroCard: { marginBottom: 20, padding: 18, background: '#f7fbff', border: '1px solid #dcecff', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   mapHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 12 },
   mapBadge: { fontSize: 11, padding: '4px 10px', borderRadius: 999, background: '#e8f2ff', color: '#3f6fa8', fontWeight: 700, whiteSpace: 'nowrap' },

@@ -166,7 +166,7 @@ const styles = {
   form: { display: 'flex', gap: 12, marginBottom: 24, padding: 20, background: '#f8f9ff', borderRadius: 12, flexWrap: 'wrap' },
   input: { flex: 1, minWidth: 180, padding: '10px 14px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14 },
   submitBtn: { padding: '10px 24px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 12 },
   card: { display: 'flex', alignItems: 'center', padding: 20, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, textDecoration: 'none', color: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   avatar: { width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 600, flexShrink: 0 },
   avatarImg: { width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },

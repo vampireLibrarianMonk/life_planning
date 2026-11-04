@@ -419,3 +419,92 @@ is trying to replicate (just with an ALB bill attached).
 Until one of those occurs, the full migration analysis above is **parked for
 reference**, not an open task. The automated-failover design (#4 top) remains
 DESIGN-ONLY / not recommended (option (a) DON'T BUILD stands).
+
+---
+
+## 5. Lesson-plan visibility — rework toward child + LLM evaluation (NEEDS OWNER DECISION)
+
+**Status:** parked for owner reflection (raised 2026-11-04). **Not** an open task
+yet — the current behaviour is an intentional, documented decision and must not
+be changed until the target model below is settled.
+
+### Current behaviour (as shipped)
+Lesson plans and their responses are **family-visible**, including to
+`readonly` (grandparent) accounts:
+
+| Route | Method | Guard today | Who can reach it |
+|-------|--------|-------------|------------------|
+| `/api/profiles/{id}/lessons/` | GET (list) | `get_current_user` | admin, child, **readonly** |
+| `/api/profiles/{id}/lessons/{lid}` | GET (one) | `get_current_user` | admin, child, **readonly** |
+| `/api/profiles/{id}/lessons/` | POST (create) | `require_admin` | admin only |
+| `.../lessons/{lid}` | PATCH / DELETE | `require_admin` | admin only |
+| `.../lessons/{lid}/responses` | POST | `require_admin_or_child` | admin, child |
+| `.../lessons/{lid}/responses/{rid}` | DELETE | `require_admin` | admin only |
+
+So a readonly user can currently read the full **transcript**, the admin
+**notes**, and every **response** (`rebrief` / `expansion` / `teachback`).
+
+This was confirmed as **intentional** in `next_steps/01_user_provisioning.md`
+("Decisions locked"): *"Lesson responses stay parent-visible (NOT diary-private).
+They will later be prompt-private and drive an independent LLM evaluation, so the
+parent-visible model is intentional — do not apply the journal author model to
+them."* `deploy/SECURITY_REVIEW.md` R6 records the same (Low risk, accepted).
+A read-only leak probe (2026-11-04) re-confirmed readonly can read lessons; this
+item is the owner follow-up to decide the end state.
+
+### Target model the owner is pondering
+> The lesson plan itself becomes a loop **between the child and the evaluation
+> LLM only**; the **passing score** is what's shared **between admin and child**.
+
+Interpreted as a visibility matrix to be confirmed:
+
+| Artifact | child (owns profile) | admin (parent) | readonly (grandparent) | LLM evaluator |
+|----------|:---:|:---:|:---:|:---:|
+| Lesson transcript / prompt | yes | ? (see Q2) | no | yes |
+| Child's response (rebrief/expansion/teachback) | yes | ? (see Q2) | no | yes |
+| **Pass/score result** | yes | yes | ? (see Q3) | yes (produces it) |
+
+### Open questions for the owner (the "ponder" list)
+1. **Admin vs transcript:** does "between the child and the LLM only" exclude the
+   **parent/admin** too? Today admin *authors* lessons (`require_admin` create),
+   so a child-only transcript model conflicts with who writes them. Options:
+   (a) admin still authors + sees transcripts, child+LLM own the *responses*;
+   (b) a new "assigned, then sealed" flow where admin sets it up but can't read
+   the child's answers — only the score.
+2. **Granularity:** is it the **transcript**, the **responses**, or **both** that
+   go child+LLM-only? The sentence reads as the whole lesson loop.
+3. **Readonly:** should grandparents see the **pass/score** (encouragement) or
+   nothing at all?
+4. **"Passing score":** there is **no score/grade field today** — `LessonResponse`
+   has only `response_type` + `content`. A score model must be designed: numeric
+   vs pass/fail, who/what sets it (the LLM), whether it's immutable once set,
+   and whether a child can resubmit.
+5. **LLM identity/authorization:** the "evaluation LLM" is a new principal. Decide
+   whether it's a server-side job (service key, no user) or a distinct role, and
+   how prompts/responses reach it **without** widening human visibility.
+6. **Child-diary precedent:** the discernment journal is already child-private via
+   `require_private_profile_access` (readonly 403s). If lessons become
+   child-private, reuse that guard pattern rather than inventing a new one — but
+   note the explicit prior decision **not** to apply the journal model here, so
+   this is a reversal that should be made deliberately.
+
+### Rough implementation sketch (for when it's greenlit — do NOT build yet)
+- **Backend:** tighten the two lesson GET routes from `get_current_user` to a
+  guard that excludes readonly (and possibly admin per Q1), mirroring
+  `require_private_profile_access`. Add a `score`/`passed` column (+ `evaluated_at`,
+  `evaluator`) to `LessonResponse` or a new `LessonEvaluation` table. Add an
+  LLM-evaluation entry point (internal, service-authenticated). New regression
+  tests in the readonly/role-guard family (`tests/test_readonly_enforcement.py`,
+  `tests/readonly_ui.spec.js`, `tests/role_controls.spec.js`) asserting: readonly
+  cannot read transcripts/responses; the score IS visible to the agreed roles.
+- **Frontend:** gate the Lesson Plans section + transcript view by the new rule;
+  surface only the score to the roles that should see it; keep the existing
+  `canWrite` / role-chip / 403-toast patterns.
+- **Docs:** update `01_user_provisioning.md` "Decisions locked" (this reverses the
+  current locked decision) and `deploy/SECURITY_REVIEW.md` R6.
+
+### Why it's parked
+The data model (scoring), the new LLM principal, and the admin-vs-child-vs-readonly
+matrix are all unsettled. Premature tightening could also break the current
+family-visible UX that people may be relying on. **Decision owner: project owner.**
+No code change until Q1-Q5 are answered.

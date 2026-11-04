@@ -12,7 +12,6 @@ const MARKS = [
   { key: 'complete', label: 'practicing' },
 ]
 
-const BANNER = 'A gentle guide, not a test, score, or diagnosis — this app is not a medical tool. Every age is a window, not a deadline. Share anything here with your pediatrician.'
 
 /**
  * Child Development section view. Two levels:
@@ -48,25 +47,24 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
             <p style={{ margin: '2px 0 0', fontSize: 13, color: '#666' }}>Early Growth Markers — ages ~2 months to 5 years</p>
           </div>
         </div>
-        <p style={s.banner} role="note">{BANNER}</p>
-        {!overview && <p style={{ color: '#888' }}>Loading…</p>}
+        {!overview && <p style={{ color: '#595959' }}>Loading…</p>}
         {overview && (
           <div className="pillar-grid-desktop" style={{ marginTop: 12 }}>
             {overview.catalog.map(g => (
               <button
                 key={g.age_band}
                 onClick={() => setAgeBand(g.age_band)}
-                style={{ ...s.card, opacity: g.active ? 1 : 0.6, borderColor: g.active ? '#8bc79b' : '#e0e0e0' }}
+                style={{ ...s.card, background: g.active ? '#fff' : '#f7f7f7', borderColor: g.active ? '#8bc79b' : '#d0d0d0' }}
                 title={g.active ? 'Open' : 'Not activated yet'}
               >
-                <span style={{ fontSize: 20 }}>{g.active ? '🌿' : '➕'}</span>
+                <span style={{ fontSize: 20, opacity: g.active ? 1 : 0.6 }} aria-hidden="true">{g.active ? '🌿' : '➕'}</span>
                 <span style={{ fontSize: 14, fontWeight: 600, marginTop: 6 }}>{g.label}</span>
                 <span style={{ fontSize: 11, color: '#595959', marginTop: 2 }}>{g.active ? 'Active' : 'Tap to add'}</span>
               </button>
             ))}
           </div>
         )}
-        <p style={{ fontSize: 12, color: '#888', marginTop: 16 }}>
+        <p style={{ fontSize: 12, color: '#595959', marginTop: 16 }}>
           Tap an age group to view it. Grayed groups aren&apos;t active yet — opening one lets you add it.
         </p>
       </div>
@@ -102,9 +100,8 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
           <p style={{ margin: '2px 0 0', fontSize: 13, color: '#666' }}>{profileName} · Child Development</p>
         </div>
       </div>
-      <p style={s.banner} role="note">{BANNER}</p>
 
-      {!group && <p style={{ color: '#888' }}>Loading…</p>}
+      {!group && <p style={{ color: '#595959' }}>Loading…</p>}
 
       {group && !hasObjectives && (
         <div style={{ textAlign: 'center', padding: 24 }}>
@@ -124,7 +121,7 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
             return (
               <div key={domainKey} style={s.domain}>
                 <h3 style={{ margin: '0 0 6px', fontSize: 15 }}>{domainLabel}</h3>
-                {items.length === 0 && <p style={{ fontSize: 12, color: '#999', margin: '0 0 8px' }}>No objectives.</p>}
+                {items.length === 0 && <p style={{ fontSize: 12, color: '#595959', margin: '0 0 8px' }}>No objectives.</p>}
                 {items.map(obj => (
                   <ObjectiveRow
                     key={obj.id}
@@ -213,7 +210,7 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
               <input type="file" multiple accept="image/*,video/*,.pdf" onChange={onUpload} style={{ display: 'none' }} />
             </label>
           )}
-          {photos && photos.length === 0 && <span style={{ fontSize: 12, color: '#999' }}>No photos yet.</span>}
+          {photos && photos.length === 0 && <span style={{ fontSize: 12, color: '#595959' }}>No photos yet.</span>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
             {(photos || []).map(p => (
               <div key={p.id} style={{ position: 'relative' }}>
@@ -293,7 +290,7 @@ function Notes({ profileId, ageBand, canWrite, adminUser }) {
             <button onClick={save} style={s.smallBtn}>{saved ? 'Saved ✓' : 'Save'}</button>
           </>
         ) : (
-          <p style={{ fontSize: 12, color: '#999', marginTop: 6 }}>Private to parents and the child.</p>
+          <p style={{ fontSize: 12, color: '#595959', marginTop: 6 }}>Private to parents and the child.</p>
         )}
       </div>
     </div>
@@ -304,21 +301,20 @@ const s = {
   container: { maxWidth: 820, margin: '0 auto', padding: '8px 16px 48px' },
   back: { background: 'none', border: 'none', color: '#2563b0', cursor: 'pointer', fontSize: 14, padding: '6px 0' },
   header: { display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 10px' },
-  banner: { fontSize: 12, color: '#8a6f00', background: '#fff8e6', border: '1px solid #f0e2b8', borderRadius: 8, padding: '8px 12px', margin: '0 0 12px' },
   card: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 10px', background: '#fff', border: '2px solid #e0e0e0', borderRadius: 10, cursor: 'pointer' },
   domain: { background: '#f9fbf9', border: '1px solid #e6efe6', borderRadius: 10, padding: 12, marginBottom: 12 },
   objRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, padding: '8px 4px', borderBottom: '1px solid #eef3ee' },
   mark: { fontSize: 11, padding: '3px 10px', borderRadius: 12, border: '1px solid #cdd8ce', background: '#fff', color: '#5a6b5c', cursor: 'pointer' },
-  markOn: { background: '#2f8f4e', borderColor: '#2f8f4e', color: '#fff', fontWeight: 600 },
+  markOn: { background: '#2a7d45', borderColor: '#2a7d45', color: '#fff', fontWeight: 600 },
   iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: '#777' },
   photoPanel: { width: '100%', background: '#fff', border: '1px dashed #d6e0d6', borderRadius: 8, padding: 8, marginTop: 6 },
   uploadLabel: { fontSize: 12, color: '#2563b0', cursor: 'pointer' },
   photoDel: { position: 'absolute', top: -6, right: -6, background: '#c0392b', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', fontSize: 11 },
   addBtn: { fontSize: 12, color: '#2563b0', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', textAlign: 'left' },
   input: { padding: '7px 10px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 },
-  smallBtn: { padding: '7px 14px', background: '#2f8f4e', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 },
+  smallBtn: { padding: '7px 14px', background: '#2a7d45', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 },
   smallGray: { padding: '7px 14px', background: '#eee', color: '#333', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 },
-  primaryBtn: { padding: '10px 22px', background: '#2f8f4e', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  primaryBtn: { padding: '10px 22px', background: '#2a7d45', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
   secondaryBtn: { padding: '9px 18px', background: '#2563b0', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
   dangerBtn: { padding: '9px 18px', background: '#fdecea', color: '#c0392b', border: '1px solid #f3c6c0', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
   noteBox: { background: '#fffdf5', border: '1px solid #efe6c8', borderRadius: 10, padding: 12 },

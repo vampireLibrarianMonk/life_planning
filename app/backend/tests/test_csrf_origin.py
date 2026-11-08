@@ -52,3 +52,51 @@ def test_get_never_blocked_and_no_store(client):
     r = client.get("/api/health")
     assert r.status_code == 200
     assert r.headers.get("cache-control") == "no-store"
+
+
+# --- Request-body-size cap (regression for the gallery 413 bug) --------------
+
+
+def test_gallery_route_gets_the_upload_cap_not_the_json_cap(client):
+    """A multipart POST to /gallery/ with a 3MB declared length must NOT be
+    rejected by the 1MB JSON cap. Before the fix /gallery/ was not in the
+    upload-path allowlist, so a normal phone photo (>1MB) 413'd."""
+    big = 3 * 1024 * 1024
+    r = client.post(
+        "/api/profiles/1/gallery/",
+        headers={
+            "Origin": "https://life-planning.my-deployment.com",
+            "Content-Length": str(big),
+            "Content-Type": "multipart/form-data; boundary=x",
+        },
+        content=b"x" * 16,  # tiny real body; the cap reads Content-Length
+    )
+    # Must get PAST the 413 body cap. Any downstream status (401/403/422/404) is
+    # fine here — the point is it is NOT 413 "Request body too large".
+    assert r.status_code != 413
+
+
+def test_gallery_route_still_rejects_over_50mb(client):
+    r = client.post(
+        "/api/profiles/1/gallery/",
+        headers={
+            "Origin": "https://life-planning.my-deployment.com",
+            "Content-Length": str(51 * 1024 * 1024),
+            "Content-Type": "multipart/form-data; boundary=x",
+        },
+        content=b"x" * 16,
+    )
+    assert r.status_code == 413
+
+
+def test_non_upload_route_still_has_1mb_cap(client):
+    r = client.post(
+        "/api/profiles/",
+        headers={
+            "Origin": "https://life-planning.my-deployment.com",
+            "Content-Length": str(2 * 1024 * 1024),
+            "Content-Type": "application/json",
+        },
+        content=b"{}",
+    )
+    assert r.status_code == 413

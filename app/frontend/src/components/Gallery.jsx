@@ -51,8 +51,7 @@ export default function Gallery({ profileId, profileName, onBack, canWrite }) {
     setBusy(true)
     setError('')
     try {
-      const res = await uploadGalleryMedia(profileId, files)
-      if (!Array.isArray(res)) throw new Error(res?.detail || 'Upload failed')
+      await uploadGalleryMedia(profileId, files)
       await load()
     } catch (err) {
       setError(err.message || 'Upload failed')

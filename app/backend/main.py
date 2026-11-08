@@ -76,7 +76,10 @@ async def security_headers(request, call_next):
         # all other bodies are small JSON. Rejects early on declared length.
         _p = request.url.path
         _is_upload = (
-            _p.endswith("/attachments/") or _p.endswith("/avatar") or _p.endswith("/restore")
+            _p.endswith("/attachments/")
+            or _p.endswith("/avatar")
+            or _p.endswith("/restore")
+            or _p.endswith("/gallery/")
         )
         _max_bytes = (50 * 1024 * 1024) if _is_upload else (1 * 1024 * 1024)
         _cl = request.headers.get("content-length")

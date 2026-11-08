@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react'
+import { isReadonly } from '../services/auth'
 
 /**
  * Listens for the global `api-forbidden` event (dispatched by the api.js 403
- * interceptor) and shows a brief, friendly toast. This catches the rare case
- * where a write slips through the hidden UI (e.g. a stale token or a readonly
- * account), instead of failing silently or throwing a raw error.
+ * interceptor) and shows a brief, friendly toast. The wording depends on the
+ * actual role: a real readonly user is told it's read-only; any other 403
+ * (e.g. an expired session) gets an accurate "sign in again" message instead
+ * of a misleading "read-only" claim.
  */
 export default function ForbiddenToast() {
   const [visible, setVisible] = useState(false)
+  const [readonly, setReadonly] = useState(false)
 
   useEffect(() => {
     let timer
     const onForbidden = () => {
+      setReadonly(isReadonly())
       setVisible(true)
       clearTimeout(timer)
       timer = setTimeout(() => setVisible(false), 4000)
@@ -24,6 +28,10 @@ export default function ForbiddenToast() {
   }, [])
 
   if (!visible) return null
+
+  const message = readonly
+    ? '👁️ Read-only mode — that change wasn’t saved.'
+    : '⚠️ That action was blocked. Your session may have expired — try signing in again.'
 
   return (
     <div
@@ -44,7 +52,7 @@ export default function ForbiddenToast() {
         textAlign: 'center',
       }}
     >
-      👁️ Read-only mode — that change wasn’t saved.
+      {message}
     </div>
   )
 }

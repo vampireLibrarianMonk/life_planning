@@ -111,7 +111,6 @@ export default function Gallery({ profileId, profileName, onBack, canWrite }) {
               ref={fileRef}
               type="file"
               accept="image/*,video/*"
-              capture="environment"
               multiple
               onChange={onFiles}
               disabled={busy}

@@ -214,7 +214,7 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
           {canWrite && (
             <label style={s.uploadLabel}>
               + Add photo/video
-              <input type="file" multiple accept="image/*,video/*,.pdf" capture="environment" onChange={onUpload} style={{ display: 'none' }} />
+              <input type="file" multiple accept="image/*,video/*,.pdf" onChange={onUpload} style={{ display: 'none' }} />
             </label>
           )}
           <p style={{ fontSize: 11, color: '#767676', margin: '4px 0 0' }}>

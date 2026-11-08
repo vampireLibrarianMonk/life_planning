@@ -4,6 +4,7 @@ import { fetchProfile, fetchEntries, createEntry, updateEntry, deleteEntry, uplo
 import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import ChildDevelopment from '../components/ChildDevelopment'
+import Gallery from '../components/Gallery'
 import Economy from './Economy'
 import { isReadonly, isAdmin, uploadUrl } from '../services/auth'
 
@@ -505,6 +506,11 @@ export default function Profile() {
             <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Early Growth Markers</span>
             <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Ages ~2 months – 5 years</span>
           </button>
+          <button onClick={() => setActivePillar('__gallery__')} style={{ ...s.pillarCard, border: '2px solid #cfe0f0' }}>
+            <span style={{ fontSize: 28 }}>🖼️</span>
+            <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Gallery</span>
+            <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Photos &amp; videos</span>
+          </button>
         </div>
 
         {/* Development Pillars */}
@@ -602,6 +608,18 @@ export default function Profile() {
         </>
         )}
       </div>
+    )
+  }
+
+  // Gallery view — canonical media, peer of Child Development
+  if (activePillar === '__gallery__') {
+    return (
+      <Gallery
+        profileId={id}
+        profileName={profile ? profile.name : ''}
+        onBack={() => setActivePillar(null)}
+        canWrite={canWrite}
+      />
     )
   }
 

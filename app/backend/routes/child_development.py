@@ -30,7 +30,7 @@ from child_development import (
     category_for,
 )
 from database import get_db
-from models import PillarEntry, User
+from models import MediaObjectiveLink, PillarEntry, User
 
 router = APIRouter(
     prefix="/api/profiles/{profile_id}/child-development",
@@ -158,6 +158,11 @@ def deactivate_age_group(
         raise HTTPException(status_code=404, detail="Unknown age group")
     rows = [r for r in _cd_objective_rows(db, profile_id) if r.age_band == age_band]
     for r in rows:
+        # Drop any gallery links to this objective FIRST (SQLite FK cascade is
+        # not enforced), but NEVER the canonical media itself.
+        db.query(MediaObjectiveLink).filter(MediaObjectiveLink.objective_id == r.id).delete(
+            synchronize_session=False
+        )
         db.delete(r)
     db.commit()
 

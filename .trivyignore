@@ -42,3 +42,4 @@ CVE-2026-111943  # Go stdlib crypto/x509 — MITM via intermediates (S3 TLS is A
 CVE-2026-78667   # Go stdlib net/http — Range-header DoS (no inbound HTTP server here)
 CVE-2026-78669   # Go stdlib/x-net http2 — SETTINGS-frame DoS (no inbound HTTP2 server)
 CVE-2026-97031   # Go stdlib crypto/tls — ECH DoS (client-only TLS to S3)
+CVE-2026-78661   # x/net/html — DoS via crafted HTML (Litestream parses no HTML; S3 client only)

@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import {
   fetchCDOverview, fetchCDAgeGroup, seedCDAgeGroup, deactivateCDAgeGroup,
   fetchCDWorries, saveCDWorries, updateEntry, deleteEntry, createEntry,
-  uploadAttachments, fetchAttachments, deleteAttachment,
+  fetchGallery, uploadGalleryMedia, linkGalleryObjective, unlinkGalleryObjective,
 } from '../services/api'
-import { uploadUrl } from '../services/auth'
 
 const MARKS = [
   { key: 'not_started', label: 'not yet' },
@@ -168,8 +167,11 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
     await deleteEntry(profileId, obj.id)
     onChanged()
   }
+  // Media now lives in the canonical, child-scoped Gallery and is linked to this
+  // objective. That means it ALSO appears in the main Gallery and, critically,
+  // survives this objective (or the whole age group) being deleted.
   const loadPhotos = async () => {
-    const a = await fetchAttachments(profileId, obj.id)
+    const a = await fetchGallery(profileId, { objectiveId: obj.id })
     setPhotos(Array.isArray(a) ? a : [])
     setShowPhotos(true)
   }
@@ -177,8 +179,13 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
     const files = Array.from(e.target.files || [])
     e.target.value = ''
     if (!files.length) return
-    await uploadAttachments(profileId, obj.id, files)
-    const a = await fetchAttachments(profileId, obj.id)
+    const created = await uploadGalleryMedia(profileId, files)
+    if (Array.isArray(created)) {
+      for (const m of created) {
+        await linkGalleryObjective(profileId, m.id, obj.id)
+      }
+    }
+    const a = await fetchGallery(profileId, { objectiveId: obj.id })
     setPhotos(Array.isArray(a) ? a : [])
     setShowPhotos(true)
   }
@@ -199,31 +206,37 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <button onClick={loadPhotos} style={s.iconBtn} title="Accomplishment photos">📷</button>
-        {canWrite && <button onClick={remove} style={s.iconBtn} title="Delete objective">✕</button>}
+        <button className="tap-target" onClick={loadPhotos} style={s.iconBtn} title="Accomplishment photos &amp; videos">📷</button>
+        {canWrite && <button className="tap-target" onClick={remove} style={s.iconBtn} title="Delete objective">✕</button>}
       </div>
       {showPhotos && (
         <div style={s.photoPanel}>
           {canWrite && (
             <label style={s.uploadLabel}>
-              + Add photo/attachment
+              + Add photo/video
               <input type="file" multiple accept="image/*,video/*,.pdf" onChange={onUpload} style={{ display: 'none' }} />
             </label>
           )}
-          {photos && photos.length === 0 && <span style={{ fontSize: 12, color: '#595959' }}>No photos yet.</span>}
+          <p style={{ fontSize: 11, color: '#767676', margin: '4px 0 0' }}>
+            Also appears in this child&rsquo;s Gallery; kept even if this objective is removed.
+          </p>
+          {photos && photos.length === 0 && <span style={{ fontSize: 12, color: '#595959' }}>No media yet.</span>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
             {(photos || []).map(p => (
               <div key={p.id} style={{ position: 'relative' }}>
-                {p.mime_type && p.mime_type.startsWith('image/') ? (
-                  <a href={uploadUrl(p.filename)} target="_blank" rel="noreferrer">
-                    <img src={uploadUrl(p.filename)} alt={p.original_name} style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 6 }} />
+                {p.media_type === 'video' ? (
+                  <video src={p.url} controls preload="metadata" style={{ width: 90, height: 70, objectFit: 'cover', borderRadius: 6, background: '#000' }} />
+                ) : p.media_type === 'photo' ? (
+                  <a href={p.url} target="_blank" rel="noreferrer">
+                    <img src={p.url} alt={p.observation || p.original_name} style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 6 }} />
                   </a>
                 ) : (
-                  <a href={uploadUrl(p.filename)} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>📄 {p.original_name}</a>
+                  <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>📄 {p.original_name}</a>
                 )}
                 {canWrite && (
                   <button
-                    onClick={async () => { await deleteAttachment(profileId, obj.id, p.id); const a = await fetchAttachments(profileId, obj.id); setPhotos(Array.isArray(a) ? a : []) }}
+                    title="Remove from this objective (keeps it in the Gallery)"
+                    onClick={async () => { await unlinkGalleryObjective(profileId, p.id, obj.id); const a = await fetchGallery(profileId, { objectiveId: obj.id }); setPhotos(Array.isArray(a) ? a : []) }}
                     style={s.photoDel}
                   >×</button>
                 )}

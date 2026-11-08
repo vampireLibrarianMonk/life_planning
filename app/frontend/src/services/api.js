@@ -482,3 +482,50 @@ export async function saveCDWorries(profileId, ageBand, content) {
   })
   return res.json()
 }
+
+// --- Gallery (canonical child media) -----------------------------------------
+
+export async function fetchGallery(profileId, { ageBand, mediaType, objectiveId } = {}) {
+  const params = new URLSearchParams()
+  if (ageBand) params.set('age_band', ageBand)
+  if (mediaType) params.set('media_type', mediaType)
+  if (objectiveId != null) params.set('objective_id', objectiveId)
+  const qs = params.toString() ? `?${params}` : ''
+  const res = await fetch(`/api/profiles/${profileId}/gallery/${qs}`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function uploadGalleryMedia(profileId, files) {
+  const formData = new FormData()
+  for (const file of files) formData.append('files', file)
+  const res = await fetch(`/api/profiles/${profileId}/gallery/`, {
+    method: 'POST',
+    body: formData,
+  })
+  return res.json()
+}
+
+export async function updateGalleryMedia(profileId, mediaId, updates) {
+  const res = await fetch(`/api/profiles/${profileId}/gallery/${mediaId}`, {
+    method: 'PATCH', headers: headers(), body: JSON.stringify(updates),
+  })
+  return res.json()
+}
+
+export async function deleteGalleryMedia(profileId, mediaId) {
+  await fetch(`/api/profiles/${profileId}/gallery/${mediaId}`, { method: 'DELETE' })
+}
+
+export async function linkGalleryObjective(profileId, mediaId, objectiveId) {
+  const res = await fetch(`/api/profiles/${profileId}/gallery/${mediaId}/objective-links`, {
+    method: 'POST', headers: headers(), body: JSON.stringify({ objective_id: objectiveId }),
+  })
+  return res.json()
+}
+
+export async function unlinkGalleryObjective(profileId, mediaId, objectiveId) {
+  await fetch(`/api/profiles/${profileId}/gallery/${mediaId}/objective-links/${objectiveId}`, {
+    method: 'DELETE',
+  })
+}

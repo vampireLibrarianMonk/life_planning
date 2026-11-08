@@ -260,6 +260,72 @@ class WishlistItem(Base):
     profile = relationship("Profile", back_populates="wishlist")
 
 
+class ProfileMedia(Base):
+    """Canonical, child-scoped media (photo/video/document).
+
+    This is the ONE private gallery per child. Media lives independently of any
+    objective/age-group: deactivating an age group must NOT delete these rows
+    (unlike the legacy EventAttachment cascade). Objective association is
+    optional and modelled separately in MediaObjectiveLink.
+    """
+
+    __tablename__ = "profile_media"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Mandatory: every media item belongs to exactly one child profile.
+    profile_id = Column(
+        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # The user who uploaded it (for audit); not an authorization source.
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    storage_key = Column(String(500), nullable=False)  # key in the storage backend
+    original_name = Column(String(500), nullable=False)
+    mime_type = Column(String(100), nullable=False)
+    media_type = Column(String(20), nullable=False, default="other")  # photo|video|document|other
+    size_bytes = Column(Integer, default=0)
+    sha256 = Column(String(64), nullable=True)  # content hash (dedupe / integrity)
+    # Independent timestamps: when it was captured vs. recorded in the app.
+    taken_at = Column(DateTime, nullable=True)
+    observed_at = Column(DateTime, nullable=True)
+    observation = Column(Text, nullable=True)  # free-text note
+    age_band = Column(String(10), nullable=True)  # optional convenience tag
+    status = Column(String(20), nullable=False, default="ready")  # pending|ready|failed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)  # soft delete
+
+    profile = relationship("Profile")
+    owner = relationship("User")
+    objective_links = relationship(
+        "MediaObjectiveLink", back_populates="media", cascade="all, delete-orphan"
+    )
+
+
+class MediaObjectiveLink(Base):
+    """Optional association between a canonical media item and an objective entry.
+
+    Deleting the objective (PillarEntry) removes ONLY this link row, never the
+    underlying ProfileMedia. This is the decoupling that fixes the archive-loss
+    risk documented in the v6 handoff.
+    """
+
+    __tablename__ = "media_objective_link"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(
+        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    media_id = Column(
+        Integer, ForeignKey("profile_media.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # If the objective row is deleted, drop the link but keep the media.
+    objective_id = Column(
+        Integer, ForeignKey("pillar_entries.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    linked_at = Column(DateTime, default=datetime.utcnow)
+
+    media = relationship("ProfileMedia", back_populates="objective_links")
+
+
 class EventAttachment(Base):
     """File attachment (image, video, document) linked to a pillar entry event."""
 

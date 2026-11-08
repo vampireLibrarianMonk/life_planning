@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin_or_child, require_profile_access
 from database import get_db
-from models import PillarEntry, User
+from models import MediaObjectiveLink, PillarEntry, User
 from schemas import Pillar, PillarEntryCreate, PillarEntryResponse, PillarEntryUpdate
 
 router = APIRouter(
@@ -112,5 +112,10 @@ def delete_entry(
     )
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
+    # Remove any gallery objective-links to this entry (SQLite FK cascade is not
+    # enforced); the canonical ProfileMedia rows are intentionally left intact.
+    db.query(MediaObjectiveLink).filter(MediaObjectiveLink.objective_id == entry.id).delete(
+        synchronize_session=False
+    )
     db.delete(entry)
     db.commit()

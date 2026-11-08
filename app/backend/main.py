@@ -21,6 +21,7 @@ from routes import (
     economy,
     events,
     funds,
+    gallery,
     lessons,
     pillars,
     profiles,
@@ -125,6 +126,7 @@ app.include_router(discernment.router)
 app.include_router(discernments.router)
 app.include_router(lessons.router)
 app.include_router(funds.router)
+app.include_router(gallery.router)
 app.include_router(demo.router)
 app.include_router(archive.router)
 app.include_router(child_development.router)

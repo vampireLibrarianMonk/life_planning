@@ -363,3 +363,46 @@ class IncidentResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# --- Gallery (canonical child media) ------------------------------------------
+
+
+class MediaUpdate(BaseModel):
+    """Editable metadata on a gallery item (not the bytes)."""
+
+    observation: str | None = None
+    age_band: str | None = None
+    taken_at: datetime | None = None
+    observed_at: datetime | None = None
+
+
+class ObjectiveLinkCreate(BaseModel):
+    objective_id: int
+
+
+class MediaObjectiveLinkResponse(BaseModel):
+    id: int
+    objective_id: int
+    linked_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class MediaResponse(BaseModel):
+    id: int
+    profile_id: int
+    original_name: str
+    mime_type: str
+    media_type: str
+    size_bytes: int
+    taken_at: datetime | None = None
+    observed_at: datetime | None = None
+    observation: str | None = None
+    age_band: str | None = None
+    status: str
+    created_at: datetime
+    url: str | None = None  # resolved at serialization time (storage.url_for)
+    objective_ids: list[int] = []
+
+    model_config = {"from_attributes": True}

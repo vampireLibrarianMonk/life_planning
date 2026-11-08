@@ -100,6 +100,18 @@ test.describe('Read-only account', () => {
     await page.screenshot({ path: path.join(OUT, `${ti.project.name}-readonly-bounty.png`) })
   })
 
+  test('gallery: can view but gets no upload/edit/delete controls', async ({ page }) => {
+    await login(page)
+    await page.locator('a[href^="/profile/"]').first().click()
+    await page.getByRole('button', { name: /Gallery/ }).first().click()
+    await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible()
+    // No add-media control, no file input, no per-item edit/delete.
+    await expect(page.getByText('+ Add media')).toHaveCount(0)
+    await expect(page.locator('input[type=file]')).toHaveCount(0)
+    await expect(page.getByTitle('Edit observation')).toHaveCount(0)
+    await expect(page.getByTitle('Delete')).toHaveCount(0)
+  })
+
   test('discernment journal is not offered at all', async ({ page }) => {
     await login(page)
     await page.locator('a[href^="/profile/"]').first().click()

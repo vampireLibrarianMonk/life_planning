@@ -229,3 +229,27 @@ def test_age_group_deactivation_preserves_gallery_media(ctx):
     survived = gallery.get_media(a, media.id, db=db)
     assert survived.objective_ids == []
     assert storage.get_storage().read(key) == b"JPEGDATA"
+
+
+def test_objective_linked_media_shows_in_main_gallery_and_filtered(ctx):
+    """A photo added on an objective appears in the main (unfiltered) gallery AND
+    when filtered by that objective — the 'one canonical gallery' invariant."""
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import ObjectiveLinkCreate
+
+    obj = models.PillarEntry(
+        profile_id=a, pillar=models.Pillar.life_skills, title="obj", is_milestone=1
+    )
+    db.add(obj)
+    db.commit()
+    media = _upload(gallery, db, a, admin, name="goal.jpg")[0]
+    gallery.link_objective(a, media.id, ObjectiveLinkCreate(objective_id=obj.id), db=db, _=admin)
+
+    # Main gallery (unfiltered) shows it.
+    all_ids = [m.id for m in gallery.list_gallery(a, db=db)]
+    assert media.id in all_ids
+    # Filtered by the objective shows exactly it.
+    filtered = gallery.list_gallery(a, objective_id=obj.id, db=db)
+    assert [m.id for m in filtered] == [media.id]
+    # Filtered by a different objective shows nothing.
+    assert gallery.list_gallery(a, objective_id=obj.id + 999, db=db) == []

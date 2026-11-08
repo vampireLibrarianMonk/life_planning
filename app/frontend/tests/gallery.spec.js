@@ -49,4 +49,43 @@ test.describe('Gallery', () => {
     await page.getByTitle('Delete').first().click()
     await expect(page.locator('.gallery-grid img')).toHaveCount(0)
   })
+
+  test('photo added on a Child Development objective also appears in the main Gallery', async ({ page }) => {
+    await loginAsAdmin(page)
+    await openFirstProfile(page)
+
+    // Open Child Development → activate the ~12 Months group.
+    await page.getByRole('button', { name: /Early Growth Markers/ }).click()
+    await page.getByRole('button', { name: /~12 Months/ }).first().click()
+    const addGroup = page.getByRole('button', { name: 'Add this age group' })
+    if (await addGroup.isVisible().catch(() => false)) await addGroup.click()
+    await expect(page.getByText('peekaboo or pat-a-cake', { exact: false })).toBeVisible({ timeout: 15000 })
+
+    // Open the first objective's media panel and upload a synthetic photo.
+    await page.getByTitle(/Accomplishment photos/).first().click()
+    await page.setInputFiles('input[type=file]', {
+      name: 'objective.png',
+      mimeType: 'image/png',
+      buffer: PNG_1PX,
+    })
+    // It renders in the objective panel.
+    await expect(page.locator('img[alt="objective.png"], .photoPanel img').first()).toBeVisible()
+
+    // Now go to the main Gallery — the same photo must be there (one canonical gallery).
+    await page.getByRole('button', { name: /All age groups/ }).click()
+    await page.getByRole('button', { name: /Back to Dashboard/ }).click()
+    await page.getByRole('button', { name: /Gallery/ }).first().click()
+    await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible()
+    await expect(page.locator('.gallery-grid img')).toHaveCount(1)
+
+    // Clean up: delete it from the Gallery, then remove the age group.
+    page.once('dialog', (d) => d.accept())
+    await page.getByTitle('Delete').first().click()
+    await expect(page.locator('.gallery-grid img')).toHaveCount(0)
+    await page.getByRole('button', { name: /Back to Dashboard/ }).click()
+    await page.getByRole('button', { name: /Early Growth Markers/ }).click()
+    await page.getByRole('button', { name: /~12 Months/ }).first().click()
+    page.once('dialog', (d) => d.accept())
+    await page.getByRole('button', { name: 'Remove this age group' }).click()
+  })
 })

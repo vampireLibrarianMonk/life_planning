@@ -157,6 +157,7 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
 function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
   const [photos, setPhotos] = useState(null)
   const [showPhotos, setShowPhotos] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   const setMark = async (statusKey) => {
     await updateEntry(profileId, obj.id, { status: statusKey })
@@ -179,15 +180,19 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
     const files = Array.from(e.target.files || [])
     e.target.value = ''
     if (!files.length) return
-    const created = await uploadGalleryMedia(profileId, files)
-    if (Array.isArray(created)) {
+    setUploadError('')
+    try {
+      const created = await uploadGalleryMedia(profileId, files)
       for (const m of created) {
         await linkGalleryObjective(profileId, m.id, obj.id)
       }
+      const a = await fetchGallery(profileId, { objectiveId: obj.id })
+      setPhotos(Array.isArray(a) ? a : [])
+      setShowPhotos(true)
+    } catch (err) {
+      setUploadError(err.message || 'Upload failed')
+      setShowPhotos(true)
     }
-    const a = await fetchGallery(profileId, { objectiveId: obj.id })
-    setPhotos(Array.isArray(a) ? a : [])
-    setShowPhotos(true)
   }
 
   return (
@@ -220,6 +225,11 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
           <p style={{ fontSize: 11, color: '#767676', margin: '4px 0 0' }}>
             Also appears in this child&rsquo;s Gallery; kept even if this objective is removed.
           </p>
+          {uploadError && (
+            <p style={{ fontSize: 12, color: '#c0392b', background: '#fdf0ef', borderRadius: 6, padding: '6px 10px', margin: '6px 0 0' }}>
+              {uploadError}
+            </p>
+          )}
           {photos && photos.length === 0 && <span style={{ fontSize: 12, color: '#595959' }}>No media yet.</span>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
             {(photos || []).map(p => (

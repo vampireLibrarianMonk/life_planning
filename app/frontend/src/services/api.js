@@ -503,6 +503,21 @@ export async function uploadGalleryMedia(profileId, files) {
     method: 'POST',
     body: formData,
   })
+  if (!res.ok) {
+    let detail = `Upload failed (HTTP ${res.status})`
+    if (res.status === 413) detail = 'That file is too large to upload here.'
+    else {
+      try {
+        const body = await res.json()
+        if (body && body.detail) detail = typeof body.detail === 'string' ? body.detail : detail
+      } catch {
+        /* non-JSON error body */
+      }
+    }
+    const err = new Error(detail)
+    err.status = res.status
+    throw err
+  }
   return res.json()
 }
 

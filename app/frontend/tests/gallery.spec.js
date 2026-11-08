@@ -13,6 +13,11 @@ const PNG_1PX = Buffer.from(
   'base64',
 )
 
+// A >1MB PNG: a tiny valid header followed by padding, to prove uploads above
+// the old 1MB JSON cap now pass (regression for the gallery 413 bug). The bytes
+// after the header are ignored by the server (it stores whatever is sent).
+const PNG_OVER_1MB = Buffer.concat([PNG_1PX, Buffer.alloc(1_300_000, 0)])
+
 test.describe('Gallery', () => {
   test('upload, see, edit observation, filter, delete — synthetic image', async ({ page }) => {
     await loginAsAdmin(page)
@@ -21,11 +26,12 @@ test.describe('Gallery', () => {
     await page.getByRole('button', { name: /Gallery/ }).first().click()
     await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible()
 
-    // Upload via the hidden file input behind "+ Add media".
+    // Upload via the hidden file input behind "+ Add media". Use a >1MB file to
+    // prove the body-size cap allows real photos (regression for the 413 bug).
     await page.setInputFiles('input[type=file]', {
       name: 'synthetic.png',
       mimeType: 'image/png',
-      buffer: PNG_1PX,
+      buffer: PNG_OVER_1MB,
     })
 
     // The tile appears with an <img>.
@@ -57,7 +63,13 @@ test.describe('Gallery', () => {
     // Open Child Development → activate the ~12 Months group.
     await page.getByRole('button', { name: /Early Growth Markers/ }).click()
     await page.getByRole('button', { name: /~12 Months/ }).first().click()
+    await expect(page.getByRole('heading', { name: '~12 Months' })).toBeVisible()
+    // Activate if the group isn't seeded yet (wait for whichever state renders).
     const addGroup = page.getByRole('button', { name: 'Add this age group' })
+    await Promise.race([
+      addGroup.waitFor({ timeout: 8000 }).catch(() => {}),
+      page.getByText('peekaboo or pat-a-cake', { exact: false }).waitFor({ timeout: 8000 }).catch(() => {}),
+    ])
     if (await addGroup.isVisible().catch(() => false)) await addGroup.click()
     await expect(page.getByText('peekaboo or pat-a-cake', { exact: false })).toBeVisible({ timeout: 15000 })
 
@@ -68,8 +80,8 @@ test.describe('Gallery', () => {
       mimeType: 'image/png',
       buffer: PNG_1PX,
     })
-    // It renders in the objective panel.
-    await expect(page.locator('img[alt="objective.png"], .photoPanel img').first()).toBeVisible()
+    // It renders in the objective's media panel (img alt falls back to filename).
+    await expect(page.locator('img[alt="objective.png"]').first()).toBeVisible({ timeout: 10000 })
 
     // Now go to the main Gallery — the same photo must be there (one canonical gallery).
     await page.getByRole('button', { name: /All age groups/ }).click()

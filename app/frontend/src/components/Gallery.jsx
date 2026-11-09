@@ -125,7 +125,7 @@ export default function Gallery({ profileId, profileName, onBack, canWrite }) {
         <div style={s.empty}>
           <p style={{ margin: 0, color: '#595959' }}>No media yet.</p>
           {canWrite && (
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#767676' }}>
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#595959' }}>
               Use “+ Add media” to capture or upload a photo or video.
             </p>
           )}

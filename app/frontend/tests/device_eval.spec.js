@@ -332,6 +332,8 @@ test.describe('Device-mode evaluation', () => {
     ['life-chart', /Life Chart Card/],
     ['belonging', /Breadth of Belonging/],
     ['early-growth', /Early Growth Markers/],
+    ['gallery', /Gallery/],
+    ['contacts', /Contacts/],
     ['pillar-spiritual', /^✝️Spiritual/],
     ['pillar-civic', /Civic & Institutional/],
     ['wishlist', /^🎁Wishlist/],

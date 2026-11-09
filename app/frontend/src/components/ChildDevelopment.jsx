@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   fetchCDOverview, fetchCDAgeGroup, seedCDAgeGroup, deactivateCDAgeGroup,
   fetchCDWorries, saveCDWorries, updateEntry, deleteEntry, createEntry,
-  fetchGallery, uploadGalleryMedia, linkGalleryObjective, unlinkGalleryObjective,
+  fetchGallery, smartUploadGalleryMedia, linkGalleryObjective, unlinkGalleryObjective,
 } from '../services/api'
 
 const MARKS = [
@@ -182,7 +182,7 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
     if (!files.length) return
     setUploadError('')
     try {
-      const created = await uploadGalleryMedia(profileId, files)
+      const created = await smartUploadGalleryMedia(profileId, files)
       for (const m of created) {
         await linkGalleryObjective(profileId, m.id, obj.id)
       }

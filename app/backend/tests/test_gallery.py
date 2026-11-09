@@ -196,6 +196,94 @@ def test_unsupported_mime_rejected(ctx):
     assert e.value.status_code == 400
 
 
+# --- Direct-to-storage upload (initiate -> PUT -> finalize) ------------------
+
+
+def test_direct_upload_initiate_finalize_happy_path(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadFinalizeRequest, UploadInitiateRequest
+
+    init = gallery.initiate_upload(
+        a,
+        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=5_000_000),
+        db=db,
+        current_user=admin,
+    )
+    assert init.media_id and init.upload_url and init.storage_key
+    # Row exists but is PENDING and not yet listed.
+    assert gallery.list_gallery(a, db=db) == []
+    # Simulate the browser PUT landing in storage.
+    storage.get_storage().save(init.storage_key, b"\x00" * 1000, "video/mp4")
+    out = gallery.finalize_upload(
+        a, init.media_id, UploadFinalizeRequest(observation="first swim"), db=db, _=admin
+    )
+    assert out.status == "ready" and out.media_type == "video" and out.observation == "first swim"
+    assert [m.id for m in gallery.list_gallery(a, db=db)] == [init.media_id]
+
+
+def test_up01_forged_finalize_before_put_is_rejected(ctx):
+    """AUTH/UP-01: finalizing before the object exists must NOT mark it ready."""
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadFinalizeRequest, UploadInitiateRequest
+
+    init = gallery.initiate_upload(
+        a,
+        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=1000),
+        db=db,
+        current_user=admin,
+    )
+    # No PUT happened; finalize must 409 and NOT list the media.
+    with pytest.raises(HTTPException) as e:
+        gallery.finalize_upload(a, init.media_id, UploadFinalizeRequest(), db=db, _=admin)
+    assert e.value.status_code == 409
+    assert gallery.list_gallery(a, db=db) == []
+
+
+def test_direct_upload_oversize_rejected_at_initiate(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    import pydantic
+
+    from schemas import MAX_DIRECT_UPLOAD_BYTES, UploadInitiateRequest
+
+    with pytest.raises(pydantic.ValidationError):
+        UploadInitiateRequest(
+            filename="huge.mp4", content_type="video/mp4", size_bytes=MAX_DIRECT_UPLOAD_BYTES + 1
+        )
+
+
+def test_direct_upload_cross_profile_finalize_denied(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadFinalizeRequest, UploadInitiateRequest
+
+    init = gallery.initiate_upload(
+        a,
+        UploadInitiateRequest(filename="c.mp4", content_type="video/mp4", size_bytes=1000),
+        db=db,
+        current_user=admin,
+    )
+    storage.get_storage().save(init.storage_key, b"x", "video/mp4")
+    # Finalize A's upload while scoped to B -> 404.
+    with pytest.raises(HTTPException) as e:
+        gallery.finalize_upload(b, init.media_id, UploadFinalizeRequest(), db=db, _=admin)
+    assert e.value.status_code == 404
+
+
+def test_direct_upload_bad_mime_rejected_at_initiate(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadInitiateRequest
+
+    with pytest.raises(HTTPException) as e:
+        gallery.initiate_upload(
+            a,
+            UploadInitiateRequest(
+                filename="x.exe", content_type="application/x-msdownload", size_bytes=10
+            ),
+            db=db,
+            current_user=admin,
+        )
+    assert e.value.status_code == 400
+
+
 def test_age_group_deactivation_preserves_gallery_media(ctx):
     """Spec archive-loss case: deactivating a Child Development age group deletes
     its objective rows but must NOT delete canonical gallery media."""

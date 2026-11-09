@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_admin_or_child, require_profile_access
 from database import get_db
-from models import EventAttachment, PillarEntry, Profile, ProfileAccess, Role, User
+from models import EventAttachment, PillarEntry, Profile, ProfileAccess, ProfileMedia, Role, User
 from schemas import AttachmentResponse
 from storage import get_storage
 
@@ -123,11 +123,56 @@ def delete_attachment(
 file_router = APIRouter(prefix="/api/uploads", tags=["events"])
 
 
+@file_router.put("/direct/{key}")
+async def direct_put(key: str, request: Request, db: Session = Depends(get_db)):
+    """Local-mode receiver for the direct-upload flow (initiate -> PUT -> finalize).
+
+    S3 mode uses a real presigned PUT straight to the bucket; local mode has no
+    presigning, so the browser PUTs here instead. Authorized the same way as the
+    rest of the gallery: the key must belong to a PENDING ProfileMedia row, and
+    the caller must have write access to that profile. Never used in AWS mode.
+    """
+    import auth as _auth
+    from storage import get_storage
+
+    not_found = HTTPException(status_code=404, detail="Not found")
+    if "/" in key or "\\" in key or ".." in key:
+        raise not_found
+
+    jwt_token = request.cookies.get(_auth.AUTH_COOKIE_NAME)
+    if not jwt_token:
+        raise not_found
+    try:
+        payload = _auth.decode_token(jwt_token)
+        sub = payload.get("sub")
+        if sub is None:
+            raise not_found
+        current_user = db.query(User).filter(User.id == int(sub)).first()
+    except (_auth.JWTError, TypeError, ValueError):
+        raise not_found
+    if current_user is None or current_user.role == Role.readonly:
+        raise not_found  # readonly cannot upload
+
+    media = db.query(ProfileMedia).filter(ProfileMedia.storage_key == key).first()
+    if media is None or media.status != "pending":
+        raise not_found
+    # Per-profile write scope: admin anywhere, owning child only.
+    if current_user.role == Role.child and not (
+        current_user.profile and current_user.profile.id == media.profile_id
+    ):
+        raise not_found
+
+    body = await request.body()
+    get_storage().save(key, body, media.mime_type)
+    return {"ok": True, "bytes": len(body)}
+
+
 def _profile_id_for_upload(db: Session, filename: str) -> int | None:
     """Resolve a stored upload key back to the profile that owns it.
 
-    A key is either an EventAttachment.filename (join entry -> profile) or a
-    Profile.avatar / avatar_original. Returns None if the key is unknown.
+    A key is an EventAttachment.filename (join entry -> profile), a
+    Profile.avatar / avatar_original, or a ProfileMedia.storage_key (canonical
+    gallery media). Returns None if the key is unknown.
     """
     att = (
         db.query(PillarEntry.profile_id)
@@ -137,6 +182,9 @@ def _profile_id_for_upload(db: Session, filename: str) -> int | None:
     )
     if att:
         return att[0]
+    media = db.query(ProfileMedia.profile_id).filter(ProfileMedia.storage_key == filename).first()
+    if media:
+        return media[0]
     prof = (
         db.query(Profile.id)
         .filter((Profile.avatar == filename) | (Profile.avatar_original == filename))

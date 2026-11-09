@@ -521,6 +521,87 @@ export async function uploadGalleryMedia(profileId, files) {
   return res.json()
 }
 
+// Files at/above this size use the direct-to-storage flow (initiate -> PUT ->
+// finalize) so they bypass the app's request-body size cap. Must stay well
+// under that 50MB cap for the buffered path. Phone videos routinely exceed it.
+export const DIRECT_UPLOAD_THRESHOLD = 20 * 1024 * 1024 // 20 MB
+
+/**
+ * Upload a single file via the direct-to-storage flow. Returns the finalized
+ * media object. Used for large videos; small files use uploadGalleryMedia.
+ */
+export async function directUploadGalleryMedia(profileId, file, { observation, ageBand } = {}) {
+  // 1. initiate — reserve a pending media row + get an upload URL
+  const initRes = await fetch(`/api/profiles/${profileId}/gallery/uploads/initiate`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      filename: file.name,
+      content_type: file.type || 'application/octet-stream',
+      size_bytes: file.size,
+    }),
+  })
+  if (!initRes.ok) {
+    let detail = `Could not start upload (HTTP ${initRes.status})`
+    try {
+      const b = await initRes.json()
+      if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail)
+  }
+  const { media_id, upload_url } = await initRes.json()
+
+  // 2. PUT the bytes straight to storage (S3 presigned URL, or local receiver).
+  // credentials only for the same-origin local receiver; a presigned S3 URL
+  // must NOT carry our cookie, so omit credentials for cross-origin targets.
+  const sameOrigin = upload_url.startsWith('/')
+  const putRes = await fetch(upload_url, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    credentials: sameOrigin ? 'include' : 'omit',
+  })
+  if (!putRes.ok) throw new Error(`Upload transfer failed (HTTP ${putRes.status})`)
+
+  // 3. finalize — server verifies the object landed, flips to ready
+  const finRes = await fetch(`/api/profiles/${profileId}/gallery/uploads/${media_id}/finalize`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ observation: observation ?? null, age_band: ageBand ?? null }),
+  })
+  if (!finRes.ok) {
+    let detail = `Could not finalize upload (HTTP ${finRes.status})`
+    try {
+      const b = await finRes.json()
+      if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail)
+  }
+  return finRes.json()
+}
+
+/** Upload any files, auto-selecting buffered vs. direct per file size. */
+export async function smartUploadGalleryMedia(profileId, files, opts = {}) {
+  const small = []
+  const results = []
+  for (const f of files) {
+    if (f.size >= DIRECT_UPLOAD_THRESHOLD) {
+      results.push(await directUploadGalleryMedia(profileId, f, opts))
+    } else {
+      small.push(f)
+    }
+  }
+  if (small.length) {
+    const created = await uploadGalleryMedia(profileId, small)
+    if (Array.isArray(created)) results.push(...created)
+  }
+  return results
+}
+
 export async function updateGalleryMedia(profileId, mediaId, updates) {
   const res = await fetch(`/api/profiles/${profileId}/gallery/${mediaId}`, {
     method: 'PATCH', headers: headers(), body: JSON.stringify(updates),

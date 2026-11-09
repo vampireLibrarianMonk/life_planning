@@ -381,6 +381,31 @@ class ObjectiveLinkCreate(BaseModel):
     objective_id: int
 
 
+# --- Direct-to-S3 (large video) upload: initiate / finalize -------------------
+
+# Pragmatic ceiling so a signed PUT can't be used to park an unbounded object.
+MAX_DIRECT_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
+
+
+class UploadInitiateRequest(BaseModel):
+    filename: str
+    content_type: str
+    size_bytes: Annotated[int, Field(gt=0, le=MAX_DIRECT_UPLOAD_BYTES)]
+
+
+class UploadInitiateResponse(BaseModel):
+    media_id: int
+    upload_url: str
+    storage_key: str
+    method: str = "PUT"
+
+
+class UploadFinalizeRequest(BaseModel):
+    # Optional metadata the client can attach at finalize time.
+    observation: str | None = None
+    age_band: str | None = None
+
+
 class MediaObjectiveLinkResponse(BaseModel):
     id: int
     objective_id: int

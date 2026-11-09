@@ -663,6 +663,32 @@ export async function unlinkContact(profileId, contactId) {
   await fetch(`/api/profiles/${profileId}/contacts/${contactId}/link`, { method: 'DELETE' })
 }
 
+export async function startMethodVerification(profileId, contactId, methodId) {
+  const res = await fetch(
+    `/api/profiles/${profileId}/contacts/${contactId}/methods/${methodId}/verify/start`,
+    { method: 'POST', headers: headers() },
+  )
+  if (!res.ok) {
+    let detail = `Could not start verification (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    const err = new Error(detail); err.status = res.status; throw err
+  }
+  return res.json()
+}
+
+export async function confirmMethodVerification(profileId, contactId, methodId, code) {
+  const res = await fetch(
+    `/api/profiles/${profileId}/contacts/${contactId}/methods/${methodId}/verify/confirm`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ code }) },
+  )
+  if (!res.ok) {
+    let detail = `Verification failed (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
 export async function fetchContactGroups(profileId) {
   const res = await fetch(`/api/profiles/${profileId}/contact-groups/`, { headers: headers() })
   if (!res.ok) return []

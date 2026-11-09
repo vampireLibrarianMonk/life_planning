@@ -73,3 +73,14 @@ def ensure_columns():
                     "ALTER TABLE profile_contact_links ADD COLUMN relationship_subtype VARCHAR(40)"
                 )
             )
+
+        # contact_methods verification-challenge columns (additive).
+        cm_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(contact_methods)"))}
+        if cm_cols:
+            for col, clause in {
+                "verify_code_hash": "verify_code_hash VARCHAR(64)",
+                "verify_expires_at": "verify_expires_at DATETIME",
+                "verify_attempts": "verify_attempts INTEGER NOT NULL DEFAULT 0",
+            }.items():
+                if col not in cm_cols:
+                    conn.execute(text(f"ALTER TABLE contact_methods ADD COLUMN {clause}"))

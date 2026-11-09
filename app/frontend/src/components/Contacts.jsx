@@ -4,6 +4,8 @@ import {
   createContact,
   unlinkContact,
   fetchRelationshipSubtypes,
+  startMethodVerification,
+  confirmMethodVerification,
   CONTACT_ROLE_OPTIONS,
 } from '../services/api'
 
@@ -179,10 +181,14 @@ export default function Contacts({ profileId, profileName, onBack, canWrite }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontWeight: 600 }}>{c.display_name}</span>
                 {(c.methods || []).map((m) => (
-                  <div key={m.id} style={{ fontSize: 12, color: '#595959' }}>
-                    {m.channel === 'email' ? '✉️' : '📱'} {m.address}
-                    {m.verified_at ? ' · verified' : ' · unverified'}
-                  </div>
+                  <MethodRow
+                    key={m.id}
+                    profileId={profileId}
+                    contactId={c.id}
+                    method={m}
+                    canWrite={canWrite}
+                    onVerified={load}
+                  />
                 ))}
               </div>
               {canWrite && (
@@ -198,6 +204,88 @@ export default function Contacts({ profileId, profileName, onBack, canWrite }) {
   )
 }
 
+
+function MethodRow({ profileId, contactId, method, canWrite, onVerified }) {
+  const [state, setState] = useState('idle') // idle | starting | awaiting | done
+  const [code, setCode] = useState('')
+  const [devCode, setDevCode] = useState('')
+  const [err, setErr] = useState('')
+  const verified = !!method.verified_at
+
+  async function start() {
+    setErr('')
+    setState('starting')
+    try {
+      const res = await startMethodVerification(profileId, contactId, method.id)
+      // Console/dev backend returns the code so verification is testable without
+      // a live email/SMS provider. Real backends send it and return null here.
+      setDevCode(res.dev_code || '')
+      setState('awaiting')
+    } catch (e) {
+      setErr(e.message || 'Could not start verification')
+      setState('idle')
+    }
+  }
+
+  async function confirm() {
+    setErr('')
+    try {
+      await confirmMethodVerification(profileId, contactId, method.id, code.trim())
+      setState('done')
+      onVerified && onVerified()
+    } catch (e) {
+      setErr(e.message || 'Verification failed')
+    }
+  }
+
+  return (
+    <div style={{ fontSize: 12, color: '#595959', marginTop: 2 }}>
+      <span>
+        {method.channel === 'email' ? '✉️' : '📱'} {method.address}
+        {verified ? (
+          <span style={{ color: '#15803d', fontWeight: 600 }}> · verified</span>
+        ) : (
+          ' · unverified'
+        )}
+      </span>
+      {canWrite && !verified && state === 'idle' && (
+        <button onClick={start} style={vs.link}>Verify</button>
+      )}
+      {state === 'starting' && <span> · sending…</span>}
+      {state === 'awaiting' && (
+        <div style={vs.panel}>
+          {devCode ? (
+            <p style={vs.dev}>
+              Dev mode (no email/SMS provider yet): your code is <strong>{devCode}</strong>.
+              In production this is sent to the contact instead.
+            </p>
+          ) : (
+            <p style={{ margin: '0 0 6px' }}>We sent a code to this contact. Enter it below.</p>
+          )}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="6-digit code"
+              inputMode="numeric"
+              style={vs.input}
+            />
+            <button onClick={confirm} style={vs.confirm}>Confirm</button>
+          </div>
+        </div>
+      )}
+      {err && <span style={{ color: '#c0392b' }}> · {err}</span>}
+    </div>
+  )
+}
+
+const vs = {
+  link: { marginLeft: 8, background: 'none', border: 'none', color: '#2563b0', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 },
+  panel: { marginTop: 4, padding: 8, background: '#f8f9ff', border: '1px solid #e2e8f5', borderRadius: 6 },
+  dev: { margin: '0 0 6px', color: '#8a6f00' },
+  input: { padding: '6px 8px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13, width: 120 },
+  confirm: { padding: '6px 12px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 },
+}
 const s = {
   container: { maxWidth: 820, margin: '0 auto', padding: '8px 16px 48px' },
   back: { background: 'none', border: 'none', color: '#2563b0', cursor: 'pointer', fontSize: 14, padding: '6px 0' },

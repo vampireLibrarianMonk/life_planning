@@ -317,3 +317,150 @@ def test_garbage_share_token_denied(ctx):
     with pytest.raises(HTTPException) as e:
         contacts.resolve_share("not-a-real-token", db=db)
     assert e.value.status_code == 404
+
+
+# --- Contact-method verification (email / SMS) -------------------------------
+
+
+def _contact_with_email(contacts, db, pid, admin, addr="dr@example.com"):
+    from schemas import ContactCreate, ContactMethodCreate
+
+    return contacts.create_contact(
+        pid,
+        ContactCreate(
+            display_name="Dr. V",
+            methods=[ContactMethodCreate(channel="email", address=addr)],
+            roles="pediatrician",
+        ),
+        db=db,
+        current_user=admin,
+    )
+
+
+def _method_id(db, models, contact_id):
+    return db.query(models.ContactMethod).filter_by(contact_id=contact_id).first().id
+
+
+def test_verify_happy_path_console(ctx, monkeypatch):
+    """Console backend echoes the dev code so the flow is fully testable; the
+    code verifies and flips verified_at + clears the challenge."""
+    contacts, models, storage, db, a, b, admin = ctx
+    import notify
+
+    monkeypatch.setenv("NOTIFY_EMAIL_BACKEND", "console")
+    notify.reset_senders()
+
+    c = _contact_with_email(contacts, db, a, admin)
+    mid = _method_id(db, models, c.id)
+    start = contacts.start_verification(a, c.id, mid, db=db, _=admin)
+    assert start.backend == "console" and start.dev_code is not None
+
+    from schemas import VerifyConfirmRequest
+
+    out = contacts.confirm_verification(
+        a, c.id, mid, VerifyConfirmRequest(code=start.dev_code), db=db, _=admin
+    )
+    assert out.verified is True and out.verified_at is not None
+    row = db.query(models.ContactMethod).get(mid)
+    assert row.verified_at is not None
+    assert row.verify_code_hash is None  # challenge cleared
+    assert row.verification_method == "code_email"
+
+
+def test_verify_wrong_code_counts_attempt_then_locks(ctx, monkeypatch):
+    contacts, models, storage, db, a, b, admin = ctx
+    import notify
+
+    notify.reset_senders()
+    c = _contact_with_email(contacts, db, a, admin)
+    mid = _method_id(db, models, c.id)
+    contacts.start_verification(a, c.id, mid, db=db, _=admin)
+
+    from schemas import VerifyConfirmRequest
+
+    for _ in range(5):
+        with pytest.raises(HTTPException) as e:
+            contacts.confirm_verification(
+                a, c.id, mid, VerifyConfirmRequest(code="000000"), db=db, _=admin
+            )
+        assert e.value.status_code == 400  # incorrect code
+    # 6th attempt is locked out (attempt cap).
+    with pytest.raises(HTTPException) as e:
+        contacts.confirm_verification(
+            a, c.id, mid, VerifyConfirmRequest(code="000000"), db=db, _=admin
+        )
+    assert e.value.status_code == 429
+    assert db.query(models.ContactMethod).get(mid).verified_at is None
+
+
+def test_verify_expired_code_rejected(ctx, monkeypatch):
+    contacts, models, storage, db, a, b, admin = ctx
+    from datetime import datetime, timedelta
+
+    import notify
+
+    notify.reset_senders()
+    c = _contact_with_email(contacts, db, a, admin)
+    mid = _method_id(db, models, c.id)
+    start = contacts.start_verification(a, c.id, mid, db=db, _=admin)
+    # Force-expire.
+    row = db.query(models.ContactMethod).get(mid)
+    row.verify_expires_at = datetime.utcnow() - timedelta(minutes=1)
+    db.commit()
+
+    from schemas import VerifyConfirmRequest
+
+    with pytest.raises(HTTPException) as e:
+        contacts.confirm_verification(
+            a, c.id, mid, VerifyConfirmRequest(code=start.dev_code), db=db, _=admin
+        )
+    assert e.value.status_code == 400
+
+
+def test_verify_confirm_without_start_rejected(ctx, monkeypatch):
+    contacts, models, storage, db, a, b, admin = ctx
+    import notify
+
+    notify.reset_senders()
+    c = _contact_with_email(contacts, db, a, admin)
+    mid = _method_id(db, models, c.id)
+    from schemas import VerifyConfirmRequest
+
+    with pytest.raises(HTTPException) as e:
+        contacts.confirm_verification(
+            a, c.id, mid, VerifyConfirmRequest(code="123456"), db=db, _=admin
+        )
+    assert e.value.status_code == 400
+
+
+def test_verify_real_backend_not_provisioned_is_503(ctx, monkeypatch):
+    """Selecting the SES backend WITHOUT a sender identity must fail honestly
+    (503) and NOT fabricate a sent code."""
+    contacts, models, storage, db, a, b, admin = ctx
+    import notify
+
+    monkeypatch.setenv("NOTIFY_EMAIL_BACKEND", "ses")
+    monkeypatch.delenv("NOTIFY_EMAIL_FROM", raising=False)
+    notify.reset_senders()
+
+    c = _contact_with_email(contacts, db, a, admin)
+    mid = _method_id(db, models, c.id)
+    with pytest.raises(HTTPException) as e:
+        contacts.start_verification(a, c.id, mid, db=db, _=admin)
+    assert e.value.status_code == 503
+    # No pending challenge was left behind.
+    row = db.query(models.ContactMethod).get(mid)
+    assert row.verify_code_hash is None and row.verified_at is None
+    notify.reset_senders()
+
+
+def test_verify_cross_profile_denied(ctx, monkeypatch):
+    contacts, models, storage, db, a, b, admin = ctx
+    import notify
+
+    notify.reset_senders()
+    c = _contact_with_email(contacts, db, a, admin)  # linked to A only
+    mid = _method_id(db, models, c.id)
+    with pytest.raises(HTTPException) as e:
+        contacts.start_verification(b, c.id, mid, db=db, _=admin)
+    assert e.value.status_code == 404

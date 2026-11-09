@@ -665,3 +665,27 @@ class ShareGrantResponse(BaseModel):
     access_count: int
 
     model_config = {"from_attributes": True}
+
+
+# --- Contact-method verification (email / SMS) -------------------------------
+
+
+class VerifyStartResponse(BaseModel):
+    method_id: int
+    channel: str
+    sent_to: str  # redacted destination
+    backend: str  # console | ses | aws — tells the UI if it's live or dev
+    # In console/dev mode only, the code is echoed so the flow is testable
+    # WITHOUT a provider. Real backends (ses/aws) MUST leave this null.
+    dev_code: str | None = None
+    expires_at: datetime
+
+
+class VerifyConfirmRequest(BaseModel):
+    code: str
+
+
+class VerifyConfirmResponse(BaseModel):
+    method_id: int
+    verified: bool
+    verified_at: datetime | None = None

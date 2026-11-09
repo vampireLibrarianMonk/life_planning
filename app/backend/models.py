@@ -508,6 +508,10 @@ class ContactMethod(Base):
     address = Column(String(320), nullable=False)  # email address or E.164 phone
     verified_at = Column(DateTime, nullable=True)
     verification_method = Column(String(40), nullable=True)
+    # Pending verification challenge (code is stored HASHED, never in the clear).
+    verify_code_hash = Column(String(64), nullable=True)
+    verify_expires_at = Column(DateTime, nullable=True)
+    verify_attempts = Column(Integer, nullable=False, default=0)
     active = Column(Integer, nullable=False, default=1)
     # SMS requires explicit opt-in consent (A2P). Email consent tracked too.
     consent_at = Column(DateTime, nullable=True)

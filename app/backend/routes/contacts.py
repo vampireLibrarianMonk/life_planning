@@ -30,6 +30,8 @@ from models import (
     ProfileMedia,
     User,
 )
+from notify import SenderNotProvisionedError, sender_for
+from notify import _redact as _redact_dest
 from schemas import (
     ContactCreate,
     ContactGroupCreate,
@@ -40,6 +42,9 @@ from schemas import (
     ProfileContactLinkResponse,
     ShareGrantCreate,
     ShareGrantResponse,
+    VerifyConfirmRequest,
+    VerifyConfirmResponse,
+    VerifyStartResponse,
 )
 from storage import get_storage
 
@@ -225,6 +230,128 @@ def unlink_contact(
     if link:
         db.delete(link)
         db.commit()
+
+
+# --- Contact-method verification (email / SMS) -------------------------------
+# Real flow, provider-agnostic: generate a 6-digit code, store it HASHED with a
+# short expiry, "send" it via the configured sender (console in dev; SES/AWS when
+# provisioned), then confirm. Nothing fabricates delivery — a real backend that
+# isn't set up raises SenderNotProvisionedError (surfaced as 503).
+
+VERIFY_CODE_TTL_MINUTES = 15
+VERIFY_MAX_ATTEMPTS = 5
+
+
+def _method_for_profile(db: Session, profile_id: int, contact_id: int, method_id: int):
+    """Resolve a contact method, enforcing the profile link (no cross-profile)."""
+    _linked_contact_or_404(db, profile_id, contact_id)
+    method = (
+        db.query(ContactMethod)
+        .filter(ContactMethod.id == method_id, ContactMethod.contact_id == contact_id)
+        .first()
+    )
+    if not method:
+        raise HTTPException(status_code=404, detail="Contact method not found")
+    return method
+
+
+@router.post(
+    "/{contact_id}/methods/{method_id}/verify/start",
+    response_model=VerifyStartResponse,
+)
+def start_verification(
+    profile_id: int,
+    contact_id: int,
+    method_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    """Begin verifying a contact method: mint a code, store its hash, send it."""
+    method = _method_for_profile(db, profile_id, contact_id, method_id)
+    if method.verified_at is not None:
+        raise HTTPException(status_code=409, detail="This method is already verified.")
+
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    method.verify_code_hash = hashlib.sha256(code.encode()).hexdigest()
+    method.verify_expires_at = datetime.utcnow() + timedelta(minutes=VERIFY_CODE_TTL_MINUTES)
+    method.verify_attempts = 0
+    db.commit()
+
+    sender = sender_for(method.channel)
+    subject = "Your Life Plan verification code"
+    body = (
+        f"Your verification code is {code}. It expires in "
+        f"{VERIFY_CODE_TTL_MINUTES} minutes. If you did not expect this, ignore it."
+    )
+    try:
+        result = sender.send(method.address, subject, body)
+    except SenderNotProvisionedError as e:
+        # Honest failure: clear the pending challenge and tell the caller it's
+        # not live yet (do NOT pretend a code was sent).
+        method.verify_code_hash = None
+        method.verify_expires_at = None
+        db.commit()
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+    backend = result.get("backend", "console")
+    return VerifyStartResponse(
+        method_id=method.id,
+        channel=method.channel,
+        sent_to=result.get("to", _redact_dest(method.address)),
+        backend=backend,
+        # Echo the code ONLY in console/dev mode so the flow is testable without
+        # a provider. Real backends never expose it.
+        dev_code=code if backend == "console" else None,
+        expires_at=method.verify_expires_at,
+    )
+
+
+@router.post(
+    "/{contact_id}/methods/{method_id}/verify/confirm",
+    response_model=VerifyConfirmResponse,
+)
+def confirm_verification(
+    profile_id: int,
+    contact_id: int,
+    method_id: int,
+    req: VerifyConfirmRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    """Confirm a method by submitting the code. Enforces expiry + attempt cap."""
+    method = _method_for_profile(db, profile_id, contact_id, method_id)
+    if method.verified_at is not None:
+        return VerifyConfirmResponse(
+            method_id=method.id, verified=True, verified_at=method.verified_at
+        )
+    if not method.verify_code_hash or not method.verify_expires_at:
+        raise HTTPException(status_code=400, detail="No verification in progress. Start one first.")
+    if method.verify_expires_at < datetime.utcnow():
+        method.verify_code_hash = None
+        method.verify_expires_at = None
+        db.commit()
+        raise HTTPException(status_code=400, detail="The code has expired. Request a new one.")
+    if method.verify_attempts >= VERIFY_MAX_ATTEMPTS:
+        method.verify_code_hash = None
+        method.verify_expires_at = None
+        db.commit()
+        raise HTTPException(status_code=429, detail="Too many attempts. Request a new code.")
+
+    submitted = hashlib.sha256(req.code.strip().encode()).hexdigest()
+    if not secrets.compare_digest(submitted, method.verify_code_hash):
+        method.verify_attempts += 1
+        db.commit()
+        raise HTTPException(status_code=400, detail="Incorrect code.")
+
+    # Success: mark verified, clear the challenge.
+    method.verified_at = datetime.utcnow()
+    method.verification_method = f"code_{method.channel}"
+    method.verify_code_hash = None
+    method.verify_expires_at = None
+    method.verify_attempts = 0
+    db.commit()
+    db.refresh(method)
+    return VerifyConfirmResponse(method_id=method.id, verified=True, verified_at=method.verified_at)
 
 
 # --- Contact groups (selection aids, profile-scoped) -------------------------

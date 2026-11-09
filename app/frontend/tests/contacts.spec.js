@@ -41,6 +41,17 @@ test.describe('Contacts', () => {
     // Unverified by default (no auto-trust of a typed address).
     await expect(page.getByText(/unverified/).first()).toBeVisible()
 
+    // Verify the email via the dev-code flow (console backend echoes the code).
+    await page.getByRole('button', { name: 'Verify' }).first().click()
+    const devLine = page.getByText(/your code is/i)
+    await expect(devLine).toBeVisible()
+    const codeText = await devLine.textContent()
+    const code = (codeText.match(/\b(\d{6})\b/) || [])[1]
+    expect(code, 'dev code present').toBeTruthy()
+    await page.getByPlaceholder('6-digit code').fill(code)
+    await page.getByRole('button', { name: 'Confirm' }).click()
+    await expect(page.getByText(/· verified/).first()).toBeVisible()
+
     // Remove it.
     page.once('dialog', (d) => d.accept())
     await page.getByTitle('Remove from this child').first().click()

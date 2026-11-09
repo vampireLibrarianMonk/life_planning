@@ -1,6 +1,6 @@
 # Backlog — larger features
 
-Captured 2026-10-23, updated 2026-10-27. Feature-level items beyond the
+Captured 2026-10-23, updated 2026-11-09. Feature-level items beyond the
 provisioning work (see `01_user_provisioning.md`).
 
 **Current state:**
@@ -13,6 +13,17 @@ provisioning work (see `01_user_provisioning.md`).
   ALREADY covers lineage (family tree, ancestor research, migration map,
   artifacts), so NOT a new pillar — at most a small bounty-track enrichment of
   Heritage. Pending owner decision on whether it's worth adding.
+- **#4 Automated cross-region failover** — DESIGN-ONLY; "don't build" stands.
+- **#5 Child Media / Gallery / Contacts / Messaging (v6)** — IN PROGRESS. See the
+  dedicated section below for the pass-by-pass status. Gallery (photo+video,
+  direct-to-S3) is BUILT & LIVE; Contacts + method verification are built on an
+  UNMERGED branch; Email/SMS/Bedrock centers are NOT built and gated on provider
+  provisioning (SES production access, A2P 10DLC).
+
+> **Note on numbering:** a separate parked item, "Lesson-plan visibility rework
+> (child + LLM eval)", lives on branch `docs/lesson-visibility-backlog` (not yet
+> merged) and is also labelled #5 there. Reconcile the numbers when that branch
+> and `feat/contacts-and-docs` both land on master.
 
 ---
 
@@ -419,3 +430,70 @@ is trying to replicate (just with an ALB bill attached).
 Until one of those occurs, the full migration analysis above is **parked for
 reference**, not an open task. The automated-failover design (#4 top) remains
 DESIGN-ONLY / not recommended (option (a) DON'T BUILD stands).
+
+---
+
+## 5. Child Media / Gallery / Contacts / Messaging (v6 handoff) — IN PROGRESS
+
+Implements `next_steps/LIFE_PLANNING_CHILD_DEVELOPMENT_MEDIA_KIRO_HANDOFF_v6.md`
+in incremental, rollback-friendly passes. Local-first; each pass is tested
+(backend pytest + Playwright, synthetic media only) before it graduates to a PR.
+
+### Status by pass (as of 2026-11-09)
+
+| Pass | Scope | Status |
+|---|---|---|
+| 1–2 | Canonical per-child **Gallery** (`ProfileMedia` + `MediaObjectiveLink`), UI peer section, photo/video CRUD, per-objective media that also lives in the Gallery and **survives age-group/objective deletion** | ✅ **MERGED + LIVE** (PR #3) |
+| 2.5 | Per-objective 📷 panel rewired to the canonical Gallery (unify stores) | ✅ **MERGED + LIVE** |
+| — | Live-bug fixes (gallery body-size cap, honest upload errors, accurate 403 toast) | ✅ **MERGED + LIVE** (PR #4) |
+| 3 | **Direct-to-S3** large-video upload (initiate → presigned PUT → finalize); uploads-bucket CORS applied both regions | ✅ **MERGED + LIVE** (PR #5) |
+| 4 | **Contacts** directory (owner-scoped `contacts`, per-child `profile_contact_links`, `contact_methods`, groups), **media share grants** (hashed token, expiry, revoke, public `/share/{token}` resolver), role **sub-types** + dependent 2nd dropdown, dual email+phone, **method verification** (provider-agnostic sender; console dev backend; SES/AWS adapters inert until provisioned) | 🚧 **BUILT, on branch `feat/contacts-and-docs` — NOT pushed/merged/deployed** |
+| 5 — Email | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | ❌ not built |
+| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | ❌ not built |
+| 6 — SMS | One-way send (AWS End User Messaging), native-share fallback | ❌ not built |
+| 7 — Inbound | SES receipt / SMS webhooks | ❌ not built (optional) |
+
+### What's on branch `feat/contacts-and-docs` (unmerged, 2026-11-09)
+
+- Docs: VERSION ledger → **0.6.0** (was stale at 0.5.3), README Gallery section,
+  deployment diagram split (uploads=media/gallery+CORS vs db=Object Lock), re-rendered.
+- Contacts backend + UI + method verification (see Pass 4 above).
+- Tests green locally: backend 109, device-eval 140 (7 devices), contacts/gallery/
+  readonly/child-dev/walkthrough/a11y E2E, pre-commit clean. No Dockerfile/dep
+  changes (image-scan reuses passing layers).
+- Next step for this branch: push → PR → merge → deploy. The additive DB
+  migrations (`relationship_subtype`, the `verify_*` columns) were tested against
+  a pre-existing DB, so the prod (Robert) DB upgrades safely.
+
+### OWNER PROVISIONING PREREQUISITES (block Email/SMS go-live — Kiro cannot do these)
+
+- **Email (SES):** confirm the account is out of the SES **sandbox** (production
+  access) and set a **verified sender identity** (`NOTIFY_EMAIL_FROM`) with
+  DKIM/SPF/DMARC. Until then email verification + the Email center are inert
+  (the SES adapter raises a 503 "not provisioned" rather than fake a send).
+- **SMS (AWS End User Messaging):** **A2P 10DLC** brand + campaign registration,
+  a rented **origination identity** (`NOTIFY_SMS_ORIGINATION`), and recorded
+  recipient **consent** (STOP/HELP). US carrier approval takes days and is not
+  guaranteed. One-way (send only) is the chosen model → AWS End User Messaging is
+  the fit (no inbound MMS needed). Docs/PDFs + videos go as app **share links**,
+  small photos as MMS; videos/docs are not reliable as raw MMS.
+- **Bedrock (optional, Pass 5b):** decide model/Region, enable, set token/cost
+  caps; invocation logging OFF by default (no child data in prompts/metadata).
+
+### Contact-method verification — current behavior (important)
+
+Verification is a **real flow** (6-digit code, SHA-256-hashed, 15-min expiry,
+5-attempt cap) but delivery is pluggable:
+- **Dev/console backend (default):** the code is surfaced in the UI so the flow
+  is testable WITHOUT a provider. It never claims a real inbox/phone was reached.
+- **Real backends (SES/AWS):** wired but **inert until provisioned** (above); they
+  raise `SenderNotProvisionedError` → 503, never a fake "sent".
+Switching to live is an **env change, not a rewrite**: set the backend env +
+`NOTIFY_EMAIL_FROM` / `NOTIFY_SMS_ORIGINATION`.
+
+### Test contacts (owner-provided, synthetic/real-but-owner's own)
+
+Per owner: `pmflani@gmail.com` (email) and `540-209-0256` (phone) are the
+testing data points. Kept only in local/dev usage, NOT committed as real PII in
+source. `pmflani@gmail.com` is expected to be SES-send-capable once production
+access is confirmed.

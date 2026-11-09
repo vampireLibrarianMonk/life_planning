@@ -467,12 +467,14 @@ in incremental, rollback-friendly passes. Local-first; each pass is tested
 
 ### OWNER PROVISIONING PREREQUISITES (block Email/SMS go-live — Kiro cannot do these)
 
-- **Email (SES):** ✅ **DONE / PROVEN LIVE (2026-11-09).** SES account has
-  **production access GRANTED** (not sandboxed; 50k/day quota), domain identity
-  `life-planning.my-deployment.com` verified, sender `SES_SENDER=no-reply@life-planning.my-deployment.com`.
-  A real verification email was sent to `pmflani@gmail.com` from the local server
-  in `NOTIFY_EMAIL_BACKEND=ses` mode and the code confirmed end-to-end
-  (verified_at set). Email verification + email sending are live-capable now.
+- **Email (SES):** ✅ **DONE / LIVE IN PRODUCTION (2026-11-09).** SES production
+  access granted, domain `life-planning.my-deployment.com` verified. App Runner
+  env set in BOTH regions (`NOTIFY_EMAIL_BACKEND=ses`, `SES_SENDER=no-reply@...`).
+  Instance role granted scoped `ses:SendEmail` on the verified identity (this was
+  a REQUIRED fix found during deploy — the invitation flow runs from the CLI, so
+  the app runtime role had no SES permission; a live verify/start 500'd with
+  AccessDenied until added). Full send→confirm→verified round trip PROVEN on the
+  live site (PR #6 deploy, digest 903077b7).
 - **SMS (AWS End User Messaging):** ❌ NOT done — the remaining blocker. **A2P
   10DLC** brand + campaign registration, a rented **origination identity**
   (`NOTIFY_SMS_ORIGINATION`), recorded recipient **consent** (STOP/HELP). US

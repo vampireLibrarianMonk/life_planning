@@ -14,6 +14,7 @@ from models import User
 from routes import (
     archive,
     child_development,
+    contacts,
     demo,
     discernment,
     discernments,
@@ -134,6 +135,10 @@ app.include_router(gallery.router)
 app.include_router(demo.router)
 app.include_router(archive.router)
 app.include_router(child_development.router)
+app.include_router(contacts.router)
+app.include_router(contacts.groups_router)
+app.include_router(contacts.shares_router)
+app.include_router(contacts.public_share_router)
 
 
 @app.on_event("startup")

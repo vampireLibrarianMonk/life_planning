@@ -451,3 +451,155 @@ class LessonResponse(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     lesson = relationship("LessonPlan", back_populates="responses")
+
+
+# --- Contacts / groups / share grants (v6 Pass 4) ----------------------------
+# Design invariants (from the v6 handoff):
+#   * A contact is owner-scoped (the family account), NOT a login User.
+#   * A contact must be EXPLICITLY linked to a child profile before it can be
+#     used in that child's composer. The link carries role labels + a disclosure
+#     policy. Classification/label NEVER grants data access on its own.
+#   * Each contact METHOD (email/phone) is verified/consented independently.
+#   * Share grants store a HASH of the token, never the raw token.
+
+CONTACT_ROLES = (
+    "pediatrician",
+    "speech_therapist",
+    "occupational_therapist",
+    "other_clinician",
+    "educator",
+    "childcare",
+    "caregiver",
+    "family",
+    "guardian",
+    "emergency_contact",
+    "other",
+)
+
+
+class Contact(Base):
+    """A reusable person/organization the family may message. NOT a login."""
+
+    __tablename__ = "contacts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # creating admin (audit)
+    display_name = Column(String(200), nullable=False)
+    kind = Column(String(20), nullable=False, default="individual")  # individual|organization
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    methods = relationship("ContactMethod", back_populates="contact", cascade="all, delete-orphan")
+    profile_links = relationship(
+        "ProfileContactLink", back_populates="contact", cascade="all, delete-orphan"
+    )
+
+
+class ContactMethod(Base):
+    """An email or phone endpoint for a contact, verified/consented per method."""
+
+    __tablename__ = "contact_methods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contact_id = Column(
+        Integer, ForeignKey("contacts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    channel = Column(String(10), nullable=False)  # email|sms
+    address = Column(String(320), nullable=False)  # email address or E.164 phone
+    verified_at = Column(DateTime, nullable=True)
+    verification_method = Column(String(40), nullable=True)
+    # Pending verification challenge (code is stored HASHED, never in the clear).
+    verify_code_hash = Column(String(64), nullable=True)
+    verify_expires_at = Column(DateTime, nullable=True)
+    verify_attempts = Column(Integer, nullable=False, default=0)
+    active = Column(Integer, nullable=False, default=1)
+    # SMS requires explicit opt-in consent (A2P). Email consent tracked too.
+    consent_at = Column(DateTime, nullable=True)
+    opted_out_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    contact = relationship("Contact", back_populates="methods")
+
+
+class ProfileContactLink(Base):
+    """Explicit association of a contact to ONE child profile.
+
+    Required before the contact appears in that child's composer. Carries the
+    role labels (comma-separated keys from CONTACT_ROLES) and a default
+    disclosure policy. The link is the authorization anchor — labels alone are
+    not authorization.
+    """
+
+    __tablename__ = "profile_contact_links"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(
+        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    contact_id = Column(
+        Integer, ForeignKey("contacts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    roles = Column(String(300), nullable=False, default="other")  # CSV of CONTACT_ROLES
+    # Optional relationship sub-type (e.g. family -> "mother"). Only meaningful
+    # for roles that have sub-types (see RELATIONSHIP_SUBTYPES in schemas).
+    relationship_subtype = Column(String(40), nullable=True)
+    purpose = Column(String(300), nullable=True)
+    # Minimum-necessary by default; clinical/private categories require explicit
+    # opt-in per message, never auto-granted by a role label.
+    default_disclosure = Column(String(20), nullable=False, default="minimal")  # minimal|standard
+    active = Column(Integer, nullable=False, default=1)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+    contact = relationship("Contact", back_populates="profile_links")
+
+
+class ContactGroup(Base):
+    """A named selection aid (e.g. 'Pediatric Care Team'). NOT a permission grant."""
+
+    __tablename__ = "contact_groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    name = Column(String(120), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    members = relationship(
+        "ContactGroupMember", back_populates="group", cascade="all, delete-orphan"
+    )
+
+
+class ContactGroupMember(Base):
+    __tablename__ = "contact_group_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(
+        Integer, ForeignKey("contact_groups.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    contact_id = Column(
+        Integer, ForeignKey("contacts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+    group = relationship("ContactGroup", back_populates="members")
+
+
+class MediaShareGrant(Base):
+    """A revocable, expiring grant that lets a recipient view one media item via
+    an opaque app link. The raw token is NEVER stored — only its SHA-256 hash."""
+
+    __tablename__ = "media_share_grants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(
+        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    media_id = Column(
+        Integer, ForeignKey("profile_media.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)  # sha256 hex
+    expires_at = Column(DateTime, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+    access_count = Column(Integer, nullable=False, default=0)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

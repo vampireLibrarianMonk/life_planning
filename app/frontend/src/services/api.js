@@ -625,3 +625,103 @@ export async function unlinkGalleryObjective(profileId, mediaId, objectiveId) {
     method: 'DELETE',
   })
 }
+
+// --- Contacts & groups (v6 Pass 4) -------------------------------------------
+
+export async function fetchContacts(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/contacts/`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function fetchRelationshipSubtypes(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/contacts/relationship-subtypes`, { headers: headers() })
+  if (!res.ok) return {}
+  return res.json()
+}
+
+export async function createContact(profileId, contact) {
+  const res = await fetch(`/api/profiles/${profileId}/contacts/`, {
+    method: 'POST', headers: headers(), body: JSON.stringify(contact),
+  })
+  if (!res.ok) {
+    let detail = `Could not save contact (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function updateContact(profileId, contactId, updates) {
+  const res = await fetch(`/api/profiles/${profileId}/contacts/${contactId}`, {
+    method: 'PATCH', headers: headers(), body: JSON.stringify(updates),
+  })
+  return res.json()
+}
+
+export async function unlinkContact(profileId, contactId) {
+  await fetch(`/api/profiles/${profileId}/contacts/${contactId}/link`, { method: 'DELETE' })
+}
+
+export async function startMethodVerification(profileId, contactId, methodId) {
+  const res = await fetch(
+    `/api/profiles/${profileId}/contacts/${contactId}/methods/${methodId}/verify/start`,
+    { method: 'POST', headers: headers() },
+  )
+  if (!res.ok) {
+    let detail = `Could not start verification (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    const err = new Error(detail); err.status = res.status; throw err
+  }
+  return res.json()
+}
+
+export async function confirmMethodVerification(profileId, contactId, methodId, code) {
+  const res = await fetch(
+    `/api/profiles/${profileId}/contacts/${contactId}/methods/${methodId}/verify/confirm`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ code }) },
+  )
+  if (!res.ok) {
+    let detail = `Verification failed (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function fetchContactGroups(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/contact-groups/`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function createContactGroup(profileId, name) {
+  const res = await fetch(`/api/profiles/${profileId}/contact-groups/`, {
+    method: 'POST', headers: headers(), body: JSON.stringify({ name }),
+  })
+  return res.json()
+}
+
+export async function createMediaShare(profileId, mediaId, expiresInHours = 72) {
+  const res = await fetch(`/api/profiles/${profileId}/media-shares/`, {
+    method: 'POST', headers: headers(),
+    body: JSON.stringify({ media_id: mediaId, expires_in_hours: expiresInHours }),
+  })
+  if (!res.ok) throw new Error(`Could not create share link (HTTP ${res.status})`)
+  return res.json()
+}
+
+// Role labels shown in the contact editor (keys must match backend CONTACT_ROLES).
+export const CONTACT_ROLE_OPTIONS = [
+  ['pediatrician', 'Pediatrician'],
+  ['speech_therapist', 'Speech Therapist'],
+  ['occupational_therapist', 'Occupational Therapist'],
+  ['other_clinician', 'Other Clinician'],
+  ['educator', 'Educator / Teacher'],
+  ['childcare', 'Childcare / Daycare'],
+  ['caregiver', 'Caregiver'],
+  ['family', 'Family'],
+  ['guardian', 'Guardian / Co-parent'],
+  ['emergency_contact', 'Emergency Contact'],
+  ['other', 'Other'],
+]

@@ -179,6 +179,30 @@ The **+ Event** button opens a form for recording significant moments:
 
 This creates a living record: milestones aren't just checked off — they're documented with evidence of the moment they occurred.
 
+### Gallery (photos & videos)
+
+Each child has one private **Gallery** — a peer section under the profile,
+alongside Early Growth Markers. It's the single canonical home for that child's
+photos and videos.
+
+- **Add media** — on a phone the **+ Add media** button opens the native
+  chooser so you can either capture the moment live (camera) *or* pick an
+  existing photo/video from the library; on desktop it's a file picker.
+- **View** — photos show inline; videos play with native controls (seek,
+  fullscreen). Filter by All / Photos / Videos / Docs.
+- **Annotate / delete** — add an observation note to any item, or remove it.
+- **Large videos** upload directly to S3 (bypassing the app's request-size cap),
+  so full-length phone clips work; smaller files use the fast buffered path.
+
+**Per-objective media.** On any Child Development objective, the **📷** panel
+lets you attach a photo/video *to that goal*. It appears both on the objective
+**and** in the child's Gallery, and it is **kept even if you later remove the
+objective or deactivate the age group** — removing an objective only unlinks the
+media, it never deletes it.
+
+Media is private and profile-scoped: read-only (grandparent) accounts can view a
+child's Gallery but cannot upload, edit, or delete.
+
 ### Bounty Board (Family Economy)
 
 The 💵 Bounty Board has four sections:

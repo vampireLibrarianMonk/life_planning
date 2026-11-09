@@ -112,6 +112,15 @@ test.describe('Read-only account', () => {
     await expect(page.getByTitle('Delete')).toHaveCount(0)
   })
 
+  test('contacts: can view but gets no add/remove controls', async ({ page }) => {
+    await login(page)
+    await page.locator('a[href^="/profile/"]').first().click()
+    await page.getByRole('button', { name: /Contacts/ }).first().click()
+    await expect(page.getByRole('heading', { name: 'Contacts' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '+ Add contact' })).toHaveCount(0)
+    await expect(page.getByTitle('Remove from this child')).toHaveCount(0)
+  })
+
   test('discernment journal is not offered at all', async ({ page }) => {
     await login(page)
     await page.locator('a[href^="/profile/"]').first().click()

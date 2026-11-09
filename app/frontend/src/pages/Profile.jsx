@@ -5,6 +5,7 @@ import AvatarCrop from '../components/AvatarCrop'
 import MiniMarkdown from '../components/MiniMarkdown'
 import ChildDevelopment from '../components/ChildDevelopment'
 import Gallery from '../components/Gallery'
+import Contacts from '../components/Contacts'
 import Economy from './Economy'
 import { isReadonly, isAdmin, uploadUrl } from '../services/auth'
 
@@ -511,6 +512,11 @@ export default function Profile() {
             <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Gallery</span>
             <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Photos &amp; videos</span>
           </button>
+          <button onClick={() => setActivePillar('__contacts__')} style={{ ...s.pillarCard, border: '2px solid #e0dcf0' }}>
+            <span style={{ fontSize: 28 }}>📇</span>
+            <span style={{ fontSize: 14, fontWeight: 600, marginTop: 8 }}>Contacts</span>
+            <span style={{ fontSize: 11, color: '#595959', marginTop: 4 }}>Share-update recipients</span>
+          </button>
         </div>
 
         {/* Development Pillars */}
@@ -615,6 +621,18 @@ export default function Profile() {
   if (activePillar === '__gallery__') {
     return (
       <Gallery
+        profileId={id}
+        profileName={profile ? profile.name : ''}
+        onBack={() => setActivePillar(null)}
+        canWrite={canWrite}
+      />
+    )
+  }
+
+  // Contacts view — per-child recipient directory (v6 Pass 4)
+  if (activePillar === '__contacts__') {
+    return (
+      <Contacts
         profileId={id}
         profileName={profile ? profile.name : ''}
         onBack={() => setActivePillar(null)}

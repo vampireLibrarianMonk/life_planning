@@ -1,6 +1,6 @@
 # Backlog — larger features
 
-Captured 2026-10-23, updated 2026-10-27. Feature-level items beyond the
+Captured 2026-10-23, updated 2026-11-09. Feature-level items beyond the
 provisioning work (see `01_user_provisioning.md`).
 
 **Current state:**
@@ -13,6 +13,17 @@ provisioning work (see `01_user_provisioning.md`).
   ALREADY covers lineage (family tree, ancestor research, migration map,
   artifacts), so NOT a new pillar — at most a small bounty-track enrichment of
   Heritage. Pending owner decision on whether it's worth adding.
+- **#4 Automated cross-region failover** — DESIGN-ONLY; "don't build" stands.
+- **#5 Child Media / Gallery / Contacts / Messaging (v6)** — IN PROGRESS. See the
+  dedicated section below for the pass-by-pass status. Gallery (photo+video,
+  direct-to-S3) is BUILT & LIVE; Contacts + method verification are built on an
+  UNMERGED branch; Email/SMS/Bedrock centers are NOT built and gated on provider
+  provisioning (SES production access, A2P 10DLC).
+
+> **Note on numbering:** a separate parked item, "Lesson-plan visibility rework
+> (child + LLM eval)", lives on branch `docs/lesson-visibility-backlog` (not yet
+> merged) and is also labelled #5 there. Reconcile the numbers when that branch
+> and `feat/contacts-and-docs` both land on master.
 
 ---
 
@@ -419,3 +430,134 @@ is trying to replicate (just with an ALB bill attached).
 Until one of those occurs, the full migration analysis above is **parked for
 reference**, not an open task. The automated-failover design (#4 top) remains
 DESIGN-ONLY / not recommended (option (a) DON'T BUILD stands).
+
+---
+
+## 5. Child Media / Gallery / Contacts / Messaging (v6 handoff) — IN PROGRESS
+
+Implements `next_steps/LIFE_PLANNING_CHILD_DEVELOPMENT_MEDIA_KIRO_HANDOFF_v6.md`
+in incremental, rollback-friendly passes. Local-first; each pass is tested
+(backend pytest + Playwright, synthetic media only) before it graduates to a PR.
+
+### Status by pass (as of 2026-11-09)
+
+| Pass | Scope | Status |
+|---|---|---|
+| 1–2 | Canonical per-child **Gallery** (`ProfileMedia` + `MediaObjectiveLink`), UI peer section, photo/video CRUD, per-objective media that also lives in the Gallery and **survives age-group/objective deletion** | ✅ **MERGED + LIVE** (PR #3) |
+| 2.5 | Per-objective 📷 panel rewired to the canonical Gallery (unify stores) | ✅ **MERGED + LIVE** |
+| — | Live-bug fixes (gallery body-size cap, honest upload errors, accurate 403 toast) | ✅ **MERGED + LIVE** (PR #4) |
+| 3 | **Direct-to-S3** large-video upload (initiate → presigned PUT → finalize); uploads-bucket CORS applied both regions | ✅ **MERGED + LIVE** (PR #5) |
+| 4 | **Contacts** directory (owner-scoped `contacts`, per-child `profile_contact_links`, `contact_methods`, groups), **media share grants** (hashed token, expiry, revoke, public `/share/{token}` resolver), role **sub-types** + dependent 2nd dropdown, dual email+phone, **method verification** (provider-agnostic sender; console dev backend; SES/AWS adapters inert until provisioned) | 🚧 **BUILT, on branch `feat/contacts-and-docs` — NOT pushed/merged/deployed** |
+| 5 — Email | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | ❌ not built |
+| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | ❌ not built |
+| 6 — SMS | One-way send (AWS End User Messaging), native-share fallback | ❌ not built |
+| 7 — Inbound | SES receipt / SMS webhooks | ❌ not built (optional) |
+
+### What's on branch `feat/contacts-and-docs` (unmerged, 2026-11-09)
+
+- Docs: VERSION ledger → **0.6.0** (was stale at 0.5.3), README Gallery section,
+  deployment diagram split (uploads=media/gallery+CORS vs db=Object Lock), re-rendered.
+- Contacts backend + UI + method verification (see Pass 4 above).
+- Tests green locally: backend 109, device-eval 140 (7 devices), contacts/gallery/
+  readonly/child-dev/walkthrough/a11y E2E, pre-commit clean. No Dockerfile/dep
+  changes (image-scan reuses passing layers).
+- Next step for this branch: push → PR → merge → deploy. The additive DB
+  migrations (`relationship_subtype`, the `verify_*` columns) were tested against
+  a pre-existing DB, so the prod (Robert) DB upgrades safely.
+
+### OWNER PROVISIONING PREREQUISITES (block Email/SMS go-live — Kiro cannot do these)
+
+- **Email (SES):** ✅ **DONE / PROVEN LIVE (2026-11-09).** SES account has
+  **production access GRANTED** (not sandboxed; 50k/day quota), domain identity
+  `life-planning.my-deployment.com` verified, sender `SES_SENDER=no-reply@life-planning.my-deployment.com`.
+  A real verification email was sent to `pmflani@gmail.com` from the local server
+  in `NOTIFY_EMAIL_BACKEND=ses` mode and the code confirmed end-to-end
+  (verified_at set). Email verification + email sending are live-capable now.
+- **SMS (AWS End User Messaging):** ❌ NOT done — the remaining blocker. **A2P
+  10DLC** brand + campaign registration, a rented **origination identity**
+  (`NOTIFY_SMS_ORIGINATION`), recorded recipient **consent** (STOP/HELP). US
+  carrier approval takes days, not guaranteed. One-way send only → AWS End User
+  Messaging fits (no inbound MMS needed). Docs/PDFs + videos go as app share
+  links; small photos as MMS. See "Texting path" below.
+- **Bedrock (optional, Pass 5b):** decide model/Region, enable, token/cost caps;
+  invocation logging OFF by default.
+
+### Contact-method verification — current behavior (important)
+
+Verification is a **real flow** (6-digit code, SHA-256-hashed, 15-min expiry,
+5-attempt cap) but delivery is pluggable:
+- **Dev/console backend (default):** the code is surfaced in the UI so the flow
+  is testable WITHOUT a provider. It never claims a real inbox/phone was reached.
+- **Real backends (SES/AWS):** wired but **inert until provisioned** (above); they
+  raise `SenderNotProvisionedError` → 503, never a fake "sent".
+Switching to live is an **env change, not a rewrite**: set the backend env +
+`NOTIFY_EMAIL_FROM` / `NOTIFY_SMS_ORIGINATION`.
+
+### Test contacts (owner-provided, synthetic/real-but-owner's own)
+
+Per owner: `pmflani@gmail.com` (email) and `540-209-0256` (phone) are the
+testing data points. Kept only in local/dev usage, NOT committed as real PII in
+source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
+
+### RESUME-TONIGHT STATE (2026-11-09 morning)
+
+- **Branch `feat/contacts-and-docs`** — still UNMERGED, UNPUSHED. Commits: docs
+  0.6.0, Pass 4 backend, Pass 4 UI, dual-method+subtypes, verification flow,
+  backlog update, and `notify` SES-sender reuse (mypy-clean, verified live).
+- **Local verified green:** backend 109, device-eval 140 (7 devices), E2E suites,
+  pre-commit.
+- **Email proven live locally** (see above). `notify.SesSender` reads `SES_SENDER`.
+- **Local dev-server launchers:** `app/backend/_devserver.sh` (console/dev email)
+  and `app/backend/_devserver_ses.sh` (REAL SES email + explicit writable
+  `DATABASE_URL=.../life_plan_dev.db`). The SES launcher sends real email on any
+  "Verify" — use the console one for normal clicking.
+- **Known gotcha fixed:** a confirm-500 was "readonly database" because a
+  launcher didn't pin DATABASE_URL; `_devserver_ses.sh` now pins a writable path.
+- **Dev DB:** `app/backend/life_plan_dev.db` (git-ignored). Contains a test
+  contact "Me (live test 2)" with pmflani@gmail.com verified — delete if unwanted.
+
+**Next actions (pick up tonight), in rough order:**
+1. Decide: switch local server back to console mode (avoid accidental real sends).
+2. Push `feat/contacts-and-docs` → PR → merge → deploy (Gallery docs + Contacts +
+   verification). Additive migrations tested against a pre-existing DB.
+   - When deploying, set App Runner env in BOTH regions so email verification is
+     live in prod: `NOTIFY_EMAIL_BACKEND=ses` AND `SES_SENDER=no-reply@life-planning.my-deployment.com`.
+     VERIFIED 2026-11-09: prod App Runner currently has NEITHER set (both regions),
+     so without this step email verification defaults to console/inert in prod.
+     The instance role already sends SES in prod (invitation flow), so no IAM change.
+3. Build the **Email Center (Pass 5)** now that SES is proven: templates,
+   recipient-policy validation, draft/preview/send, delivery events.
+4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
+
+### Texting path (SMS) — what it takes
+
+**Reality:** unlike email, there is NO same-day local shortcut. US app-to-person
+texting is gated by carrier registration that takes days–weeks.
+
+**Option A — AWS End User Messaging (fits the one-way send model):**
+1. Register an **A2P 10DLC Brand** (the sending org/person) in AWS End User
+   Messaging / Pinpoint SMS console. Requires EIN or sole-prop/individual details.
+2. Register a **Campaign** (use case = low-volume transactional/family notifications).
+   Carrier vetting; approval is days and not guaranteed.
+3. Rent an **origination number** (10DLC long code ~$1/mo + campaign ~$2–10/mo) OR
+   a **toll-free** number (separate verification path).
+4. Record **consent** per recipient (opt-in) + implement STOP/HELP (the backend
+   already models consent/opt-out columns on contact_methods).
+5. Set env: `NOTIFY_SMS_BACKEND=aws`, `NOTIFY_SMS_ORIGINATION=<number/arn>`. The
+   `notify.SmsSender` adapter then sends for real (currently raises 503 until set).
+
+**Option B — Twilio / Telnyx:** same 10DLC requirement, but better if inbound
+MMS (photo replies) is ever wanted. Not needed for one-way. Would need a new
+adapter class in `notify.py` (the abstraction already supports it).
+
+**Option C — Native share fallback (available immediately, no registration):**
+the app hands off to the phone's Messages app; labeled honestly ("opened
+composer", never "sent"). Good stopgap; not programmatic.
+
+**Content limits (all providers):** reliable MMS = small photos only; **videos
+and PDFs must go as app share links**, not raw attachments. Default SMS body must
+omit child name/age/diagnosis (carrier logs + lock-screen previews).
+
+**Recommended sequence:** start the 10DLC Brand+Campaign registration ASAP
+(it's the long pole), ship Email Center meanwhile, and offer native-share as the
+interim texting option until 10DLC is approved.

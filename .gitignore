@@ -53,3 +53,6 @@ later_inclusion/
 
 # Stray session/transcript dumps (e.g. a bare YYYY-MM-DD file)
 /20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]
+
+# Local dev-server launchers (not for the repo)
+app/backend/_devserver*.sh

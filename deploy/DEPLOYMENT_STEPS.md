@@ -123,6 +123,25 @@ done
 # -> record UPLOADS_BUCKET, DB_REPLICA_BUCKET in .arn-env
 ```
 
+> **UPDATED 2026-11-08 (Gallery Pass 3 — direct-to-S3 upload):** the **uploads
+> buckets now require a CORS policy** so the browser can PUT large videos
+> directly to S3 (bypassing the App Runner request-body size cap). Without it,
+> the direct upload fails with a browser CORS error even though the app + the
+> presigned PUT are correct. CORS does NOT make the bucket public (public-access
+> block stays fully on; the presigned signature remains the authorization). The
+> policy allows only the app origin, PUT/GET/HEAD, and the `Content-Type` header.
+> Policy file: `deploy/s3/uploads_cors.json`. Apply to **both** uploads buckets:
+>
+> ```bash
+> set -a; . ./.arn-env; set +a
+> WEST=$(grep -E '^UPLOADS_BUCKET_WEST=' .arn-env | cut -d= -f2- | tr -d '"'"'"'"'"'"'"')
+> aws s3api put-bucket-cors --bucket "$UPLOADS_BUCKET" --region us-east-1 --cors-configuration file://deploy/s3/uploads_cors.json
+> aws s3api put-bucket-cors --bucket "$WEST"           --region us-west-2 --cors-configuration file://deploy/s3/uploads_cors.json
+> ```
+>
+> Applied to production 2026-11-08 (east `life-planning-uploads-1640485eadc0037f642bf3a8`,
+> west `life-planning-uploads-f650b4e3c7bf029320669586-west`).
+
 ### 4. Instance role (least-privilege, app assumes this)
 Trust: `tasks.apprunner.amazonaws.com`. Inline policy (specific ARNs, **no
 wildcards**): `secretsmanager:GetSecretValue` on both secrets;

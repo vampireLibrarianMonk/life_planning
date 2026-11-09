@@ -467,18 +467,20 @@ in incremental, rollback-friendly passes. Local-first; each pass is tested
 
 ### OWNER PROVISIONING PREREQUISITES (block Email/SMS go-live — Kiro cannot do these)
 
-- **Email (SES):** confirm the account is out of the SES **sandbox** (production
-  access) and set a **verified sender identity** (`NOTIFY_EMAIL_FROM`) with
-  DKIM/SPF/DMARC. Until then email verification + the Email center are inert
-  (the SES adapter raises a 503 "not provisioned" rather than fake a send).
-- **SMS (AWS End User Messaging):** **A2P 10DLC** brand + campaign registration,
-  a rented **origination identity** (`NOTIFY_SMS_ORIGINATION`), and recorded
-  recipient **consent** (STOP/HELP). US carrier approval takes days and is not
-  guaranteed. One-way (send only) is the chosen model → AWS End User Messaging is
-  the fit (no inbound MMS needed). Docs/PDFs + videos go as app **share links**,
-  small photos as MMS; videos/docs are not reliable as raw MMS.
-- **Bedrock (optional, Pass 5b):** decide model/Region, enable, set token/cost
-  caps; invocation logging OFF by default (no child data in prompts/metadata).
+- **Email (SES):** ✅ **DONE / PROVEN LIVE (2026-11-09).** SES account has
+  **production access GRANTED** (not sandboxed; 50k/day quota), domain identity
+  `life-planning.my-deployment.com` verified, sender `SES_SENDER=no-reply@life-planning.my-deployment.com`.
+  A real verification email was sent to `pmflani@gmail.com` from the local server
+  in `NOTIFY_EMAIL_BACKEND=ses` mode and the code confirmed end-to-end
+  (verified_at set). Email verification + email sending are live-capable now.
+- **SMS (AWS End User Messaging):** ❌ NOT done — the remaining blocker. **A2P
+  10DLC** brand + campaign registration, a rented **origination identity**
+  (`NOTIFY_SMS_ORIGINATION`), recorded recipient **consent** (STOP/HELP). US
+  carrier approval takes days, not guaranteed. One-way send only → AWS End User
+  Messaging fits (no inbound MMS needed). Docs/PDFs + videos go as app share
+  links; small photos as MMS. See "Texting path" below.
+- **Bedrock (optional, Pass 5b):** decide model/Region, enable, token/cost caps;
+  invocation logging OFF by default.
 
 ### Contact-method verification — current behavior (important)
 
@@ -495,5 +497,67 @@ Switching to live is an **env change, not a rewrite**: set the backend env +
 
 Per owner: `pmflani@gmail.com` (email) and `540-209-0256` (phone) are the
 testing data points. Kept only in local/dev usage, NOT committed as real PII in
-source. `pmflani@gmail.com` is expected to be SES-send-capable once production
-access is confirmed.
+source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
+
+### RESUME-TONIGHT STATE (2026-11-09 morning)
+
+- **Branch `feat/contacts-and-docs`** — still UNMERGED, UNPUSHED. Commits: docs
+  0.6.0, Pass 4 backend, Pass 4 UI, dual-method+subtypes, verification flow,
+  backlog update, and `notify` SES-sender reuse (mypy-clean, verified live).
+- **Local verified green:** backend 109, device-eval 140 (7 devices), E2E suites,
+  pre-commit.
+- **Email proven live locally** (see above). `notify.SesSender` reads `SES_SENDER`.
+- **Local dev-server launchers:** `app/backend/_devserver.sh` (console/dev email)
+  and `app/backend/_devserver_ses.sh` (REAL SES email + explicit writable
+  `DATABASE_URL=.../life_plan_dev.db`). The SES launcher sends real email on any
+  "Verify" — use the console one for normal clicking.
+- **Known gotcha fixed:** a confirm-500 was "readonly database" because a
+  launcher didn't pin DATABASE_URL; `_devserver_ses.sh` now pins a writable path.
+- **Dev DB:** `app/backend/life_plan_dev.db` (git-ignored). Contains a test
+  contact "Me (live test 2)" with pmflani@gmail.com verified — delete if unwanted.
+
+**Next actions (pick up tonight), in rough order:**
+1. Decide: switch local server back to console mode (avoid accidental real sends).
+2. Push `feat/contacts-and-docs` → PR → merge → deploy (Gallery docs + Contacts +
+   verification). Additive migrations tested against a pre-existing DB.
+   - When deploying, set App Runner env in BOTH regions so email verification is
+     live in prod: `NOTIFY_EMAIL_BACKEND=ses` AND `SES_SENDER=no-reply@life-planning.my-deployment.com`.
+     VERIFIED 2026-11-09: prod App Runner currently has NEITHER set (both regions),
+     so without this step email verification defaults to console/inert in prod.
+     The instance role already sends SES in prod (invitation flow), so no IAM change.
+3. Build the **Email Center (Pass 5)** now that SES is proven: templates,
+   recipient-policy validation, draft/preview/send, delivery events.
+4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
+
+### Texting path (SMS) — what it takes
+
+**Reality:** unlike email, there is NO same-day local shortcut. US app-to-person
+texting is gated by carrier registration that takes days–weeks.
+
+**Option A — AWS End User Messaging (fits the one-way send model):**
+1. Register an **A2P 10DLC Brand** (the sending org/person) in AWS End User
+   Messaging / Pinpoint SMS console. Requires EIN or sole-prop/individual details.
+2. Register a **Campaign** (use case = low-volume transactional/family notifications).
+   Carrier vetting; approval is days and not guaranteed.
+3. Rent an **origination number** (10DLC long code ~$1/mo + campaign ~$2–10/mo) OR
+   a **toll-free** number (separate verification path).
+4. Record **consent** per recipient (opt-in) + implement STOP/HELP (the backend
+   already models consent/opt-out columns on contact_methods).
+5. Set env: `NOTIFY_SMS_BACKEND=aws`, `NOTIFY_SMS_ORIGINATION=<number/arn>`. The
+   `notify.SmsSender` adapter then sends for real (currently raises 503 until set).
+
+**Option B — Twilio / Telnyx:** same 10DLC requirement, but better if inbound
+MMS (photo replies) is ever wanted. Not needed for one-way. Would need a new
+adapter class in `notify.py` (the abstraction already supports it).
+
+**Option C — Native share fallback (available immediately, no registration):**
+the app hands off to the phone's Messages app; labeled honestly ("opened
+composer", never "sent"). Good stopgap; not programmatic.
+
+**Content limits (all providers):** reliable MMS = small photos only; **videos
+and PDFs must go as app share links**, not raw attachments. Default SMS body must
+omit child name/age/diagnosis (carrier logs + lock-screen previews).
+
+**Recommended sequence:** start the 10DLC Brand+Campaign registration ASAP
+(it's the long pole), ship Email Center meanwhile, and offer native-share as the
+interim texting option until 10DLC is approved.

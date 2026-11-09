@@ -203,6 +203,35 @@ media, it never deletes it.
 Media is private and profile-scoped: read-only (grandparent) accounts can view a
 child's Gallery but cannot upload, edit, or delete.
 
+### Contacts (recipient directory)
+
+Each child has a **Contacts** section — the people you may share updates with
+(pediatrician, therapists, teachers, family). It's the address book the Email
+and SMS features draw on.
+
+- **Add a contact** with a name, an email and/or a phone number, and a **role**
+  (Pediatrician, Speech/Occupational Therapist, Educator, Caregiver, Family,
+  Guardian, Emergency Contact, …). Roles that have sub-types show a dependent
+  second dropdown — e.g. **Family → Mother / Father / Grandparent / Aunt / Uncle /
+  Sibling / Cousin / Godparent / Step-parent**.
+- **A role label is not a permission.** Classifying someone as "Pediatrician"
+  or "Family" does not give them access to anything — it only helps you organize.
+  You choose exactly what to send, every time.
+- **Per child.** A contact is linked to a specific child; the same pediatrician
+  can be linked to two children with different purposes. Groups are a selection
+  aid, not a distribution authorization.
+- **Verification.** An email or phone can be verified: the app sends a one-time
+  code (email verification is live; SMS verification activates once texting is
+  provisioned). Unverified methods are clearly labeled.
+
+Read-only (grandparent) accounts can view contacts but cannot add, edit, verify,
+or remove them.
+
+> **Sharing media:** media is sent as **expiring, revocable share links**, not
+> as public files — so a photo or video opens for the recipient but the original
+> stays private and access can be withdrawn. (Email/SMS *sending* of these links
+> is in progress; see `next_steps/02_backlog.md` #5.)
+
 ### Bounty Board (Family Economy)
 
 The 💵 Bounty Board has four sections:

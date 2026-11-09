@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   fetchGallery,
-  uploadGalleryMedia,
+  smartUploadGalleryMedia,
   updateGalleryMedia,
   deleteGalleryMedia,
 } from '../services/api'
@@ -51,7 +51,7 @@ export default function Gallery({ profileId, profileName, onBack, canWrite }) {
     setBusy(true)
     setError('')
     try {
-      await uploadGalleryMedia(profileId, files)
+      await smartUploadGalleryMedia(profileId, files)
       await load()
     } catch (err) {
       setError(err.message || 'Upload failed')

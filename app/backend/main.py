@@ -80,6 +80,7 @@ async def security_headers(request, call_next):
             or _p.endswith("/avatar")
             or _p.endswith("/restore")
             or _p.endswith("/gallery/")
+            or "/uploads/direct/" in _p
         )
         _max_bytes = (50 * 1024 * 1024) if _is_upload else (1 * 1024 * 1024)
         _cl = request.headers.get("content-length")

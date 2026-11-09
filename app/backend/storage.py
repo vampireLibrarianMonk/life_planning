@@ -50,6 +50,21 @@ class Storage(ABC):
         """
         ...
 
+    @abstractmethod
+    def presigned_put_url(self, key: str, content_type: str) -> str:
+        """Return a URL the browser can PUT bytes to DIRECTLY (bypassing the app).
+
+        S3: a short-lived presigned PUT URL to the bucket (so large videos never
+        pass through the App Runner request body / its size cap).
+        Local: an app-served endpoint (/api/uploads/direct/{key}) that accepts a
+        raw PUT, so the same two-step upload flow works identically in dev/tests.
+        """
+        ...
+
+    def exists(self, key: str) -> bool:
+        """Whether an object is present (used to finalize direct uploads)."""
+        return self.read(key) is not None
+
 
 class LocalStorage(Storage):
     def __init__(self) -> None:
@@ -74,6 +89,11 @@ class LocalStorage(Storage):
     def open_local(self, key: str):
         p = UPLOAD_DIR / key
         return p if p.exists() and p.is_file() else None
+
+    def presigned_put_url(self, key: str, content_type: str) -> str:
+        # No real presigning for local disk: hand back the app's own direct-PUT
+        # endpoint so the browser/tests use the identical two-step flow.
+        return f"/api/uploads/direct/{key}"
 
 
 class S3Storage(Storage):
@@ -120,6 +140,20 @@ class S3Storage(Storage):
 
     def open_local(self, key: str):
         return None  # S3 objects are served via presigned URLs, not local files
+
+    def presigned_put_url(self, key: str, content_type: str) -> str:
+        return self._s3.generate_presigned_url(
+            "put_object",
+            Params={"Bucket": self._bucket, "Key": key, "ContentType": content_type},
+            ExpiresIn=config.PRESIGN_TTL_SECONDS,
+        )
+
+    def exists(self, key: str) -> bool:
+        try:
+            self._s3.head_object(Bucket=self._bucket, Key=key)
+            return True
+        except Exception:  # noqa: BLE001 - any 404/403/client error -> treat as absent
+            return False
 
 
 @lru_cache(maxsize=1)

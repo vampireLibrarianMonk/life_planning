@@ -20,7 +20,14 @@ from sqlalchemy.orm import Session
 from auth import require_admin_or_child, require_profile_access
 from database import get_db
 from models import MediaObjectiveLink, PillarEntry, ProfileMedia, User
-from schemas import MediaResponse, MediaUpdate, ObjectiveLinkCreate
+from schemas import (
+    MediaResponse,
+    MediaUpdate,
+    ObjectiveLinkCreate,
+    UploadFinalizeRequest,
+    UploadInitiateRequest,
+    UploadInitiateResponse,
+)
 from storage import get_storage
 
 ALLOWED_MIME_PREFIXES = (
@@ -84,6 +91,9 @@ def list_gallery(
     q = db.query(ProfileMedia).filter(
         ProfileMedia.profile_id == profile_id,
         ProfileMedia.deleted_at.is_(None),
+        # Only fully-uploaded media; pending/failed direct uploads stay hidden
+        # until their finalize confirms the object is really in storage.
+        ProfileMedia.status == "ready",
     )
     if age_band:
         q = q.filter(ProfileMedia.age_band == age_band)
@@ -150,6 +160,71 @@ async def upload_media(
 @router.get("/{media_id}", response_model=MediaResponse)
 def get_media(profile_id: int, media_id: int, db: Session = Depends(get_db)):
     return _serialize(_get_media_or_404(db, profile_id, media_id))
+
+
+# --- Direct-to-storage upload for large videos (initiate -> PUT -> finalize) --
+# The bytes go straight to S3 (or the local direct-PUT endpoint) and never pass
+# through the app request body, so large videos bypass the request-size cap.
+
+
+@router.post("/uploads/initiate", response_model=UploadInitiateResponse, status_code=201)
+def initiate_upload(
+    profile_id: int,
+    req: UploadInitiateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_child),
+):
+    if not any(req.content_type.startswith(p) for p in ALLOWED_MIME_PREFIXES):
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {req.content_type}")
+    storage_key = f"{uuid.uuid4().hex}_{req.filename}"
+    media = ProfileMedia(
+        profile_id=profile_id,
+        owner_id=current_user.id,
+        storage_key=storage_key,
+        original_name=req.filename,
+        mime_type=req.content_type,
+        media_type=_media_type_for(req.content_type),
+        size_bytes=req.size_bytes,  # declared; verified at finalize
+        status="pending",
+    )
+    db.add(media)
+    db.commit()
+    db.refresh(media)
+    upload_url = get_storage().presigned_put_url(storage_key, req.content_type)
+    return UploadInitiateResponse(media_id=media.id, upload_url=upload_url, storage_key=storage_key)
+
+
+@router.post("/uploads/{media_id}/finalize", response_model=MediaResponse)
+def finalize_upload(
+    profile_id: int,
+    media_id: int,
+    req: UploadFinalizeRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_child),
+):
+    media = (
+        db.query(ProfileMedia)
+        .filter(ProfileMedia.id == media_id, ProfileMedia.profile_id == profile_id)
+        .first()
+    )
+    if not media:
+        raise HTTPException(status_code=404, detail="Upload not found")
+    if media.status == "ready":
+        return _serialize(media)
+    # The object must actually be present before we mark it ready — a forged
+    # finalize before the PUT lands must NOT flip the row to ready.
+    if not get_storage().exists(media.storage_key):
+        media.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=409, detail="Upload not found in storage yet.")
+    media.status = "ready"
+    if req.observation is not None:
+        media.observation = req.observation
+    if req.age_band is not None:
+        media.age_band = req.age_band
+    db.commit()
+    db.refresh(media)
+    return _serialize(media)
 
 
 @router.patch("/{media_id}", response_model=MediaResponse)

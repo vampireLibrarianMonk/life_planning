@@ -28,6 +28,11 @@ EXEMPT_PATHS = {
     "/api/auth/setup",  # public: new user sets their own password via token
     "/api/auth/logout",  # any authenticated user may end their own session
     "/api/auth/change-password",  # any authenticated user may rotate their own password
+    # Local-mode direct-upload receiver: cannot use the standard profile_id-path
+    # guard (no profile_id in the path; it looks the key up to a pending media
+    # row). It blocks readonly INLINE — proven by
+    # test_direct_put_rejects_readonly below, so this exemption is not a blind spot.
+    "/api/uploads/direct/{key}",
 }
 
 
@@ -258,3 +263,65 @@ def test_require_profile_access_blocks_cross_child(backend):
     # admin + readonly pass for any profile
     assert auth.require_profile_access(profile_id=2, current_user=_U(models.Role.admin), db=None)
     assert auth.require_profile_access(profile_id=2, current_user=_U(models.Role.readonly), db=None)
+
+
+def test_direct_put_rejects_readonly(backend, monkeypatch, tmp_path):
+    """The /api/uploads/direct/{key} receiver is exempt from the guard-enumeration
+    test because it authorizes inline. Prove that inline check actually blocks a
+    readonly user (so the EXEMPT_PATHS entry is not a security blind spot)."""
+    import asyncio
+    import importlib
+
+    from fastapi import HTTPException
+
+    _main, auth, models = backend
+    database = importlib.import_module("database")
+    storage = importlib.import_module("storage")
+    events = importlib.import_module("routes.events")
+
+    monkeypatch.setattr(storage, "UPLOAD_DIR", tmp_path)
+    storage.get_storage.cache_clear()
+    monkeypatch.setattr(storage.LocalStorage, "__init__", lambda self: None)
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    database.Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine)()
+
+    prof = models.Profile(name="P", date_of_birth="2015-01-01")
+    db.add(prof)
+    db.flush()
+    media = models.ProfileMedia(
+        profile_id=prof.id,
+        storage_key="k_readonly.jpg",
+        original_name="x.jpg",
+        mime_type="image/jpeg",
+        media_type="photo",
+        status="pending",
+    )
+    db.add(media)
+    ro = models.User(
+        username="ro", hashed_password="x", display_name="RO", role=models.Role.readonly
+    )
+    db.add(ro)
+    db.commit()
+
+    # Forge a request carrying the readonly user's valid cookie.
+    token = auth.create_access_token({"sub": str(ro.id), "role": "readonly", "tv": 0})
+
+    class _Req:
+        cookies = {auth.AUTH_COOKIE_NAME: token}
+
+        async def body(self):
+            return b"data"
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(events.direct_put("k_readonly.jpg", _Req(), db=db))
+    assert exc.value.status_code == 404  # readonly -> not_found (no write)
+    # And nothing was written to storage.
+    assert storage.get_storage().read("k_readonly.jpg") is None

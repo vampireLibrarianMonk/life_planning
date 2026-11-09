@@ -73,13 +73,17 @@ class SesSender(Sender):
     channel = "email"
 
     def __init__(self) -> None:
-        self._from = os.getenv("NOTIFY_EMAIL_FROM", "").strip()
+        # Reuse the project's existing proven sender env (SES_SENDER —
+        # no-reply@life-planning.my-deployment.com, domain-verified + DKIM
+        # aligned), falling back to NOTIFY_EMAIL_FROM for flexibility.
+        self._from = (os.getenv("SES_SENDER") or os.getenv("NOTIFY_EMAIL_FROM") or "").strip()
 
     def send(self, to_address: str, subject: str, body: str) -> dict:
         if not self._from:
             raise SenderNotProvisionedError(
-                "SES email backend selected but NOTIFY_EMAIL_FROM (a verified SES "
-                "sender identity) is not set. Email verification is not yet live."
+                "SES email backend selected but neither SES_SENDER nor "
+                "NOTIFY_EMAIL_FROM (a verified SES sender identity) is set. "
+                "Email verification is not yet live."
             )
         import boto3  # lazy
 

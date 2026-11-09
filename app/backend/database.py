@@ -61,3 +61,15 @@ def ensure_columns():
                     "ADD COLUMN created_by VARCHAR(20) NOT NULL DEFAULT 'child'"
                 )
             )
+
+        # profile_contact_links.relationship_subtype: optional family/role sub-type
+        # (e.g. family -> "mother"). Additive; existing links default to NULL.
+        pcl_cols = {
+            row[1] for row in conn.execute(text("PRAGMA table_info(profile_contact_links)"))
+        }
+        if pcl_cols and "relationship_subtype" not in pcl_cols:
+            conn.execute(
+                text(
+                    "ALTER TABLE profile_contact_links ADD COLUMN relationship_subtype VARCHAR(40)"
+                )
+            )

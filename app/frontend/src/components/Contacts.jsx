@@ -3,41 +3,78 @@ import {
   fetchContacts,
   createContact,
   unlinkContact,
+  fetchRelationshipSubtypes,
   CONTACT_ROLE_OPTIONS,
 } from '../services/api'
 
+// Human labels for the relationship sub-type keys the backend returns.
+const SUBTYPE_LABELS = {
+  mother: 'Mother', father: 'Father', grandmother: 'Grandmother', grandfather: 'Grandfather',
+  aunt: 'Aunt', uncle: 'Uncle', sibling: 'Sibling', cousin: 'Cousin', godparent: 'Godparent',
+  stepmother: 'Stepmother', stepfather: 'Stepfather', stepsibling: 'Stepsibling',
+  legal_guardian: 'Legal guardian', foster_parent: 'Foster parent',
+  therapist: 'Therapist', psychologist: 'Psychologist', psychiatrist: 'Psychiatrist',
+  dentist: 'Dentist', optometrist: 'Optometrist', dietitian: 'Nutritionist / Dietitian',
+  specialist: 'Specialist', classroom_teacher: 'Classroom teacher',
+  special_education_teacher: 'Special-education teacher', aide: 'Aide', tutor: 'Tutor',
+  administrator: 'Principal / Administrator', counselor: 'Counselor', coach: 'Coach',
+  daycare_provider: 'Daycare provider', babysitter: 'Babysitter', nanny: 'Nanny',
+  after_school_program: 'After-school program', primary: 'Primary', secondary: 'Secondary',
+  other: 'Other',
+}
+
 /**
- * Contacts — the per-child recipient directory (v6 Pass 4). A shared sub-feature
- * of the (future) Email/SMS centers, surfaced here as a manageable section.
- *
- * A role label is a selection aid, NOT a permission: it never grants a contact
- * access to the child's data. Read-only users view but cannot add/remove.
+ * Contacts — the per-child recipient directory (v6 Pass 4). A role label is a
+ * selection aid, NOT a permission. A contact may carry both an email and a
+ * phone; roles that have relationship sub-types show a dependent 2nd dropdown.
+ * Read-only users view but cannot add/remove.
  */
 export default function Contacts({ profileId, profileName, onBack, canWrite }) {
   const [contacts, setContacts] = useState(null)
+  const [subtypeMap, setSubtypeMap] = useState({})
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ display_name: '', channel: 'email', address: '', role: 'family' })
+  const [form, setForm] = useState({
+    display_name: '', email: '', phone: '', role: 'family', subtype: '',
+  })
 
   const load = () => fetchContacts(profileId).then((d) => setContacts(Array.isArray(d) ? d : []))
   useEffect(() => {
     load()
+    fetchRelationshipSubtypes(profileId).then((m) => setSubtypeMap(m || {}))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId])
+
+  // Sub-types available for the currently selected role (empty => no 2nd dropdown).
+  const subtypeOptions = subtypeMap[form.role] || []
+
+  function setRole(role) {
+    // Changing the first dropdown resets the dependent second dropdown.
+    setForm((f) => ({ ...f, role, subtype: '' }))
+  }
 
   async function add(e) {
     e.preventDefault()
     setError('')
-    if (!form.display_name.trim() || !form.address.trim()) {
-      setError('Name and an email or phone are required.')
+    if (!form.display_name.trim()) {
+      setError('A name is required.')
       return
     }
+    if (!form.email.trim() && !form.phone.trim()) {
+      setError('Enter an email, a phone number, or both.')
+      return
+    }
+    const methods = []
+    if (form.email.trim()) methods.push({ channel: 'email', address: form.email.trim() })
+    if (form.phone.trim()) methods.push({ channel: 'sms', address: form.phone.trim() })
     try {
       await createContact(profileId, {
         display_name: form.display_name.trim(),
-        methods: [{ channel: form.channel, address: form.address.trim() }],
+        methods,
+        roles: form.role,
+        relationship_subtype: form.subtype || null,
       })
-      setForm({ display_name: '', channel: 'email', address: '', role: 'family' })
+      setForm({ display_name: '', email: '', phone: '', role: 'family', subtype: '' })
       setShowForm(false)
       await load()
     } catch (err) {
@@ -85,24 +122,44 @@ export default function Contacts({ profileId, profileName, onBack, canWrite }) {
             onChange={(e) => setForm({ ...form, display_name: e.target.value })}
             style={s.input}
           />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <select value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })} style={s.input}>
-              <option value="email">Email</option>
-              <option value="sms">Phone (SMS)</option>
-            </select>
-            <input
-              placeholder={form.channel === 'email' ? 'name@example.com' : '+1 555 555 0123'}
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              style={{ ...s.input, flex: 1, minWidth: 160 }}
-            />
-          </div>
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={s.input}>
+          <label style={s.fieldLabel}>Email</label>
+          <input
+            type="email"
+            placeholder="name@example.com"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            style={s.input}
+          />
+          <label style={s.fieldLabel}>Phone (SMS)</label>
+          <input
+            type="tel"
+            placeholder="+1 555 555 0123"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            style={s.input}
+          />
+          <label style={s.fieldLabel}>Role</label>
+          <select value={form.role} onChange={(e) => setRole(e.target.value)} style={s.input}>
             {CONTACT_ROLE_OPTIONS.map(([k, label]) => (
               <option key={k} value={k}>{label}</option>
             ))}
           </select>
-          <div style={{ display: 'flex', gap: 8 }}>
+          {subtypeOptions.length > 0 && (
+            <>
+              <label style={s.fieldLabel}>Relationship</label>
+              <select
+                value={form.subtype}
+                onChange={(e) => setForm({ ...form, subtype: e.target.value })}
+                style={s.input}
+              >
+                <option value="">— Select —</option>
+                {subtypeOptions.map((k) => (
+                  <option key={k} value={k}>{SUBTYPE_LABELS[k] || k}</option>
+                ))}
+              </select>
+            </>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="submit" style={s.smallBtn}>Save</button>
             <button type="button" onClick={() => { setShowForm(false); setError('') }} style={s.smallGray}>Cancel</button>
           </div>
@@ -147,7 +204,8 @@ const s = {
   header: { display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 10px' },
   note: { fontSize: 12, color: '#566370', background: '#f4f7fb', border: '1px solid #dce6f2', borderRadius: 8, padding: '8px 12px' },
   addBtn: { fontSize: 14, fontWeight: 600, padding: '8px 16px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', marginBottom: 12 },
-  form: { display: 'flex', flexDirection: 'column', gap: 8, background: '#f8f9ff', border: '1px solid #e2e8f5', borderRadius: 10, padding: 14, marginBottom: 14 },
+  form: { display: 'flex', flexDirection: 'column', gap: 6, background: '#f8f9ff', border: '1px solid #e2e8f5', borderRadius: 10, padding: 14, marginBottom: 14 },
+  fieldLabel: { fontSize: 11, fontWeight: 600, color: '#566370', marginTop: 4 },
   input: { padding: '8px 10px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 },
   smallBtn: { padding: '7px 16px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 },
   smallGray: { padding: '7px 16px', background: '#eee', color: '#333', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 },

@@ -536,6 +536,9 @@ class ProfileContactLink(Base):
         Integer, ForeignKey("contacts.id", ondelete="CASCADE"), nullable=False, index=True
     )
     roles = Column(String(300), nullable=False, default="other")  # CSV of CONTACT_ROLES
+    # Optional relationship sub-type (e.g. family -> "mother"). Only meaningful
+    # for roles that have sub-types (see RELATIONSHIP_SUBTYPES in schemas).
+    relationship_subtype = Column(String(40), nullable=True)
     purpose = Column(String(300), nullable=True)
     # Minimum-necessary by default; clinical/private categories require explicit
     # opt-in per message, never auto-granted by a role label.

@@ -634,6 +634,12 @@ export async function fetchContacts(profileId) {
   return res.json()
 }
 
+export async function fetchRelationshipSubtypes(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/contacts/relationship-subtypes`, { headers: headers() })
+  if (!res.ok) return {}
+  return res.json()
+}
+
 export async function createContact(profileId, contact) {
   const res = await fetch(`/api/profiles/${profileId}/contacts/`, {
     method: 'POST', headers: headers(), body: JSON.stringify(contact),

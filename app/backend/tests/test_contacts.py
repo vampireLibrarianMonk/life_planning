@@ -135,6 +135,87 @@ def test_unknown_role_rejected(ctx):
         ProfileContactLinkCreate(contact_id=1, roles="pediatrician,hacker")
 
 
+def test_contact_with_both_email_and_phone(ctx):
+    contacts, models, storage, db, a, b, admin = ctx
+    from schemas import ContactCreate, ContactMethodCreate
+
+    c = contacts.create_contact(
+        a,
+        ContactCreate(
+            display_name="Two Methods",
+            methods=[
+                ContactMethodCreate(channel="email", address="x@example.com"),
+                ContactMethodCreate(channel="sms", address="+15555550123"),
+            ],
+            roles="family",
+            relationship_subtype="mother",
+        ),
+        db=db,
+        current_user=admin,
+    )
+    channels = sorted(m.channel for m in c.methods)
+    assert channels == ["email", "sms"]
+    link = db.query(models.ProfileContactLink).filter_by(profile_id=a, contact_id=c.id).first()
+    assert link.relationship_subtype == "mother"
+
+
+def test_relationship_subtype_valid_for_role_persists(ctx):
+    contacts, models, storage, db, a, b, admin = ctx
+    from schemas import ContactCreate
+
+    c = contacts.create_contact(
+        a,
+        ContactCreate(display_name="Gran", roles="family", relationship_subtype="grandmother"),
+        db=db,
+        current_user=admin,
+    )
+    link = db.query(models.ProfileContactLink).filter_by(contact_id=c.id).first()
+    assert link.relationship_subtype == "grandmother"
+
+
+def test_subtype_invalid_for_role_rejected(ctx):
+    contacts, models, storage, db, a, b, admin = ctx
+    from fastapi import HTTPException
+
+    from schemas import ContactCreate
+
+    # pediatrician has NO sub-types -> providing one is a 422.
+    with pytest.raises(HTTPException) as e:
+        contacts.create_contact(
+            a,
+            ContactCreate(display_name="Dr", roles="pediatrician", relationship_subtype="mother"),
+            db=db,
+            current_user=admin,
+        )
+    assert e.value.status_code == 422
+
+
+def test_subtype_wrong_value_for_role_rejected(ctx):
+    contacts, models, storage, db, a, b, admin = ctx
+    from fastapi import HTTPException
+
+    from schemas import ContactCreate
+
+    # 'ceo' is not a valid family sub-type.
+    with pytest.raises(HTTPException) as e:
+        contacts.create_contact(
+            a,
+            ContactCreate(display_name="X", roles="family", relationship_subtype="ceo"),
+            db=db,
+            current_user=admin,
+        )
+    assert e.value.status_code == 422
+
+
+def test_relationship_subtypes_map_shape(ctx):
+    contacts, models, storage, db, a, b, admin = ctx
+    m = contacts.relationship_subtypes(a)
+    # Roles with sub-types present; roles without are absent (no 2nd dropdown).
+    assert "mother" in m["family"] and "godparent" in m["family"] and "stepmother" in m["family"]
+    assert "pediatrician" not in m
+    assert "speech_therapist" not in m
+
+
 def test_group_member_must_be_linked_to_profile(ctx):
     contacts, models, storage, db, a, b, admin = ctx
     from schemas import ContactGroupCreate

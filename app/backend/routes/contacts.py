@@ -82,6 +82,15 @@ def _linked_contact_or_404(db: Session, profile_id: int, contact_id: int) -> Con
     return contact
 
 
+@router.get("/relationship-subtypes")
+def relationship_subtypes(profile_id: int):
+    """The role -> relationship sub-type map (single source of truth for the
+    dependent second dropdown). Roles not present here have no sub-type."""
+    from schemas import RELATIONSHIP_SUBTYPES
+
+    return RELATIONSHIP_SUBTYPES
+
+
 @router.get("/", response_model=list[ContactResponse])
 def list_contacts(profile_id: int, db: Session = Depends(get_db)):
     """Contacts linked to THIS child (the composer's address book for them)."""
@@ -105,6 +114,10 @@ def create_contact(
     current_user: User = Depends(require_admin_or_child),
 ):
     """Create a contact AND link it to this profile in one step."""
+    try:
+        req.validate_subtype_for_role()  # role/sub-type consistency
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     contact = Contact(
         owner_id=current_user.id,
         display_name=req.display_name,
@@ -117,7 +130,11 @@ def create_contact(
         db.add(ContactMethod(contact_id=contact.id, channel=m.channel, address=m.address))
     db.add(
         ProfileContactLink(
-            profile_id=profile_id, contact_id=contact.id, approved_by=current_user.id
+            profile_id=profile_id,
+            contact_id=contact.id,
+            roles=req.roles,
+            relationship_subtype=req.relationship_subtype,
+            approved_by=current_user.id,
         )
     )
     db.commit()
@@ -153,6 +170,10 @@ def link_existing_contact(
     contact = db.query(Contact).filter(Contact.id == req.contact_id).first()
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
+    try:
+        req.validate_subtype_for_role()
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     existing = (
         db.query(ProfileContactLink)
         .filter(
@@ -163,6 +184,7 @@ def link_existing_contact(
     )
     if existing:
         existing.roles = req.roles
+        existing.relationship_subtype = req.relationship_subtype
         existing.purpose = req.purpose
         existing.default_disclosure = req.default_disclosure
         existing.active = 1
@@ -172,6 +194,7 @@ def link_existing_contact(
             profile_id=profile_id,
             contact_id=req.contact_id,
             roles=req.roles,
+            relationship_subtype=req.relationship_subtype,
             purpose=req.purpose,
             default_disclosure=req.default_disclosure,
             approved_by=current_user.id,

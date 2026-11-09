@@ -461,6 +461,86 @@ def _validate_roles(v: str | None) -> str:
     return ",".join(keys) or "other"
 
 
+# Relationship sub-types, keyed by first-category role. Only roles present here
+# get a (dependent) second dropdown in the UI; the rest have no sub-type.
+RELATIONSHIP_SUBTYPES: dict[str, tuple[str, ...]] = {
+    "family": (
+        "mother",
+        "father",
+        "grandmother",
+        "grandfather",
+        "aunt",
+        "uncle",
+        "sibling",
+        "cousin",
+        "godparent",
+        "stepmother",
+        "stepfather",
+        "stepsibling",
+        "other",
+    ),
+    "guardian": (
+        "mother",
+        "father",
+        "stepmother",
+        "stepfather",
+        "legal_guardian",
+        "foster_parent",
+        "godparent",
+        "other",
+    ),
+    "other_clinician": (
+        "therapist",
+        "psychologist",
+        "psychiatrist",
+        "dentist",
+        "optometrist",
+        "dietitian",
+        "specialist",
+        "other",
+    ),
+    "educator": (
+        "classroom_teacher",
+        "special_education_teacher",
+        "aide",
+        "tutor",
+        "administrator",
+        "counselor",
+        "coach",
+        "other",
+    ),
+    "childcare": (
+        "daycare_provider",
+        "babysitter",
+        "nanny",
+        "after_school_program",
+        "other",
+    ),
+    "emergency_contact": ("primary", "secondary", "other"),
+}
+
+
+def _first_role(roles: str) -> str:
+    return (roles or "other").split(",")[0].strip() or "other"
+
+
+def _check_subtype(roles: str, subtype: str | None) -> None:
+    """Validate a relationship sub-type against the primary role.
+
+    - A role with NO sub-types must not carry one.
+    - A role WITH sub-types may be left blank, but any provided value must be in
+      that role's allowed set.
+    """
+    if subtype is None or subtype == "":
+        return
+    role = _first_role(roles)
+    allowed = RELATIONSHIP_SUBTYPES.get(role)
+    if allowed is None:
+        raise ValueError(f"Role '{role}' does not take a relationship sub-type")
+    if subtype not in allowed:
+        raise ValueError(f"'{subtype}' is not a valid sub-type for role '{role}'")
+
+
 class ContactMethodCreate(BaseModel):
     channel: str  # email|sms
     address: str
@@ -490,6 +570,21 @@ class ContactCreate(BaseModel):
     kind: str = "individual"
     notes: str | None = None
     methods: list[ContactMethodCreate] = []
+    # Role label + optional relationship sub-type, applied to this child's link.
+    roles: str = "other"
+    relationship_subtype: str | None = None
+
+    _v_roles = field_validator("roles")(_validate_roles)
+
+    @field_validator("relationship_subtype")
+    @classmethod
+    def _norm_subtype(cls, v: str | None) -> str | None:
+        return v or None
+
+    def validate_subtype_for_role(self) -> None:
+        """Ensure the sub-type (if any) is valid for the primary role. Called by
+        the route after validation so the role/subtype pair is consistent."""
+        _check_subtype(self.roles, self.relationship_subtype)
 
 
 class ContactUpdate(BaseModel):
@@ -511,6 +606,7 @@ class ContactResponse(BaseModel):
 class ProfileContactLinkCreate(BaseModel):
     contact_id: int
     roles: str = "other"
+    relationship_subtype: str | None = None
     purpose: str | None = None
     default_disclosure: str = "minimal"
 
@@ -523,12 +619,16 @@ class ProfileContactLinkCreate(BaseModel):
             raise ValueError("default_disclosure must be 'minimal' or 'standard'")
         return v
 
+    def validate_subtype_for_role(self) -> None:
+        _check_subtype(self.roles, self.relationship_subtype)
+
 
 class ProfileContactLinkResponse(BaseModel):
     id: int
     profile_id: int
     contact_id: int
     roles: str
+    relationship_subtype: str | None = None
     purpose: str | None = None
     default_disclosure: str
     active: int

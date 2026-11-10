@@ -689,3 +689,75 @@ class VerifyConfirmResponse(BaseModel):
     method_id: int
     verified: bool
     verified_at: datetime | None = None
+
+
+# --- Email Center (v6 Pass 5) --------------------------------------------------
+
+
+class DraftCreate(BaseModel):
+    audience: str | None = None  # derived from recipients when omitted
+    recipient_method_ids: list[int] = []
+    subject: str | None = None  # template default when omitted
+    body: str | None = None  # template-rendered from facts when omitted
+    template_key: str | None = None
+    fact_ids: list[int] = []  # PillarEntry ids selected as highlights
+    media_ids: list[int] = []  # ProfileMedia ids selected
+    note: str | None = None  # parent's free-text paragraph
+    include_clinical: bool = False
+
+
+class DraftUpdate(BaseModel):
+    recipient_method_ids: list[int] | None = None
+    subject: str | None = None
+    body: str | None = None
+    template_key: str | None = None
+    media_ids: list[int] | None = None
+    include_clinical: bool | None = None
+
+
+class DraftResponse(BaseModel):
+    id: int
+    profile_id: int
+    channel: str
+    audience: str
+    subject: str
+    body: str
+    template_key: str | None = None
+    include_clinical: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    recipient_method_ids: list[int] = []
+    selected_media_ids: list[int] = []
+
+    model_config = {"from_attributes": True}
+
+
+class PreviewResponse(BaseModel):
+    draft_id: int
+    audience: str
+    recipients: list[dict]
+    subject: str
+    text_body: str
+    html_body: str
+    attachments: list[dict]
+    share_links: list[dict]
+    total_encoded_bytes: int
+    mime_cap_bytes: int
+
+
+class SendRequest(BaseModel):
+    confirm: bool = False
+
+
+class SendResponse(BaseModel):
+    draft_id: int
+    messages: list[dict]
+
+
+class AIDraftRequest(BaseModel):
+    recipient_method_ids: list[int] = []
+    fact_ids: list[int] = []
+    media_ids: list[int] = []
+    note: str | None = None
+    include_clinical: bool = False

@@ -24,7 +24,7 @@ from urllib import request as _urlreq
 from urllib.parse import urlparse
 
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
 # SNS hosts allowed to serve signing certs / subscription confirmation URLs.
@@ -34,10 +34,22 @@ _SNS_HOST_RE = re.compile(r"^sns(\.[a-z0-9-]+)*\.amazonaws\.com$")
 _STRING_TO_SIGN_FIELDS = {
     "Notification": ["Message", "MessageId", "Timestamp", "TopicArn", "Type"],
     "SubscriptionConfirmation": [
-        "Message", "MessageId", "SubscribeURL", "Timestamp", "Token", "TopicArn", "Type",
+        "Message",
+        "MessageId",
+        "SubscribeURL",
+        "Timestamp",
+        "Token",
+        "TopicArn",
+        "Type",
     ],
     "UnsubscribeConfirmation": [
-        "Message", "MessageId", "SubscribeURL", "Timestamp", "Token", "TopicArn", "Type",
+        "Message",
+        "MessageId",
+        "SubscribeURL",
+        "Timestamp",
+        "Token",
+        "TopicArn",
+        "Type",
     ],
 }
 

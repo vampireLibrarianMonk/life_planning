@@ -68,7 +68,7 @@ _CLINICAL_TERM_RE = re.compile(
 )
 
 
-class DisclosureViolation(ValueError):
+class DisclosureViolation(ValueError):  # noqa: N818 - domain term, not a bare Error suffix
     """A draft violates the recipient-class disclosure policy."""
 
 
@@ -108,9 +108,7 @@ def validate_disclosure(
     for note in private_notes or []:
         snippet = (note or "").strip()
         if snippet and snippet in (body or ""):
-            raise DisclosureViolation(
-                "Private worries notes must never be included in an email."
-            )
+            raise DisclosureViolation("Private worries notes must never be included in an email.")
 
 
 def assert_single_audience(audience_classes: list[str]) -> str:
@@ -258,24 +256,22 @@ def render_html_body(
             return ""
         lis = "".join(f"<li>{_inline_links(e(item))}</li>" for item in items)
         return (
-            f"<h3 style=\"margin:16px 0 6px;font-size:15px;\">{e(title)}</h3>"
-            f"<ul style=\"margin:0;padding-left:20px;\">{lis}</ul>"
+            f'<h3 style="margin:16px 0 6px;font-size:15px;">{e(title)}</h3>'
+            f'<ul style="margin:0;padding-left:20px;">{lis}</ul>'
         )
 
     parts = [
-        "<p style=\"margin:0 0 4px;\">Hello,</p>",
-        f"<p style=\"margin:8px 0;\">{heading}</p>",
+        '<p style="margin:0 0 4px;">Hello,</p>',
+        f'<p style="margin:8px 0;">{heading}</p>',
         section("Highlights", highlights),
         section("Clinical notes", clinical if audience == "clinician" else []),
         section("Dates to know", schedule),
         section("Photos and videos", media_lines),
-        f"<p style=\"margin:16px 0 0;\">- {e(sender_name or 'Family')}</p>",
+        f'<p style="margin:16px 0 0;">- {e(sender_name or "Family")}</p>',
     ]
     return (
-        "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;"
-        "line-height:1.6;color:#1a1a1a;max-width:640px;\">"
-        + "".join(parts)
-        + "</div>"
+        '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;'
+        'line-height:1.6;color:#1a1a1a;max-width:640px;">' + "".join(parts) + "</div>"
     )
 
 
@@ -317,6 +313,11 @@ def content_snapshot(
 
 def recipient_snapshot(contact_id: int | None, display_name: str, address: str, roles: str) -> str:
     return json.dumps(
-        {"contact_id": contact_id, "display_name": display_name, "address": address, "roles": roles},
+        {
+            "contact_id": contact_id,
+            "display_name": display_name,
+            "address": address,
+            "roles": roles,
+        },
         ensure_ascii=False,
     )

@@ -18,7 +18,7 @@ import sys
 from datetime import datetime
 
 import database
-from models import Contact, ContactMethod, PillarEntry, Profile, ProfileMedia, ProfileContactLink
+from models import Contact, ContactMethod, PillarEntry, Profile, ProfileContactLink, ProfileMedia
 
 # A tiny valid 1x1 blue PNG (67 bytes).
 PNG_1PX = base64.b64decode(
@@ -49,9 +49,16 @@ def main() -> None:
             )
             if not row:
                 row = PillarEntry(
-                    profile_id=pid, pillar="education", entry_type="milestone",
-                    title=title, category=category, status=status, content=content,
-                    age_band=age_band, age_years=age_years, is_milestone=1,
+                    profile_id=pid,
+                    pillar="education",
+                    entry_type="milestone",
+                    title=title,
+                    category=category,
+                    status=status,
+                    content=content,
+                    age_band=age_band,
+                    age_years=age_years,
+                    is_milestone=1,
                 )
                 db.add(row)
                 db.commit()
@@ -82,16 +89,23 @@ def main() -> None:
 
             from storage import get_storage
 
-            row = db.query(ProfileMedia).filter(
-                ProfileMedia.profile_id == pid, ProfileMedia.original_name == name
-            ).first()
+            row = (
+                db.query(ProfileMedia)
+                .filter(ProfileMedia.profile_id == pid, ProfileMedia.original_name == name)
+                .first()
+            )
             if not row:
                 key = f"demo_{uuid.uuid4().hex[:8]}_{name}"
                 get_storage().save(key, blob, mime)
                 row = ProfileMedia(
-                    profile_id=pid, storage_key=key, original_name=name,
-                    mime_type=mime, media_type=kind, size_bytes=len(blob),
-                    observation=observation, status="ready",
+                    profile_id=pid,
+                    storage_key=key,
+                    original_name=name,
+                    mime_type=mime,
+                    media_type=kind,
+                    size_bytes=len(blob),
+                    observation=observation,
+                    status="ready",
                 )
                 db.add(row)
                 db.commit()
@@ -99,11 +113,17 @@ def main() -> None:
             return row
 
         photo = ensure_media(
-            "block-tower-accomplishment.jpg", "image/jpeg", "photo", PNG_1PX,
+            "block-tower-accomplishment.jpg",
+            "image/jpeg",
+            "photo",
+            PNG_1PX,
             "Robert's first three-block tower!",
         )
         video = ensure_media(
-            "first-steps-video.mp4", "video/mp4", "video", MP4_STUB,
+            "first-steps-video.mp4",
+            "video/mp4",
+            "video",
+            MP4_STUB,
             "First unassisted steps across the living room.",
         )
         print(f"media seeded: photo id={photo.id}, video id={video.id}")
@@ -115,13 +135,18 @@ def main() -> None:
                 db.add(contact)
                 db.flush()
                 method = ContactMethod(
-                    contact_id=contact.id, channel="email", address=addr,
-                    verified_at=datetime.utcnow(), verification_method="code_email",
+                    contact_id=contact.id,
+                    channel="email",
+                    address=addr,
+                    verified_at=datetime.utcnow(),
+                    verification_method="code_email",
                 )
                 db.add(method)
                 db.add(
                     ProfileContactLink(
-                        profile_id=pid, contact_id=contact.id, roles=roles,
+                        profile_id=pid,
+                        contact_id=contact.id,
+                        roles=roles,
                         approved_by=1,
                     )
                 )
@@ -134,8 +159,11 @@ def main() -> None:
         gm = db.query(ContactMethod).filter(ContactMethod.contact_id == grandma.id).first()
         dm = db.query(ContactMethod).filter(ContactMethod.contact_id == doctor.id).first()
         print(f"contacts seeded: grandma method={gm.id}, doctor method={dm.id}")
-        print("DEMO IDS: profile=%s photo=%s video=%s objective=%s gm_method=%s dr_method=%s"
-              % (pid, photo.id, video.id, obj.id, gm.id, dm.id))
+        print(
+            "DEMO IDS: "
+            f"profile={pid} photo={photo.id} video={video.id} objective={obj.id} "
+            f"gm_method={gm.id} dr_method={dm.id}"
+        )
     finally:
         db.close()
 

@@ -7,7 +7,7 @@ provisioned. Nothing fabricates delivery status."""
 import hashlib
 import json
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -22,7 +22,6 @@ from email_center import (
     media_bullet,
     plan_attachments,
     recipient_snapshot,
-    render_html_body,
     render_text_body,
     template_subject,
     total_encoded_bytes,
@@ -50,7 +49,6 @@ from schemas import (
     SendRequest,
     SendResponse,
 )
-from storage import get_storage
 
 router = APIRouter(
     prefix="/api/profiles/{profile_id}/email",
@@ -209,22 +207,22 @@ def _validate_draft_state(db: Session, profile_id: int, d: MessageDraft, recipie
 def _render_final(d: MessageDraft, plan: list[dict], share_links: dict[int, str], sender_name: str):
     """The EXACT final content: draft body + the media section from the plan."""
     media_lines = [media_bullet(p, share_links.get(p["media_id"])) for p in plan]
-    text = render_text_body(
-        d.audience, _first_name(d), [], [], [], [], sender_name
-    )
+    text = render_text_body(d.audience, _first_name(d), [], [], [], [], sender_name)
     # The stored body already carries facts + note; append media lines only.
-    text = (d.body or "").rstrip() + "\n\nPhotos and videos:\n" + "\n".join(
-        f"  - {ml}" for ml in media_lines
-    ) if media_lines else (d.body or "")
+    text = (
+        (d.body or "").rstrip()
+        + "\n\nPhotos and videos:\n"
+        + "\n".join(f"  - {ml}" for ml in media_lines)
+        if media_lines
+        else (d.body or "")
+    )
     html_body = _body_to_html(d.body or "")
     if media_lines:
-        lis = "".join(
-            f"<li>{media_bullet(p, share_links.get(p['media_id']))}</li>" for p in plan
-        )
+        lis = "".join(f"<li>{media_bullet(p, share_links.get(p['media_id']))}</li>" for p in plan)
         html_body = html_body.replace(
             "</div>",
-            f"<h3 style=\"margin:16px 0 6px;font-size:15px;\">Photos and videos</h3>"
-            f"<ul style=\"margin:0;padding-left:20px;\">{lis}</ul></div>",
+            f'<h3 style="margin:16px 0 6px;font-size:15px;">Photos and videos</h3>'
+            f'<ul style="margin:0;padding-left:20px;">{lis}</ul></div>',
         )
     return text, html_body
 
@@ -243,10 +241,10 @@ def _body_to_html(body: str) -> str:
     for p in paras:
         lines = [_html.escape(ln) for ln in p.split("\n")]
         rendered.append("<br>".join(_inline_links(ln) for ln in lines))
-    inner = "".join(f"<p style=\"margin:0 0 10px;\">{r}</p>" for r in rendered)
+    inner = "".join(f'<p style="margin:0 0 10px;">{r}</p>' for r in rendered)
     return (
-        "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;"
-        "line-height:1.6;color:#1a1a1a;max-width:640px;\">" + inner + "</div>"
+        '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;'
+        'line-height:1.6;color:#1a1a1a;max-width:640px;">' + inner + "</div>"
     )
 
 
@@ -386,8 +384,12 @@ def create_draft(
             detail="One or more selected media items were not found on this profile.",
         )
     subject = req.subject or template_subject(audience, _profile_first_name(db, profile_id))
-    body = req.body if req.body is not None else _template_body(
-        db, profile_id, audience, req.fact_ids, req.note, bool(req.include_clinical)
+    body = (
+        req.body
+        if req.body is not None
+        else _template_body(
+            db, profile_id, audience, req.fact_ids, req.note, bool(req.include_clinical)
+        )
     )
     d = MessageDraft(
         profile_id=profile_id,
@@ -403,7 +405,10 @@ def create_draft(
     )
     try:
         validate_disclosure(
-            audience, bool(req.include_clinical), body, subject=subject,
+            audience,
+            bool(req.include_clinical),
+            body,
+            subject=subject,
             private_notes=_private_notes(db, profile_id),
         )
     except DisclosureViolation as e:
@@ -420,8 +425,12 @@ def _profile_first_name(db: Session, profile_id: int) -> str:
 
 
 def _template_body(
-    db: Session, profile_id: int, audience: str, fact_ids: list[int],
-    note: str | None, include_clinical: bool,
+    db: Session,
+    profile_id: int,
+    audience: str,
+    fact_ids: list[int],
+    note: str | None,
+    include_clinical: bool,
 ) -> str:
     """Deterministic template: selected facts -> bullets (+ parent note)."""
     facts = []
@@ -449,7 +458,7 @@ def _template_body(
             if e.content:
                 line += f" - {e.content[:200]}"
             facts.append(line)
-    sections = [f"Hello,", "", f"An update on our child:", ""]
+    sections = ["Hello,", "", "An update on our child:", ""]
     if facts:
         sections.append("Highlights:")
         sections += [f"  - {f}" for f in facts]
@@ -513,7 +522,10 @@ def update_draft(
         d.include_clinical = 1 if data["include_clinical"] else 0
     try:
         validate_disclosure(
-            d.audience, bool(d.include_clinical), d.body or "", subject=d.subject or "",
+            d.audience,
+            bool(d.include_clinical),
+            d.body or "",
+            subject=d.subject or "",
             private_notes=_private_notes(db, profile_id),
         )
     except DisclosureViolation as e:
@@ -814,9 +826,7 @@ def _provenance_check(
     for name in recipient_names:
         clean = (name or "").strip()
         if clean and clean.lower() in combined.lower():
-            raise DisclosureViolation(
-                "AI draft mentions a contact name that was never provided."
-            )
+            raise DisclosureViolation("AI draft mentions a contact name that was never provided.")
 
 
 @router.post("/drafts/ai-draft", response_model=DraftResponse, status_code=201)
@@ -873,7 +883,9 @@ def ai_draft(
             is_clinical = bool(e.category and e.category.startswith("clinical"))
             if is_clinical and not (req.include_clinical and audience == "clinician"):
                 continue
-            facts.append(f"- {e.title} [{(e.status or '').replace('_', ' ')}]: {(e.content or '')[:200]}")
+            facts.append(
+                f"- {e.title} [{(e.status or '').replace('_', ' ')}]: {(e.content or '')[:200]}"
+            )
     media = _load_media(db, profile_id, req.media_ids)
     media_lines = [f"- {m.original_name} ({m.media_type})" for m in media]
     child_first = _profile_first_name(db, profile_id)
@@ -895,10 +907,12 @@ def ai_draft(
     prompt = (
         f"Child's first name: {child_first}\n"
         f"Audience: {audience}. {audience_note}\n"
-        f"Selected facts:\n" + ("\n".join(facts) if facts else "- (none selected)") + "\n"
+        f"Selected facts:\n"
+        + ("\n".join(facts) if facts else "- (none selected)")
+        + "\n"
         + ("Media to mention:\n" + "\n".join(media_lines) + "\n" if media_lines else "")
         + (f"Parent's note to weave in: {req.note}\n" if req.note else "")
-        + "Write the update email now as JSON: {\"subject\": \"...\", \"body\": \"...\"}"
+        + 'Write the update email now as JSON: {"subject": "...", "body": "..."}'
     )
     raw = _bedrock_converse(prompt, system)
     # Lenient JSON extraction (models may wrap in fences).
@@ -937,7 +951,10 @@ def ai_draft(
         ) from e
     try:
         validate_disclosure(
-            audience, bool(req.include_clinical), body, subject=subject,
+            audience,
+            bool(req.include_clinical),
+            body,
+            subject=subject,
             private_notes=_private_notes(db, profile_id),
         )
     except DisclosureViolation as e:

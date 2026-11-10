@@ -30,9 +30,18 @@ def ctx(monkeypatch, tmp_path):
     monkeypatch.setenv("SECRET_KEY", "z" * 40)
     monkeypatch.setenv("NOTIFY_EMAIL_BACKEND", "console")
     for mod in (
-        "config", "database", "models", "auth", "storage", "main",
-        "email_center", "notify", "sns_verify",
-        "routes.contacts", "routes.gallery", "routes.email_center",
+        "config",
+        "database",
+        "models",
+        "auth",
+        "storage",
+        "main",
+        "email_center",
+        "notify",
+        "sns_verify",
+        "routes.contacts",
+        "routes.gallery",
+        "routes.email_center",
         "routes.email_events",
     ):
         sys.modules.pop(mod, None)
@@ -70,8 +79,15 @@ def ctx(monkeypatch, tmp_path):
     db.add(admin)
     db.commit()
     return {
-        "ec": ec, "ev": ev, "contacts": contacts, "models": models, "storage": storage,
-        "notify": notify, "db": db, "a": a.id, "admin": admin,
+        "ec": ec,
+        "ev": ev,
+        "contacts": contacts,
+        "models": models,
+        "storage": storage,
+        "notify": notify,
+        "db": db,
+        "a": a.id,
+        "admin": admin,
     }
 
 
@@ -108,9 +124,12 @@ def _draft_and_send(ctx, method_id, body="Hello there."):
         current_user=ctx["admin"],
     )
     return ctx["ec"].send_draft(
-        ctx["a"], d.id, SendRequest(confirm=True),
+        ctx["a"],
+        d.id,
+        SendRequest(confirm=True),
         request=type("R", (), {"base_url": "http://localhost/"})(),
-        db=ctx["db"], current_user=ctx["admin"],
+        db=ctx["db"],
+        current_user=ctx["admin"],
     )
 
 
@@ -156,7 +175,11 @@ def _signed_sns_payload(key, msg_type, message, subscribe_url=None):
         payload["Token"] = "tok"
     fields = sns_verify._STRING_TO_SIGN_FIELDS[msg_type]
     sts = "".join(f"{f}\n{payload[f]}\n" for f in fields)
-    sig = key.sign(sts.encode(), __import__("cryptography").hazmat.primitives.asymmetric.padding.PKCS1v15(), __import__("cryptography").hazmat.primitives.hashes.SHA1())
+    sig = key.sign(
+        sts.encode(),
+        __import__("cryptography").hazmat.primitives.asymmetric.padding.PKCS1v15(),
+        __import__("cryptography").hazmat.primitives.hashes.SHA1(),
+    )
     payload["Signature"] = base64.b64encode(sig).decode()
     return payload
 
@@ -186,7 +209,9 @@ def test_sns01_valid_signature_accepted_tampered_rejected(ctx, monkeypatch):
     key, cert = _make_key_and_cert()
     pem = cert.public_bytes(__import__("cryptography").hazmat.primitives.serialization.Encoding.PEM)
     payload = _signed_sns_payload(
-        key, "Notification", json.dumps({"notificationType": "delivery", "mail": {"messageId": "x"}})
+        key,
+        "Notification",
+        json.dumps({"notificationType": "delivery", "mail": {"messageId": "x"}}),
     )
     out = _ingest(ctx, payload, monkeypatch, pem)
     assert out["ok"] is True
@@ -211,7 +236,10 @@ def test_sns03_subscription_confirmation_visits_subscribe_url(ctx, monkeypatch):
     key, cert = _make_key_and_cert()
     pem = cert.public_bytes(__import__("cryptography").hazmat.primitives.serialization.Encoding.PEM)
     payload = _signed_sns_payload(
-        key, "SubscriptionConfirmation", "confirm", subscribe_url="https://sns.test.amazonaws.com/confirm?token=tok"
+        key,
+        "SubscriptionConfirmation",
+        "confirm",
+        subscribe_url="https://sns.test.amazonaws.com/confirm?token=tok",
     )
     visited = []
 
@@ -346,9 +374,12 @@ def test_cap01_daily_send_cap_enforced(ctx, monkeypatch):
     )
     with pytest.raises(HTTPException) as e:
         ctx["ec"].send_draft(
-            ctx["a"], d.id, SendRequest(confirm=True),
+            ctx["a"],
+            d.id,
+            SendRequest(confirm=True),
             request=type("R", (), {"base_url": "http://localhost/"})(),
-            db=ctx["db"], current_user=ctx["admin"],
+            db=ctx["db"],
+            current_user=ctx["admin"],
         )
     assert e.value.status_code == 429
 
@@ -373,15 +404,21 @@ def _ai_draft(ctx, monkeypatch, model_output, fact_ids=None):
 
 def test_ai05_provenance_invented_number_rejected(ctx, monkeypatch):
     obj = ctx["models"].PillarEntry(
-        profile_id=ctx["a"], pillar="education", title="Stacks blocks",
-        status="complete", category="child_development:motor", is_milestone=1,
+        profile_id=ctx["a"],
+        pillar="education",
+        title="Stacks blocks",
+        status="complete",
+        category="child_development:motor",
+        is_milestone=1,
     )
     ctx["db"].add(obj)
     ctx["db"].commit()
-    output = json.dumps({
-        "subject": "Robert",
-        "body": "Robert stacked 7 blocks today, a personal best!",
-    })
+    output = json.dumps(
+        {
+            "subject": "Robert",
+            "body": "Robert stacked 7 blocks today, a personal best!",
+        }
+    )
     with pytest.raises(HTTPException) as e:
         _ai_draft(ctx, monkeypatch, output, fact_ids=[obj.id])
     assert e.value.status_code == 422
@@ -389,10 +426,12 @@ def test_ai05_provenance_invented_number_rejected(ctx, monkeypatch):
 
 
 def test_ai05_provenance_last_name_leak_rejected(ctx, monkeypatch):
-    output = json.dumps({
-        "subject": "Robert Test update",
-        "body": "Robert Test had a great day.",
-    })
+    output = json.dumps(
+        {
+            "subject": "Robert Test update",
+            "body": "Robert Test had a great day.",
+        }
+    )
     with pytest.raises(HTTPException) as e:
         _ai_draft(ctx, monkeypatch, output)
     assert e.value.status_code == 422
@@ -401,15 +440,21 @@ def test_ai05_provenance_last_name_leak_rejected(ctx, monkeypatch):
 
 def test_ai05_provenance_clean_output_accepted(ctx, monkeypatch):
     obj = ctx["models"].PillarEntry(
-        profile_id=ctx["a"], pillar="education", title="Stacks blocks",
-        status="complete", category="child_development:motor", is_milestone=1,
+        profile_id=ctx["a"],
+        pillar="education",
+        title="Stacks blocks",
+        status="complete",
+        category="child_development:motor",
+        is_milestone=1,
     )
     ctx["db"].add(obj)
     ctx["db"].commit()
-    output = json.dumps({
-        "subject": "Robert",
-        "body": "Robert stacked blocks today and was proud of it.",
-    })
+    output = json.dumps(
+        {
+            "subject": "Robert",
+            "body": "Robert stacked blocks today and was proud of it.",
+        }
+    )
     d = _ai_draft(ctx, monkeypatch, output, fact_ids=[obj.id])
     assert d.status == "draft" and d.template_key == "bedrock_assisted"
 

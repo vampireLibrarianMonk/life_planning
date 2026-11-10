@@ -27,8 +27,16 @@ def ctx(monkeypatch, tmp_path):
     monkeypatch.setenv("SECRET_KEY", "z" * 40)
     monkeypatch.setenv("NOTIFY_EMAIL_BACKEND", "console")
     for mod in (
-        "config", "database", "models", "auth", "storage", "main",
-        "email_center", "notify", "routes.contacts", "routes.gallery",
+        "config",
+        "database",
+        "models",
+        "auth",
+        "storage",
+        "main",
+        "email_center",
+        "notify",
+        "routes.contacts",
+        "routes.gallery",
         "routes.email_center",
     ):
         sys.modules.pop(mod, None)
@@ -72,9 +80,17 @@ def ctx(monkeypatch, tmp_path):
     db.add_all([admin, readonly, child])
     db.commit()
     return {
-        "routes": ec_routes, "contacts": contacts, "models": models, "storage": storage,
-        "notify": notify, "db": db, "a": a.id, "b": b.id, "admin": admin,
-        "readonly": readonly, "child": child,
+        "routes": ec_routes,
+        "contacts": contacts,
+        "models": models,
+        "storage": storage,
+        "notify": notify,
+        "db": db,
+        "a": a.id,
+        "b": b.id,
+        "admin": admin,
+        "readonly": readonly,
+        "child": child,
     }
 
 
@@ -99,11 +115,19 @@ def _verified_method_id(ctx, contact_id):
     return m.id
 
 
-def _objective(ctx, title="Stacks three blocks", status="complete", category="child_development:motor"):
+def _objective(
+    ctx, title="Stacks three blocks", status="complete", category="child_development:motor"
+):
     db = ctx["db"]
     e = ctx["models"].PillarEntry(
-        profile_id=ctx["a"], pillar="education", entry_type="milestone",
-        title=title, status=status, category=category, age_band="12mo", age_years=1,
+        profile_id=ctx["a"],
+        pillar="education",
+        entry_type="milestone",
+        title=title,
+        status=status,
+        category=category,
+        age_band="12mo",
+        age_years=1,
         is_milestone=1,
     )
     db.add(e)
@@ -114,9 +138,13 @@ def _objective(ctx, title="Stacks three blocks", status="complete", category="ch
 def _media(ctx, kind="photo", size=200_000, name="sample.jpg"):
     db = ctx["db"]
     m = ctx["models"].ProfileMedia(
-        profile_id=ctx["a"], storage_key=f"k_{name}", original_name=name,
+        profile_id=ctx["a"],
+        storage_key=f"k_{name}",
+        original_name=name,
         mime_type="image/jpeg" if kind == "photo" else "video/mp4",
-        media_type=kind, size_bytes=size, status="ready",
+        media_type=kind,
+        size_bytes=size,
+        status="ready",
     )
     db.add(m)
     db.commit()
@@ -159,9 +187,7 @@ def test_contact03_clinical_requires_clinician_audience_and_flag(ctx):
     with pytest.raises(HTTPException) as e:
         ctx["routes"].create_draft(
             ctx["a"],
-            DraftCreate(
-                recipient_method_ids=[mid], include_clinical=True, body="Progress notes."
-            ),
+            DraftCreate(recipient_method_ids=[mid], include_clinical=True, body="Progress notes."),
             db=ctx["db"],
             current_user=ctx["admin"],
         )
@@ -173,9 +199,13 @@ def test_priv04_private_worries_body_rejected(ctx):
     db = ctx["db"]
     db.add(
         ctx["models"].PillarEntry(
-            profile_id=ctx["a"], pillar="education", title="Worries",
-            content="He still fights every diaper change.", status="complete",
-            category="child_development_private", is_milestone=0,
+            profile_id=ctx["a"],
+            pillar="education",
+            title="Worries",
+            content="He still fights every diaper change.",
+            status="complete",
+            category="child_development_private",
+            is_milestone=0,
         )
     )
     db.commit()
@@ -192,9 +222,13 @@ def test_priv04_private_worries_never_in_fact_sheet(ctx):
     db = ctx["db"]
     db.add(
         ctx["models"].PillarEntry(
-            profile_id=ctx["a"], pillar="education", title="Private worry",
-            content="secret-worry-payload", status="complete",
-            category="child_development_private", is_milestone=1,
+            profile_id=ctx["a"],
+            pillar="education",
+            title="Private worry",
+            content="secret-worry-payload",
+            status="complete",
+            category="child_development_private",
+            is_milestone=1,
         )
     )
     db.commit()
@@ -212,7 +246,9 @@ def test_mixed_audiences_forced_into_separate_drafts(ctx):
         ctx["a"],
         __import__("schemas").ContactCreate(
             display_name="Dr. Sample",
-            methods=[__import__("schemas").ContactMethodCreate(channel="email", address="dr@example.com")],
+            methods=[
+                __import__("schemas").ContactMethodCreate(channel="email", address="dr@example.com")
+            ],
             roles="pediatrician",
         ),
         db=ctx["db"],
@@ -252,7 +288,11 @@ def test_unverified_recipient_blocks_preview_and_send(ctx):
 def test_mail02_oversize_image_converts_to_link(ctx):
     """An image over the encoded cap becomes a LINK, never silently dropped."""
     big = _media(ctx, kind="photo", size=12 * 1024 * 1024, name="big.jpg")
-    plan = ctx["routes"].plan_attachments([big]) if hasattr(ctx["routes"], "plan_attachments") else None
+    plan = (
+        ctx["routes"].plan_attachments([big])
+        if hasattr(ctx["routes"], "plan_attachments")
+        else None
+    )
     from email_center import plan_attachments
 
     plan = plan_attachments([big])
@@ -279,9 +319,12 @@ def test_mail01_send_without_confirm_rejected(ctx):
 
     with pytest.raises(HTTPException) as e:
         ctx["routes"].send_draft(
-            ctx["a"], d.id, SendRequest(confirm=False),
+            ctx["a"],
+            d.id,
+            SendRequest(confirm=False),
             request=type("R", (), {"base_url": "http://localhost/"})(),
-            db=ctx["db"], current_user=ctx["admin"],
+            db=ctx["db"],
+            current_user=ctx["admin"],
         )
     assert e.value.status_code == 400
 
@@ -296,9 +339,12 @@ def test_send_happy_path_console_honest_status(ctx):
     from schemas import SendRequest
 
     resp = ctx["routes"].send_draft(
-        ctx["a"], d.id, SendRequest(confirm=True),
+        ctx["a"],
+        d.id,
+        SendRequest(confirm=True),
         request=type("R", (), {"base_url": "http://localhost/"})(),
-        db=ctx["db"], current_user=ctx["admin"],
+        db=ctx["db"],
+        current_user=ctx["admin"],
     )
     assert len(resp.messages) == 1
     m = resp.messages[0]
@@ -326,10 +372,14 @@ def test_mail03_retry_does_not_duplicate(ctx):
 
     req = SendRequest(confirm=True)
     fake_req = type("R", (), {"base_url": "http://localhost/"})()
-    ctx["routes"].send_draft(ctx["a"], d.id, req, request=fake_req, db=ctx["db"], current_user=ctx["admin"])
+    ctx["routes"].send_draft(
+        ctx["a"], d.id, req, request=fake_req, db=ctx["db"], current_user=ctx["admin"]
+    )
     # A second attempt (e.g. client retry after timeout) must NOT re-send.
     with pytest.raises(HTTPException) as e:
-        ctx["routes"].send_draft(ctx["a"], d.id, req, request=fake_req, db=ctx["db"], current_user=ctx["admin"])
+        ctx["routes"].send_draft(
+            ctx["a"], d.id, req, request=fake_req, db=ctx["db"], current_user=ctx["admin"]
+        )
     assert e.value.status_code == 409
     assert ctx["db"].query(ctx["models"].Message).count() == 1
 
@@ -341,9 +391,12 @@ def test_sent_history_is_immutable_snapshot(ctx):
     from schemas import SendRequest
 
     ctx["routes"].send_draft(
-        ctx["a"], d.id, SendRequest(confirm=True),
+        ctx["a"],
+        d.id,
+        SendRequest(confirm=True),
         request=type("R", (), {"base_url": "http://localhost/"})(),
-        db=ctx["db"], current_user=ctx["admin"],
+        db=ctx["db"],
+        current_user=ctx["admin"],
     )
     history = ctx["routes"].list_messages(ctx["a"], db=ctx["db"])
     assert len(history) == 1 and history[0]["subject"]
@@ -351,7 +404,9 @@ def test_sent_history_is_immutable_snapshot(ctx):
     from schemas import DraftUpdate
 
     with pytest.raises(HTTPException) as e:
-        ctx["routes"].update_draft(ctx["a"], d.id, DraftUpdate(body="x"), db=ctx["db"], _=ctx["admin"])
+        ctx["routes"].update_draft(
+            ctx["a"], d.id, DraftUpdate(body="x"), db=ctx["db"], _=ctx["admin"]
+        )
     assert e.value.status_code == 409
 
 
@@ -362,7 +417,6 @@ def test_readonly_and_child_cannot_compose_or_send(ctx):
     """Compose/send is admin-only. The guard is a ROUTER dependency (the repo
     tests call route functions directly, bypassing deps), so assert the wiring:
     require_admin must be attached to the email router."""
-    from auth import require_admin
 
     deps = [getattr(d.dependency, "__name__", "") for d in ctx["routes"].router.dependencies]
     assert "require_admin" in deps
@@ -374,8 +428,13 @@ def test_cross_profile_media_and_recipients_denied(ctx):
     linked only to B cannot receive A's draft."""
     db = ctx["db"]
     other_media = ctx["models"].ProfileMedia(
-        profile_id=ctx["b"], storage_key="kx.jpg", original_name="x.jpg",
-        mime_type="image/jpeg", media_type="photo", size_bytes=10, status="ready",
+        profile_id=ctx["b"],
+        storage_key="kx.jpg",
+        original_name="x.jpg",
+        mime_type="image/jpeg",
+        media_type="photo",
+        size_bytes=10,
+        status="ready",
     )
     db.add(other_media)
     db.commit()
@@ -412,8 +471,10 @@ def test_ai_draft_disabled_is_503(ctx, monkeypatch):
 
     with pytest.raises(HTTPException) as e:
         ctx["routes"].ai_draft(
-            ctx["a"], AIDraftRequest(recipient_method_ids=[mid]),
-            db=ctx["db"], current_user=ctx["admin"],
+            ctx["a"],
+            AIDraftRequest(recipient_method_ids=[mid]),
+            db=ctx["db"],
+            current_user=ctx["admin"],
         )
     assert e.value.status_code == 503
 
@@ -427,25 +488,39 @@ def test_ai_draft_creates_draft_never_auto_sends(ctx, monkeypatch):
     class FakeClient:
         def converse(self, **kwargs):
             return {
-                "output": {"message": {"content": [{"text": json.dumps({
-                    "subject": "An update on Robert",
-                    "body": "Robert stacked three blocks today and grinned the whole time.",
-                })}]}}
+                "output": {
+                    "message": {
+                        "content": [
+                            {
+                                "text": json.dumps(
+                                    {
+                                        "subject": "An update on Robert",
+                                        "body": "Robert stacked three blocks today and grinned the whole time.",
+                                    }
+                                )
+                            }
+                        ]
+                    }
+                }
             }
 
     monkeypatch.setattr(
-        ctx["routes"], "_bedrock_converse",
-        lambda prompt, system: json.dumps({
-            "subject": "An update on Robert",
-            "body": "Robert stacked three blocks today and grinned the whole time.",
-        }),
+        ctx["routes"],
+        "_bedrock_converse",
+        lambda prompt, system: json.dumps(
+            {
+                "subject": "An update on Robert",
+                "body": "Robert stacked three blocks today and grinned the whole time.",
+            }
+        ),
     )
     from schemas import AIDraftRequest
 
     d = ctx["routes"].ai_draft(
         ctx["a"],
         AIDraftRequest(recipient_method_ids=[mid], fact_ids=[obj.id]),
-        db=ctx["db"], current_user=ctx["admin"],
+        db=ctx["db"],
+        current_user=ctx["admin"],
     )
     assert d.status == "draft"  # human approval required; never auto-sent
     assert d.template_key == "bedrock_assisted"
@@ -457,18 +532,23 @@ def test_ai_draft_clinical_leak_rejected(ctx, monkeypatch):
     c = _family_contact(ctx)
     mid = _verified_method_id(ctx, c.id)
     monkeypatch.setattr(
-        ctx["routes"], "_bedrock_converse",
-        lambda prompt, system: json.dumps({
-            "subject": "Robert",
-            "body": "Robert started speech therapy twice weekly for his diagnosis.",
-        }),
+        ctx["routes"],
+        "_bedrock_converse",
+        lambda prompt, system: json.dumps(
+            {
+                "subject": "Robert",
+                "body": "Robert started speech therapy twice weekly for his diagnosis.",
+            }
+        ),
     )
     from schemas import AIDraftRequest
 
     with pytest.raises(HTTPException) as e:
         ctx["routes"].ai_draft(
-            ctx["a"], AIDraftRequest(recipient_method_ids=[mid]),
-            db=ctx["db"], current_user=ctx["admin"],
+            ctx["a"],
+            AIDraftRequest(recipient_method_ids=[mid]),
+            db=ctx["db"],
+            current_user=ctx["admin"],
         )
     assert e.value.status_code == 422
     assert "disclosure policy" in e.value.detail

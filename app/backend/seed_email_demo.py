@@ -14,7 +14,6 @@ Creates (idempotently) on the dev database:
 """
 
 import base64
-import sys
 from datetime import datetime
 
 import database
@@ -169,4 +168,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

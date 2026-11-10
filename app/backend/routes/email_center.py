@@ -7,6 +7,7 @@ provisioned. Nothing fabricates delivery status."""
 import hashlib
 import json
 import secrets
+from collections.abc import Mapping
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -204,7 +205,9 @@ def _validate_draft_state(db: Session, profile_id: int, d: MessageDraft, recipie
     return effective
 
 
-def _render_final(d: MessageDraft, plan: list[dict], share_links: dict[int, str], sender_name: str):
+def _render_final(
+    d: MessageDraft, plan: list[dict], share_links: Mapping[int, str | None], sender_name: str
+):
     """The EXACT final content: draft body + the media section from the plan."""
     media_lines = [media_bullet(p, share_links.get(p["media_id"])) for p in plan]
     text = render_text_body(d.audience, _first_name(d), [], [], [], [], sender_name)

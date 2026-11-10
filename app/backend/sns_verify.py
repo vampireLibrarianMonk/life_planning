@@ -67,7 +67,7 @@ def _fetch(url: str, timeout: int = 10) -> bytes:
     """Fetch bytes from an allowlisted HTTPS URL (cert or SubscribeURL)."""
     if not _host_allowed(url):
         raise SnsVerificationError(f"URL host is not an allowed SNS endpoint: {url}")
-    with _urlreq.urlopen(url, timeout=timeout) as resp:  # noqa: S310 - allowlisted https
+    with _urlreq.urlopen(url, timeout=timeout) as resp:  # noqa: S310 # nosec B310 - URL allowlisted to SNS hosts over HTTPS directly above
         return resp.read()
 
 
@@ -113,7 +113,7 @@ def verify_sns_signature(payload: dict, cert_fetch=None) -> None:
             base64.b64decode(signature),
             message,
             padding.PKCS1v15(),
-            hashes.SHA1(),
+            hashes.SHA1(),  # nosec B303 - SNS SignatureVersion 1 mandates SHA1withRSA (spec-fixed, not chosen)
         )
     except Exception as e:  # noqa: BLE001 - any crypto failure means reject
         raise SnsVerificationError("SNS signature verification failed") from e

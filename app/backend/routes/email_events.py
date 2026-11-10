@@ -53,8 +53,13 @@ def _ses_message_ids(event: dict) -> list[str]:
         elif key == "MessageId" and isinstance(node, str):
             ids.append(node)
     # De-duplicate, preserve order.
-    seen = set()
-    return [i for i in ids if not (i in seen or seen.add(i))]
+    seen: set[str] = set()
+    out: list[str] = []
+    for mid in ids:
+        if mid not in seen:
+            seen.add(mid)
+            out.append(mid)
+    return out
 
 
 def _apply_event(db: Session, event: dict, raw: str) -> int:

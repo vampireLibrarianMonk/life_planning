@@ -88,6 +88,12 @@ class SesSender(Sender):
         import boto3  # lazy
 
         client = boto3.client("ses", region_name=os.getenv("AWS_REGION", "us-east-1"))
+        kwargs = {}
+        # When a configuration set is configured (SES event pipeline), tag the
+        # send so bounce/complaint/delivery events flow back to /api/email/events.
+        config_set = os.getenv("SES_CONFIG_SET", "").strip()
+        if config_set:
+            kwargs["ConfigurationSetName"] = config_set
         resp = client.send_email(
             Source=self._from,
             Destination={"ToAddresses": [to_address]},
@@ -95,6 +101,7 @@ class SesSender(Sender):
                 "Subject": {"Data": subject},
                 "Body": {"Text": {"Data": body}},
             },
+            **kwargs,
         )
         logger.info("[notify:email] (ses) -> %s id=%s", _redact(to_address), resp.get("MessageId"))
         return {"backend": "ses", "status": "submitted", "provider_id": resp.get("MessageId")}

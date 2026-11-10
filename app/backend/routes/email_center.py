@@ -178,6 +178,21 @@ def _validate_draft_state(db: Session, profile_id: int, d: MessageDraft, recipie
             status_code=422,
             detail="These recipients are not verified yet: " + ", ".join(unverified),
         )
+    # Suppression: a bounce/complaint (or explicit opt-out) permanently blocks
+    # further sends to that address until the owner clears it (5.5).
+    suppressed = [
+        contact.display_name if contact else m.address
+        for m, contact, _ in recipients
+        if m.opted_out_at is not None
+    ]
+    if suppressed:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "These recipients are suppressed after a bounce/complaint or "
+                "opt-out: " + ", ".join(suppressed)
+            ),
+        )
     try:
         validate_disclosure(
             d.audience,
@@ -590,6 +605,32 @@ def send_draft(
         )
     recipients = _resolve_recipients(db, profile_id, _json_list(d.recipient_method_ids))
     _validate_draft_state(db, profile_id, d, recipients)
+    # Daily send cap (SES cost/rate guard): count today's dispatched messages
+    # account-wide. EMAIL_DAILY_SEND_CAP=0 disables the cap.
+    import os
+
+    cap = int(os.getenv("EMAIL_DAILY_SEND_CAP", "200"))
+    if cap > 0:
+        from datetime import timedelta
+
+        day_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        sent_today = (
+            db.query(Message)
+            .filter(
+                Message.sent_at >= day_start,
+                Message.sent_at < day_start + timedelta(days=1),
+                Message.status.in_(["submitted", "logged", "delivered"]),
+            )
+            .count()
+        )
+        if sent_today + len(recipients) > cap:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Daily email send cap reached ({sent_today} sent today, cap {cap}). "
+                    "Try again tomorrow or raise EMAIL_DAILY_SEND_CAP."
+                ),
+            )
     media = _load_media(db, profile_id, _json_list(d.selected_media_ids))
     plan = plan_attachments(media)
 
@@ -729,15 +770,53 @@ def _bedrock_converse(prompt: str, system: str) -> str:
 
     model_id = os.getenv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
     region = os.getenv("BEDROCK_REGION", os.getenv("AWS_REGION", "us-east-1"))
+    max_tokens = int(os.getenv("BEDROCK_MAX_TOKENS", "1200"))
     client = boto3.client("bedrock-runtime", region_name=region)
     resp = client.converse(
         modelId=model_id,
         system=[{"text": system}],
         messages=[{"role": "user", "content": [{"text": prompt}]}],
-        inferenceConfig={"maxTokens": 1200, "temperature": 0.3, "topP": 0.9},
+        inferenceConfig={"maxTokens": max_tokens, "temperature": 0.3, "topP": 0.9},
     )
     parts = resp.get("output", {}).get("message", {}).get("content", [])
     return "".join(p.get("text", "") for p in parts)
+
+
+def _provenance_check(
+    subject: str,
+    body: str,
+    facts_text: str,
+    child_last_name: str,
+    recipient_names: list[str],
+) -> None:
+    """Pass 5b provenance gate: the model may only restate what the parent
+    selected. Raises DisclosureViolation on:
+      * a NUMBER in the output that does not appear in the provided facts/note
+        (invented quantities, dates, dosages, percentages);
+      * the child's LAST name (we only ever pass the first name);
+      * any recipient's or other contact's display name (hallucinated people).
+    """
+    import re as _re
+
+    combined = f"{subject}\n{body}"
+    facts_norm = " ".join((facts_text or "").split())
+    for token in _re.findall(r"\d+", combined):
+        if token not in facts_norm:
+            raise DisclosureViolation(
+                f"AI draft mentions the number {token}, which is not in the "
+                "selected facts. Provenance check failed."
+            )
+    last = (child_last_name or "").strip()
+    if last and last.lower() in combined.lower():
+        raise DisclosureViolation(
+            "AI draft includes the child's last name; only the first name may be used."
+        )
+    for name in recipient_names:
+        clean = (name or "").strip()
+        if clean and clean.lower() in combined.lower():
+            raise DisclosureViolation(
+                "AI draft mentions a contact name that was never provided."
+            )
 
 
 @router.post("/drafts/ai-draft", response_model=DraftResponse, status_code=201)
@@ -754,6 +833,26 @@ def ai_draft(
             status_code=503,
             detail="Bedrock drafting is not enabled (set BEDROCK_DRAFT_ENABLED=1).",
         )
+    # Cost cap: count Bedrock-assisted drafts created today (account-wide).
+    ai_cap = int(os.getenv("BEDROCK_DAILY_AI_CAP", "25"))
+    if ai_cap > 0:
+        day_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        ai_today = (
+            db.query(MessageDraft)
+            .filter(
+                MessageDraft.template_key == "bedrock_assisted",
+                MessageDraft.created_at >= day_start,
+            )
+            .count()
+        )
+        if ai_today >= ai_cap:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Daily Bedrock draft cap reached ({ai_today} today, cap {ai_cap}). "
+                    "Try again tomorrow or raise BEDROCK_DAILY_AI_CAP."
+                ),
+            )
     recipients = _resolve_recipients(db, profile_id, req.recipient_method_ids)
     classes = [audience_for_roles(link.roles) for _, _, link in recipients]
     audience = assert_single_audience(classes)
@@ -819,6 +918,23 @@ def ai_draft(
     body = str(parsed.get("body", ""))
     if not subject or not body.strip():
         raise HTTPException(status_code=502, detail="Model returned an empty draft.")
+    # Provenance gate (5b): output may only restate the selected facts.
+    prof = db.query(Profile).filter(Profile.id == profile_id).first()
+    child_last = prof.name.split(" ", 1)[1] if prof and len(prof.name.split(" ", 1)) > 1 else ""
+    facts_text = "\n".join(facts) + ("\n" + req.note if req.note else "")
+    try:
+        _provenance_check(
+            subject,
+            body,
+            facts_text,
+            child_last,
+            [c.display_name for _, c, _ in recipients if c],
+        )
+    except DisclosureViolation as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"AI draft rejected by the provenance check: {e}",
+        ) from e
     try:
         validate_disclosure(
             audience, bool(req.include_clinical), body, subject=subject,

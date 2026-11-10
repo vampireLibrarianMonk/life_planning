@@ -520,16 +520,20 @@ source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
 
 **Next actions (pick up tonight), in rough order:**
 1. Decide: switch local server back to console mode (avoid accidental real sends).
-2. Push `feat/contacts-and-docs` → PR → merge → deploy (Gallery docs + Contacts +
-   verification). Additive migrations tested against a pre-existing DB.
-   - When deploying, set App Runner env in BOTH regions so email verification is
-     live in prod: `NOTIFY_EMAIL_BACKEND=ses` AND `SES_SENDER=no-reply@life-planning.my-deployment.com`.
-     VERIFIED 2026-11-09: prod App Runner currently has NEITHER set (both regions),
-     so without this step email verification defaults to console/inert in prod.
-     The instance role already sends SES in prod (invitation flow), so no IAM change.
+2. ✅ **DONE (2026-11-09 evening, AWS-CLI-verified).** `feat/contacts-and-docs`
+   merged as PR #6; both App Runner regions RUNNING digest `903077b7` with
+   `NOTIFY_EMAIL_BACKEND=ses` + `SES_SENDER=no-reply@life-planning.my-deployment.com`
+   set in BOTH regions; `/api/health` HTTP 200 east + west (mode=aws); SES domain
+   identity `life-planning.my-deployment.com` VerificationStatus=SUCCESS with
+   production access enabled in BOTH regions; test recipient `pmflani@gmail.com`
+   verified. Note: `.arn-env`'s `SES_CONFIG_SET=life-planning` is vestigial — no
+   config set exists and the app never references one (harmless; Pass 5.5 will
+   create one when event ingestion is built).
 3. Build the **Email Center (Pass 5)** now that SES is proven: templates,
    recipient-policy validation, draft/preview/send, delivery events.
 4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
+   OWNER-GATED: needs EIN/sole-prop details, cost sign-off (~$3–11/mo), and
+   recipient consent records before the AWS-side brand/campaign can be created.
 
 ### Texting path (SMS) — what it takes
 

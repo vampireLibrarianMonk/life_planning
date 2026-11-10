@@ -33,6 +33,12 @@ EXEMPT_PATHS = {
     # row). It blocks readonly INLINE — proven by
     # test_direct_put_rejects_readonly below, so this exemption is not a blind spot.
     "/api/uploads/direct/{key}",
+    # SES event ingestion (v6 Pass 5.5): a MACHINE endpoint called by Amazon
+    # SNS, not a user session. Authentication is the SNS message SIGNATURE
+    # (verified via sns_verify before anything is trusted) — a role guard is
+    # meaningless here. Proven by tests/test_email_events.py (tampered
+    # signature -> 403; no role can forge a valid SNS signature).
+    "/api/email/events",
 }
 
 

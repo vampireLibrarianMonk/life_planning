@@ -584,6 +584,112 @@ class ContactGroupMember(Base):
     group = relationship("ContactGroup", back_populates="members")
 
 
+# --- Email Center (v6 Pass 5) -------------------------------------------------
+# Design invariants (from the v6 handoff / backlog build plan):
+#   * Drafts are mutable working copies; messages are IMMUTABLE snapshots.
+#   * One draft = ONE audience class (family OR clinician OR educator) — mixed
+#     audiences are forced into separate drafts by the disclosure validator.
+#   * Per-recipient Message rows (never a blended To/Cc list).
+#   * Idempotency key on Message makes a provider retry non-duplicating.
+#   * Private worries (child_development_private) are structurally excluded.
+
+
+class MessageDraft(Base):
+    """A compose-in-progress email. Mutable until sent."""
+
+    __tablename__ = "message_drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(
+        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    channel = Column(String(10), nullable=False, default="email")  # email (sms later)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # composing admin
+    # Single audience class per draft (disclosure policy anchor): family |
+    # clinician | educator. Derived from the selected recipients' roles.
+    audience = Column(String(20), nullable=False, default="family")
+    # Recipient contact-method ids (JSON list). Re-resolved + re-verified at
+    # preview/send time; the snapshot stored on Message is what actually went.
+    recipient_method_ids = Column(Text, nullable=False, default="[]")
+    subject = Column(String(300), nullable=False, default="")
+    body = Column(Text, nullable=False, default="")
+    # Gallery media ids (JSON list) selected for this update.
+    selected_media_ids = Column(Text, nullable=False, default="[]")
+    template_key = Column(String(60), nullable=True)  # e.g. family_update
+    # Explicit opt-in for clinical content (clinician audience only).
+    include_clinical = Column(Integer, nullable=False, default=0)
+    status = Column(String(20), nullable=False, default="draft")  # draft | sent
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    profile = relationship("Profile")
+
+
+class Message(Base):
+    """An actually-dispatched (or attempted) message. Immutable after send.
+
+    recipient_snapshot / content_snapshot freeze exactly what was sent so the
+    Sent history is an honest audit trail. One row PER RECIPIENT (groups are
+    expanded; no cross-recipient address exposure).
+    """
+
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(
+        Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    draft_id = Column(Integer, ForeignKey("message_drafts.id"), nullable=True, index=True)
+    channel = Column(String(10), nullable=False, default="email")
+    sender = Column(String(320), nullable=True)  # From identity used (SES) or 'console'
+    recipient_contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=True)
+    recipient_address = Column(String(320), nullable=False)
+    # JSON snapshots (immutable after send).
+    recipient_snapshot = Column(Text, nullable=False, default="{}")
+    content_snapshot = Column(Text, nullable=False, default="{}")
+    transport = Column(String(20), nullable=False, default="console")  # console | ses
+    provider_id = Column(String(200), nullable=True)  # SES MessageId (SUBMITTED evidence)
+    # Unique per (draft, recipient): a retry reuses the same key so a timeout
+    # followed by a re-send cannot produce a duplicate billable send.
+    idempotency_key = Column(String(120), nullable=False, unique=True, index=True)
+    status = Column(String(20), nullable=False, default="queued")  # queued|submitted|failed
+    sent_at = Column(DateTime, nullable=True)
+    status_updated_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MessageEvent(Base):
+    """Provider lifecycle event for a message (send/bounce/complaint/delivery)."""
+
+    __tablename__ = "message_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(
+        Integer, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider_event_id = Column(String(200), nullable=True)
+    type = Column(String(40), nullable=False)  # sent | bounce | complaint | delivery
+    raw = Column(Text, nullable=True)  # provider payload (signature-verified upstream)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class OutboxJob(Base):
+    """Dispatch bookkeeping for at-most-once sending (retry/reconcile anchor)."""
+
+    __tablename__ = "outbox_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(
+        Integer, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    state = Column(String(20), nullable=False, default="pending")  # pending|done|failed
+    attempts = Column(Integer, nullable=False, default=0)
+    next_attempt_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class MediaShareGrant(Base):
     """A revocable, expiring grant that lets a recipient view one media item via
     an opaque app link. The raw token is NEVER stored — only its SHA-256 hash."""

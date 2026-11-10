@@ -20,6 +20,8 @@ from routes import (
     discernments,
     docs,
     economy,
+    email_center,
+    email_events,
     events,
     funds,
     gallery,
@@ -139,6 +141,8 @@ app.include_router(contacts.router)
 app.include_router(contacts.groups_router)
 app.include_router(contacts.shares_router)
 app.include_router(contacts.public_share_router)
+app.include_router(email_center.router)
+app.include_router(email_events.router)
 
 
 @app.on_event("startup")

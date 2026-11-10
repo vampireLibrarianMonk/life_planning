@@ -6,6 +6,7 @@ import MiniMarkdown from '../components/MiniMarkdown'
 import ChildDevelopment from '../components/ChildDevelopment'
 import Gallery from '../components/Gallery'
 import Contacts from '../components/Contacts'
+import EmailCenter from '../components/EmailCenter'
 import Economy from './Economy'
 import { isReadonly, isAdmin, uploadUrl } from '../services/auth'
 
@@ -624,6 +625,19 @@ export default function Profile() {
         profileId={id}
         profileName={profile ? profile.name : ''}
         onBack={() => setActivePillar(null)}
+        canWrite={canWrite}
+        onEmailCenter={() => setActivePillar('__email__')}
+      />
+    )
+  }
+
+  // Email Center view — reached from Gallery (v6 Pass 5); admin-only
+  if (activePillar === '__email__') {
+    return (
+      <EmailCenter
+        profileId={id}
+        profileName={profile ? profile.name : ''}
+        onBack={() => setActivePillar('__gallery__')}
         canWrite={canWrite}
       />
     )

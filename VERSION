@@ -1,4 +1,4 @@
-0.6.0
+0.7.0
 
 # Life Plan Tracker Version Ledger
 
@@ -17,15 +17,43 @@
 
 ## Current Semantic Version Decision
 
-**Current version:** `0.6.0`
+**Current version:** `0.7.0`
 
-**Basis:** `0.6.0` consolidates a large body of work since `0.5.3` (2026-07-20):
-production hardening/security remediation, a dual-region AWS deployment with
-CI, a mobile-responsive overhaul, and the new **child media Gallery** (photo +
-video, including direct-to-S3 large-video upload). The Gallery adds new data
-model tables (`profile_media`, `media_objective_link`) and new API routes;
-existing data and APIs are preserved (additive migration), so under this
-pre-1.0 ledger it is classified **MINOR**.
+**Basis:** `0.7.0` adds the **Contacts / recipient directory + messaging
+foundation** (v6 Pass 4) on top of `0.6.0`'s Gallery. New data-model tables
+(`contacts`, `contact_methods`, `profile_contact_links`, `contact_groups`,
+`contact_group_members`, `media_share_grants`) + new API routes; existing data
+and APIs are preserved (additive migration), so **MINOR** under this pre-1.0
+ledger. `0.6.0` content below is retained for history.
+
+Highlights in `0.7.0` (since `0.6.0`):
+
+- **Contacts directory** — per-child recipient links (`profile_contact_links`)
+  with role labels (`pediatrician`, `speech_therapist`, `family`, etc.) and
+  relationship sub-types (family → mother/father/grandparent/godparent/step*),
+  surfaced via a dependent second dropdown. A label is explicitly NOT a
+  permission. A contact may carry both an email and a phone, and may be linked
+  to multiple children with per-child policies. Groups are selection aids only.
+- **Media share grants** — opaque, expiring, revocable links to a single media
+  item (token stored only as a SHA-256 hash; public `/share/{token}` resolver).
+- **Contact-method verification** — real 6-digit-code flow (hashed, 15-min
+  expiry, 5-attempt cap). Provider-agnostic `notify` sender: console backend for
+  dev; **SES email adapter is LIVE in production** (verified end-to-end); AWS SMS
+  adapter wired but inert until A2P 10DLC is provisioned.
+- **Ops:** App Runner env `NOTIFY_EMAIL_BACKEND=ses` + `SES_SENDER` set both
+  regions; instance role granted identity-scoped `ses:SendEmail`.
+
+**SemVer classification (`0.7.0`):** `MINOR` — additive tables + routes +
+workflow, backward-compatible with existing profiles/data.
+
+---
+
+**`0.6.0` basis (retained):** consolidates a large body of work since `0.5.3`
+(2026-07-20): production hardening/security remediation, a dual-region AWS
+deployment with CI, a mobile-responsive overhaul, and the **child media Gallery**
+(photo + video, including direct-to-S3 large-video upload). The Gallery adds new
+data-model tables (`profile_media`, `media_objective_link`) and new API routes;
+existing data and APIs preserved (additive migration), classified **MINOR**.
 
 Highlights since `0.5.3`:
 
@@ -98,3 +126,5 @@ milestones, buckslip habit, 2 lesson plans.
 | 2026-11-08 | `877c81d` | **v0.6.0** — child media Gallery (v6 Pass 1–2.5): canonical `ProfileMedia` + `MediaObjectiveLink`, Gallery UI peer section, per-objective media unified into the Gallery and surviving age-group deletion; zlib OS CVE patch. |
 | 2026-11-08 | `471d1d7` | Gallery live-bug fixes: `/gallery/` request-body cap (photo 413), real upload error surfacing, accurate 403 toast (readonly vs. expired session). |
 | 2026-11-08 | `bfb7e3d` | Gallery v6 Pass 3 — direct-to-S3 large-video upload (initiate → presigned PUT → finalize); uploads-bucket CORS applied both regions; local direct-PUT receiver for dev/tests. |
+| 2026-11-09 | `310ec21` | **v0.7.0** — Contacts/recipient directory (per-child links, role labels + relationship sub-types, dual email+phone, groups), media share grants (hashed token, expiry, revoke, public resolver), contact-method verification (provider-agnostic sender). VERSION ledger → 0.6.0, README Gallery section, deployment diagram split. |
+| 2026-11-09 | `bd09763` | Email verification LIVE in production: App Runner SES env both regions + instance-role scoped `ses:SendEmail`; full send→confirm→verified proven on the live site. |

@@ -129,10 +129,22 @@ wildcards**): `secretsmanager:GetSecretValue` on both secrets;
 `s3:Get/Put/List` on all buckets, **`s3:DeleteObject` on the UPLOADS buckets
 ONLY — NOT on the DB buckets** (TODO-4: a compromised instance must not be able
 to delete the Object-Locked Litestream DR backups; Litestream needs only
-Get/Put/List); `kms:Decrypt/Encrypt/GenerateDataKey` on the MRK.
+Get/Put/List); `kms:Decrypt/Encrypt/GenerateDataKey` on the MRK; and
+**`ses:SendEmail`/`ses:SendRawEmail` scoped to the verified sender identity
+`identity/life-planning.my-deployment.com` (both regions) ONLY** — added
+2026-11-09 for contact-method verification + the Email Center. NOTE: the
+*invitation* email flow runs from the provisioning CLI (the operator's own
+credentials), so the instance role did NOT have SES before; the app runtime
+needs this explicit grant to send. Keep it identity-scoped, never account-wide SES.
 ```bash
 # -> record APPRUNNER_ROLE_ARN in .arn-env
 ```
+
+> **Email env (both regions):** the app only sends email when
+> `NOTIFY_EMAIL_BACKEND=ses` AND `SES_SENDER=no-reply@life-planning.my-deployment.com`
+> are set on the App Runner service. Without them it falls back to the inert
+> console backend (no send). Set via `update-service` (preserve existing env).
+> Applied to prod 2026-11-09; verified a real verification email send+confirm live.
 
 ### 5. ECR repo + first image
 ```bash

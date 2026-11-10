@@ -518,16 +518,30 @@ source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
 
 **Next actions (pick up tonight), in rough order:**
 1. Decide: switch local server back to console mode (avoid accidental real sends).
-2. Push `feat/contacts-and-docs` → PR → merge → deploy (Gallery docs + Contacts +
-   verification). Additive migrations tested against a pre-existing DB.
-   - When deploying, set App Runner env in BOTH regions so email verification is
-     live in prod: `NOTIFY_EMAIL_BACKEND=ses` AND `SES_SENDER=no-reply@life-planning.my-deployment.com`.
-     VERIFIED 2026-11-09: prod App Runner currently has NEITHER set (both regions),
-     so without this step email verification defaults to console/inert in prod.
-     The instance role already sends SES in prod (invitation flow), so no IAM change.
-3. Build the **Email Center (Pass 5)** now that SES is proven: templates,
-   recipient-policy validation, draft/preview/send, delivery events.
+2. ✅ **DONE (2026-11-09, AWS-CLI-verified).** `feat/contacts-and-docs` merged as
+   PR #6; both App Runner regions RUNNING digest `903077b7` with
+   `NOTIFY_EMAIL_BACKEND=ses` + `SES_SENDER=no-reply@life-planning.my-deployment.com`
+   set in BOTH regions; `/api/health` HTTP 200 east + west; SES domain identity
+   SUCCESS + production access in BOTH regions. (`.arn-env`'s `SES_CONFIG_SET`
+   is vestigial — no config set exists and the app never references one;
+   Pass 5.5 will create one when event ingestion is built.)
+3. 🔶 **Email Center (Pass 5) — LOCAL SLICE BUILT (2026-11-10, branch
+   `feat/email-center-local`).** Safety core (`email_center.py`: audience
+   classes, disclosure policy + clinical scanner, PRIV-04 private-worries
+   hard-block, 10 MiB MIME budget with attach-vs-link planner), admin-only
+   routes (facts/recipients/drafts/exact-preview/idempotent per-recipient
+   send/outbox/sent-history), 4 new tables, frontend composer reached from
+   Gallery, 17 adversarial tests (full suite 126 passed). **Bedrock 5b teaser
+   LIVE:** flag-gated Converse assembler (`amazon.nova-lite-v1:0`) drafts from
+   selected facts only, re-validated by the same policy, never auto-sent.
+   Demoed end-to-end locally: photo attaches / video becomes a revocable share
+   link / clinical leak → 422. See `next_steps/email_center_local_demo.md`.
+   **Resume here:** (a) review the local demo + decide template wording;
+   (b) 5.5 delivery events (SNS→endpoint + config set) + CloudWatch send cap;
+   (c) PR this branch → merge → deploy with SES env (already set in prod).
 4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
+   OWNER-GATED: needs EIN/sole-prop details, cost sign-off (~$3–11/mo), and
+   recipient consent records before the AWS-side brand/campaign can be created.
 
 ### Texting path (SMS) — what it takes
 

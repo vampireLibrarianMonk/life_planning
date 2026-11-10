@@ -447,10 +447,10 @@ in incremental, rollback-friendly passes. Local-first; each pass is tested
 | 2.5 | Per-objective 📷 panel rewired to the canonical Gallery (unify stores) | ✅ **MERGED + LIVE** |
 | — | Live-bug fixes (gallery body-size cap, honest upload errors, accurate 403 toast) | ✅ **MERGED + LIVE** (PR #4) |
 | 3 | **Direct-to-S3** large-video upload (initiate → presigned PUT → finalize); uploads-bucket CORS applied both regions | ✅ **MERGED + LIVE** (PR #5) |
-| 4 | **Contacts** directory (owner-scoped `contacts`, per-child `profile_contact_links`, `contact_methods`, groups), **media share grants** (hashed token, expiry, revoke, public `/share/{token}` resolver), role **sub-types** + dependent 2nd dropdown, dual email+phone, **method verification** (provider-agnostic sender; console dev backend; SES/AWS adapters inert until provisioned) | 🚧 **BUILT, on branch `feat/contacts-and-docs` — NOT pushed/merged/deployed** |
-| 5 — Email | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | ❌ not built |
-| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | ❌ not built |
-| 6 — SMS | One-way send (AWS End User Messaging), native-share fallback | ❌ not built |
+| 4 | **Contacts** directory (owner-scoped `contacts`, per-child `profile_contact_links`, `contact_methods`, groups), **media share grants** (hashed token, expiry, revoke, public `/share/{token}` resolver), role **sub-types** + dependent 2nd dropdown, dual email+phone, **method verification** (provider-agnostic sender) | ✅ **MERGED + LIVE** (PR #6). Email verification proven live in prod 2026-11-09. |
+| 5 — Email Center | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | 🔶 **LOCAL SLICE BUILT (5.1–5.4 + 5.6) on branch `feat/email-center-local` — PR open; 5.5 delivery events NOT built** |
+| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | 🔶 **TEASER LIVE locally** (flag-gated Converse assembler, policy-checked, never auto-sends); full pass (provenance/cost caps) not built |
+| 6 — SMS | One-way send (AWS End User Messaging), native-share fallback | ❌ not built (blocked on 10DLC) |
 | 7 — Inbound | SES receipt / SMS webhooks | ❌ not built (optional) |
 
 ### What's on branch `feat/contacts-and-docs` (unmerged, 2026-11-09)
@@ -467,12 +467,14 @@ in incremental, rollback-friendly passes. Local-first; each pass is tested
 
 ### OWNER PROVISIONING PREREQUISITES (block Email/SMS go-live — Kiro cannot do these)
 
-- **Email (SES):** ✅ **DONE / PROVEN LIVE (2026-11-09).** SES account has
-  **production access GRANTED** (not sandboxed; 50k/day quota), domain identity
-  `life-planning.my-deployment.com` verified, sender `SES_SENDER=no-reply@life-planning.my-deployment.com`.
-  A real verification email was sent to `pmflani@gmail.com` from the local server
-  in `NOTIFY_EMAIL_BACKEND=ses` mode and the code confirmed end-to-end
-  (verified_at set). Email verification + email sending are live-capable now.
+- **Email (SES):** ✅ **DONE / LIVE IN PRODUCTION (2026-11-09).** SES production
+  access granted, domain `life-planning.my-deployment.com` verified. App Runner
+  env set in BOTH regions (`NOTIFY_EMAIL_BACKEND=ses`, `SES_SENDER=no-reply@...`).
+  Instance role granted scoped `ses:SendEmail` on the verified identity (this was
+  a REQUIRED fix found during deploy — the invitation flow runs from the CLI, so
+  the app runtime role had no SES permission; a live verify/start 500'd with
+  AccessDenied until added). Full send→confirm→verified round trip PROVEN on the
+  live site (PR #6 deploy, digest 903077b7).
 - **SMS (AWS End User Messaging):** ❌ NOT done — the remaining blocker. **A2P
   10DLC** brand + campaign registration, a rented **origination identity**
   (`NOTIFY_SMS_ORIGINATION`), recorded recipient **consent** (STOP/HELP). US
@@ -518,27 +520,31 @@ source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
 
 **Next actions (pick up tonight), in rough order:**
 1. Decide: switch local server back to console mode (avoid accidental real sends).
-2. ✅ **DONE (2026-11-09, AWS-CLI-verified).** `feat/contacts-and-docs` merged as
-   PR #6; both App Runner regions RUNNING digest `903077b7` with
+2. ✅ **DONE (2026-11-09 evening, AWS-CLI-verified).** `feat/contacts-and-docs`
+   merged as PR #6; both App Runner regions RUNNING digest `903077b7` with
    `NOTIFY_EMAIL_BACKEND=ses` + `SES_SENDER=no-reply@life-planning.my-deployment.com`
-   set in BOTH regions; `/api/health` HTTP 200 east + west; SES domain identity
-   SUCCESS + production access in BOTH regions. (`.arn-env`'s `SES_CONFIG_SET`
-   is vestigial — no config set exists and the app never references one;
-   Pass 5.5 will create one when event ingestion is built.)
-3. 🔶 **Email Center (Pass 5) — LOCAL SLICE BUILT (2026-11-10, branch
+   set in BOTH regions; `/api/health` HTTP 200 east + west (mode=aws); SES domain
+   identity `life-planning.my-deployment.com` VerificationStatus=SUCCESS with
+   production access enabled in BOTH regions; test recipient `pmflani@gmail.com`
+   verified. Note: `.arn-env`'s `SES_CONFIG_SET=life-planning` is vestigial — no
+   config set exists and the app never references one (harmless; Pass 5.5 will
+   create one when event ingestion is built).
+3. 🔶 **Email Center (Pass 5) — LOCAL SLICE BUILT + PR OPEN (2026-11-10, branch
    `feat/email-center-local`).** Safety core (`email_center.py`: audience
    classes, disclosure policy + clinical scanner, PRIV-04 private-worries
    hard-block, 10 MiB MIME budget with attach-vs-link planner), admin-only
    routes (facts/recipients/drafts/exact-preview/idempotent per-recipient
-   send/outbox/sent-history), 4 new tables, frontend composer reached from
-   Gallery, 17 adversarial tests (full suite 126 passed). **Bedrock 5b teaser
-   LIVE:** flag-gated Converse assembler (`amazon.nova-lite-v1:0`) drafts from
-   selected facts only, re-validated by the same policy, never auto-sent.
-   Demoed end-to-end locally: photo attaches / video becomes a revocable share
-   link / clinical leak → 422. See `next_steps/email_center_local_demo.md`.
-   **Resume here:** (a) review the local demo + decide template wording;
-   (b) 5.5 delivery events (SNS→endpoint + config set) + CloudWatch send cap;
-   (c) PR this branch → merge → deploy with SES env (already set in prod).
+   send/outbox/sent-history), 4 new tables, searchable-combobox composer
+   reached from Gallery, 17 adversarial tests (full suite 126 passed).
+   **Bedrock 5b teaser LIVE:** flag-gated Converse assembler
+   (`amazon.nova-lite-v1:0`) drafts from selected facts only, re-validated by
+   the same policy, never auto-sent. Demoed end-to-end locally: photo
+   attaches / video becomes a revocable share link / clinical leak → 422.
+   See `next_steps/email_center_local_demo.md`.
+   **Remaining email taskings (NOT cleared):** (a) merge the PR → deploy;
+   (b) 5.5 delivery-event ingestion (SNS→endpoint + SES config set) +
+   CloudWatch send-cap alarm; (c) Bedrock 5b full pass (provenance checks,
+   cost caps) if promoted beyond teaser; (d) owner live-send verification.
 4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
    OWNER-GATED: needs EIN/sole-prop details, cost sign-off (~$3–11/mo), and
    recipient consent records before the AWS-side brand/campaign can be created.
@@ -575,3 +581,112 @@ omit child name/age/diagnosis (carrier logs + lock-screen previews).
 **Recommended sequence:** start the 10DLC Brand+Campaign registration ASAP
 (it's the long pole), ship Email Center meanwhile, and offer native-share as the
 interim texting option until 10DLC is approved.
+
+---
+
+## 5 — Email Center (v6 Pass 5) — BUILD PLAN (not started)
+
+Goal: a child-scoped Email Center where a parent composes an update from
+**explicitly selected** facts + media, previews exactly what will be sent,
+confirms recipients, and sends via SES — with per-recipient disclosure policy,
+honest delivery status, and a durable audit trail. Deterministic templates only
+in this pass; Bedrock AI drafting is the separate Pass 5b.
+
+**Prereqs already in place:** SES live in prod (adapter + instance-role grant +
+env, proven 2026-11-09); Contacts directory with per-child links, role labels +
+relationship sub-types, verified methods, groups; media share grants (public
+`/share/{token}` resolver). So Pass 5 builds on a working send path + recipients.
+
+### Build it in small, independently-shippable slices (failing adversarial test FIRST each)
+
+**5.1 — Data model (additive migration; no destructive changes)**
+- `message_drafts(id, profile_id, channel='email', author_id, recipient_snapshot,
+  subject, body, selected_media_ids, template_key, version, updated_at)`.
+- `messages(id, profile_id, channel, sender, recipient_snapshot, content_snapshot,
+  transport, provider_id, idempotency_key UNIQUE, status, sent_at, status_updated_at)`
+  — content/recipient snapshot is immutable after send.
+- `message_events(id, message_id, provider_event_id, type, raw, created_at)` for
+  SES delivery/bounce/complaint.
+- `outbox_jobs(id, message_id, state, attempts, next_attempt_at, reconcile_state)`
+  for at-most-once dispatch. Keep `ensure_columns` additive-migration pattern;
+  verify against a pre-existing DB (prod-safe), same as Pass 4.
+- Tests: tables created; readonly/child cannot write drafts/messages; every row
+  scoped by `profile_id`.
+
+**5.2 — Deterministic template catalog + recipient-disclosure policy (THE safety core)**
+- Server-side Jinja-style templates keyed by recipient role (per the v6 §"Default
+  template catalog": Pediatrician/Speech/OT/Other-Clinician/Educator/Childcare/
+  Caregiver/Family/Guardian/Emergency/Other). HTML-escape all user content.
+- A **disclosure validator**: each template + recipient role has an allowed data
+  category set; building a draft that includes a disallowed category (e.g.
+  therapy/diagnosis/private worries to a `family` recipient) is REJECTED.
+- Private `child_development` worries/notes are **excluded by default** and need an
+  explicit higher-trust step (or are simply not includable in MVP).
+- Adversarial gates (write failing tests first):
+  - CONTACT-03 / Critical: a Family-group draft must NOT expose clinical content.
+  - Mixed clinician+family audience → require SEPARATE drafts, never one blend.
+  - PRIV-04 / Critical: private worries never auto-populate a draft (fixture-proven).
+
+**5.3 — Draft / preview (no send yet)**
+- `POST /profiles/{p}/email/drafts`, `GET …/drafts`, `POST …/drafts/{id}/preview`.
+- Preview shows the EXACT final: recipient email(s), subject, body, which photos
+  attach vs which become share links, and the **encoded** MIME budget.
+- **MIME budget rule:** 10 MiB encoded cap (SES hard limit 40 MB). Base64 ≈ +33%.
+  Photos under threshold may attach only after the server recomputes the running
+  total; **videos + over-cap images always become app share links** (reuse Pass 4
+  media_share_grants). MAIL-02/High: an oversize image converts to a link, never
+  silently dropped.
+- Recipient-group selection EXPANDS to individual recipients with their verified
+  endpoint + child link + disclosure policy shown before anything is sent.
+
+**5.4 — Send (SES) with a durable outbox + honest status**
+- `POST …/drafts/{id}/send`: requires explicit confirmation; recompute policy +
+  recipient verification AT send (invalidate a stale preview if facts/recipients
+  changed). Only **verified** methods for sensitive evidence by default.
+- DB outbox transaction → dispatch → `notify.get_email_sender()` (SES, already
+  live) with an **idempotency key**; statuses `DRAFT→QUEUED→SUBMITTED→
+  DELIVERED/FAILED` only on provider-confirmed evidence. SES `MessageId` =
+  SUBMITTED, NOT delivered (MAIL-07).
+- **Per-recipient individual sends** for groups — never expose other recipients
+  in To/Cc (High gate). Subject lines omit clinical/child-identifying detail.
+- Adversarial gates: MAIL-01 (no send without explicit confirm), MAIL-03 (retry
+  after timeout → no duplicate via idempotency/reconcile), EMAIL-05 (photo attached
+  despite link-only choice → rejected).
+
+**5.5 — Delivery events (bounce/complaint) + UI status**
+- SES event ingestion (SNS→internal endpoint, signature-verified; or poll for MVP)
+  → `message_events` → update `messages.status`. On bounce/complaint, suppress
+  future sends to that address (SES already has suppression on).
+- **No Inbox tab** — outbound only; do not render a received-mail UI (EMAIL-04).
+
+**5.6 — Frontend Email Center**
+- Reached from Gallery ("Select media → Email Center") and/or a profile entry
+  point — NOT a 5th top-level peer (Contacts & Groups picker is shared). Compose,
+  pick recipients (expanded + disclosure shown), attach/caption, exact preview,
+  explicit Send, Sent history with immutable snapshot + share-grant revoke.
+- Readonly/child cannot compose or send.
+
+### Cross-cutting / provider notes
+- **Cost:** SES ~$0.10–0.16 / 1,000 emails + data; very low volume. Set a send
+  rate/day cap + CloudWatch alarm.
+- **IAM:** `ses:SendEmail` grant already added (identity-scoped). SES event
+  ingestion may need an SNS topic + a scoped subscribe permission — add then.
+- **DB durability caveat (from v6 audit):** prod is SQLite+Litestream on App
+  Runner (single-writer). The outbox/idempotency design tolerates a single
+  instance; if message volume or multi-writer ever matters, that's the trigger to
+  revisit a managed Postgres (tracked, not required for this low-volume MVP).
+- Everything local-first + synthetic recipients in tests; **no real sends in
+  automated tests** (use the console backend / a mock). A single real end-to-end
+  send to pmflani@gmail.com is the manual live check, as with verification.
+
+### Definition of done (Pass 5)
+- [ ] Draft → exact preview → explicit send → SES, with truthful status.
+- [ ] Recipient-class disclosure validator blocks clinical→family leaks; mixed
+      audiences forced into separate drafts; private worries never auto-included.
+- [ ] Photos attach only under the 10 MiB encoded cap; videos/over-cap → share links.
+- [ ] Group sends are per-recipient; no cross-recipient address exposure.
+- [ ] Idempotent outbox: provider retry/timeout causes no duplicate billable send.
+- [ ] Bounce/complaint handled; no Inbox surface.
+- [ ] Readonly/child cannot compose/send; all routes profile-scoped.
+- [ ] Adversarial tests (MAIL-01..07, EMAIL-04/05, CONTACT-03, PRIV-04) green;
+      device-eval + existing suites green; one real live send verified by owner.

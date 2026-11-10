@@ -725,3 +725,77 @@ export const CONTACT_ROLE_OPTIONS = [
   ['emergency_contact', 'Emergency Contact'],
   ['other', 'Other'],
 ]
+
+// --- Email Center (v6 Pass 5) -------------------------------------------------
+
+export async function fetchEmailFacts(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/email/facts`, { headers: headers() })
+  if (!res.ok) return null
+  return res.json()
+}
+
+export async function fetchEmailRecipients(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/email/recipients`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function createEmailDraft(profileId, payload) {
+  const res = await fetch(`/api/profiles/${profileId}/email/drafts`, {
+    method: 'POST', headers: headers(), body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    let detail = `Could not create draft (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function aiEmailDraft(profileId, payload) {
+  const res = await fetch(`/api/profiles/${profileId}/email/drafts/ai-draft`, {
+    method: 'POST', headers: headers(), body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    let detail = `AI draft failed (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function fetchEmailDrafts(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/email/drafts`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function previewEmailDraft(profileId, draftId) {
+  const res = await fetch(`/api/profiles/${profileId}/email/drafts/${draftId}/preview`, {
+    method: 'POST', headers: headers(),
+  })
+  if (!res.ok) {
+    let detail = `Preview failed (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function sendEmailDraft(profileId, draftId) {
+  const res = await fetch(`/api/profiles/${profileId}/email/drafts/${draftId}/send`, {
+    method: 'POST', headers: headers(), body: JSON.stringify({ confirm: true }),
+  })
+  if (!res.ok) {
+    let detail = `Send failed (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function fetchEmailMessages(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/email/messages`, { headers: headers() })
+  if (!res.ok) return []
+  return res.json()
+}

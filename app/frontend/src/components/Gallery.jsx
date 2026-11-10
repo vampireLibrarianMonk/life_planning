@@ -26,7 +26,7 @@ function fmtDate(iso) {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString()
 }
 
-export default function Gallery({ profileId, profileName, onBack, canWrite }) {
+export default function Gallery({ profileId, profileName, onBack, canWrite, onEmailCenter }) {
   const [items, setItems] = useState(null)
   const [mediaType, setMediaType] = useState('')
   const [busy, setBusy] = useState(false)
@@ -103,20 +103,27 @@ export default function Gallery({ profileId, profileName, onBack, canWrite }) {
             </button>
           ))}
         </div>
-        {canWrite && (
-          <label className="write-action" style={s.uploadBtn}>
-            {busy ? 'Uploading…' : '+ Add media'}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={onFiles}
-              disabled={busy}
-              style={{ display: 'none' }}
-            />
-          </label>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {canWrite && onEmailCenter && (
+            <button onClick={onEmailCenter} style={s.emailBtn} title="Compose an email update from selected media">
+              ✉️ Email Center
+            </button>
+          )}
+          {canWrite && (
+            <label className="write-action" style={s.uploadBtn}>
+              {busy ? 'Uploading…' : '+ Add media'}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                onChange={onFiles}
+                disabled={busy}
+                style={{ display: 'none' }}
+              />
+            </label>
+          )}
+        </div>
       </div>
 
       {error && <p style={s.error}>{error}</p>}
@@ -212,6 +219,7 @@ const s = {
   filter: { fontSize: 13, padding: '6px 12px', borderRadius: 14, border: '1px solid #cdd4dc', background: '#fff', color: '#333', cursor: 'pointer' },
   filterOn: { background: '#2563b0', borderColor: '#2563b0', color: '#fff', fontWeight: 600 },
   uploadBtn: { fontSize: 14, fontWeight: 600, padding: '8px 16px', background: '#15803d', color: '#fff', borderRadius: 8, cursor: 'pointer' },
+  emailBtn: { fontSize: 14, fontWeight: 600, padding: '8px 16px', background: '#2563b0', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 12 },
   tile: { margin: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   media: { width: '100%', height: 180, objectFit: 'cover', background: '#f3f3f3', display: 'block' },

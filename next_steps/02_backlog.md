@@ -552,12 +552,16 @@ source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
    auto-confirms on first deploy), SES config-set event destination
    `sns-email-events` (SEND/BOUNCE/COMPLAINT/DELIVERY), `SES_CONFIG_SET` env
    set on BOTH App Runner regions. Full suite now 139 passing.
-   **Remaining email taskings (NOT cleared):** (a) merge the PR → deploy
-   (build_push.sh preserves the env); (b) confirm the SNS subscription
-   activates (auto-confirm hits the deployed endpoint; verify with
-   `aws sns list-subscriptions-by-topic`); (c) owner live-send test to
-   pmflani@gmail.com and watch the message status progress
-   submitted → delivered in the Sent history.
+   **✅ DEPLOYED (2026-11-10, PR #7 merged → build_push.sh digest
+   `bfd2c167…` → BOTH regions RUNNING + health 200).** SNS subscription
+   CONFIRMED (auto-confirm round-trip proven live: SNS → signed confirmation
+   → /api/email/events verified + fetched the SubscribeURL; the endpoint
+   correctly 403s unsigned garbage). The Email Center is LIVE in prod.
+   **Remaining email tasking (owner, ~2 min):** log in → Robert's profile →
+   Gallery → Email Center → compose (or ✨ Bedrock) → preview → send to
+   pmflani@gmail.com → watch the Sent history progress `submitted →
+   delivered` (the delivery event round-trips through SNS). Then Pass 5 is
+   ✅ DONE end-to-end.
 4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
    OWNER-GATED: needs EIN/sole-prop details, cost sign-off (~$3–11/mo), and
    recipient consent records before the AWS-side brand/campaign can be created.

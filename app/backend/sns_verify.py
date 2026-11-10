@@ -30,28 +30,19 @@ from cryptography.hazmat.primitives.asymmetric import padding
 # SNS hosts allowed to serve signing certs / subscription confirmation URLs.
 _SNS_HOST_RE = re.compile(r"^sns(\.[a-z0-9-]+)*\.amazonaws\.com$")
 
-# String-to-sign field order per SNS docs, by message Type.
-_STRING_TO_SIGN_FIELDS = {
-    "Notification": ["Message", "MessageId", "Timestamp", "TopicArn", "Type"],
-    "SubscriptionConfirmation": [
-        "Message",
-        "MessageId",
-        "SubscribeURL",
-        "Timestamp",
-        "Token",
-        "TopicArn",
-        "Type",
-    ],
-    "UnsubscribeConfirmation": [
-        "Message",
-        "MessageId",
-        "SubscribeURL",
-        "Timestamp",
-        "Token",
-        "TopicArn",
-        "Type",
-    ],
-}
+# String-to-sign: SNS includes each of these fields (alphabetical order) that
+# is PRESENT in the payload. Subject is optional and appears on SES event
+# notifications ("AWS Notification Message") — omitting it breaks verification.
+_STRING_TO_SIGN_FIELDS = [
+    "Message",
+    "MessageId",
+    "Subject",
+    "SubscribeURL",
+    "Timestamp",
+    "Token",
+    "TopicArn",
+    "Type",
+]
 
 
 class SnsVerificationError(ValueError):
@@ -82,16 +73,17 @@ def _load_public_key(cert_pem_or_der: bytes):
 
 def _string_to_sign(payload: dict) -> str:
     msg_type = payload.get("Type", "")
-    fields = _STRING_TO_SIGN_FIELDS.get(msg_type)
-    if not fields:
+    if msg_type not in ("Notification", "SubscriptionConfirmation", "UnsubscribeConfirmation"):
         raise SnsVerificationError(f"Unsupported SNS message Type: {msg_type!r}")
     if str(payload.get("SignatureVersion", "1")) != "1":
         raise SnsVerificationError("Only SignatureVersion 1 is supported")
     parts = []
-    for field in fields:
+    for field in _STRING_TO_SIGN_FIELDS:
         value = payload.get(field)
         if value is None:
-            raise SnsVerificationError(f"Missing SNS field for signing: {field}")
+            if field in ("Message", "MessageId", "Timestamp", "TopicArn", "Type"):
+                raise SnsVerificationError(f"Missing SNS field for signing: {field}")
+            continue  # Subject / SubscribeURL / Token are optional per type
         parts.append(f"{field}\n{value}\n")
     return "".join(parts)
 

@@ -170,11 +170,14 @@ def _signed_sns_payload(key, msg_type, message, subscribe_url=None):
         "SigningCertURL": "https://sns.test.amazonaws.com/cert.pem",
         "Message": message,
     }
+    if msg_type == "Notification":
+        # Real SES event notifications carry a Subject; SNS includes it in the
+        # string-to-sign. Keep it here so the test covers that exact shape.
+        payload["Subject"] = "AWS Notification Message"
     if subscribe_url:
         payload["SubscribeURL"] = subscribe_url
         payload["Token"] = "tok"
-    fields = sns_verify._STRING_TO_SIGN_FIELDS[msg_type]
-    sts = "".join(f"{f}\n{payload[f]}\n" for f in fields)
+    sts = "".join(f"{f}\n{payload[f]}\n" for f in sns_verify._STRING_TO_SIGN_FIELDS if f in payload)
     sig = key.sign(
         sts.encode(),
         __import__("cryptography").hazmat.primitives.asymmetric.padding.PKCS1v15(),

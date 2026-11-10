@@ -448,8 +448,8 @@ in incremental, rollback-friendly passes. Local-first; each pass is tested
 | — | Live-bug fixes (gallery body-size cap, honest upload errors, accurate 403 toast) | ✅ **MERGED + LIVE** (PR #4) |
 | 3 | **Direct-to-S3** large-video upload (initiate → presigned PUT → finalize); uploads-bucket CORS applied both regions | ✅ **MERGED + LIVE** (PR #5) |
 | 4 | **Contacts** directory (owner-scoped `contacts`, per-child `profile_contact_links`, `contact_methods`, groups), **media share grants** (hashed token, expiry, revoke, public `/share/{token}` resolver), role **sub-types** + dependent 2nd dropdown, dual email+phone, **method verification** (provider-agnostic sender) | ✅ **MERGED + LIVE** (PR #6). Email verification proven live in prod 2026-11-09. |
-| 5 — Email Center | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | 🔶 **LOCAL SLICE BUILT (5.1–5.4 + 5.6) on branch `feat/email-center-local` — PR open; 5.5 delivery events NOT built** |
-| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | 🔶 **TEASER LIVE locally** (flag-gated Converse assembler, policy-checked, never auto-sends); full pass (provenance/cost caps) not built |
+| 5 — Email Center | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | 🔶 **BUILT (5.1–5.6 incl. 5.5 delivery events + suppression + send cap) on branch `feat/email-center-local` — PR ready; AWS pipeline (SNS topic + SES config-set destination + CloudWatch alarm) provisioned** |
+| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | 🔶 **BUILT locally** (flag-gated Converse assembler + provenance gate: invented numbers/last-name/contact-name rejected; BEDROCK_MAX_TOKENS + BEDROCK_DAILY_AI_CAP cost caps; never auto-sends) |
 | 6 — SMS | One-way send (AWS End User Messaging), native-share fallback | ❌ not built (blocked on 10DLC) |
 | 7 — Inbound | SES receipt / SMS webhooks | ❌ not built (optional) |
 
@@ -541,10 +541,23 @@ source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
    the same policy, never auto-sent. Demoed end-to-end locally: photo
    attaches / video becomes a revocable share link / clinical leak → 422.
    See `next_steps/email_center_local_demo.md`.
-   **Remaining email taskings (NOT cleared):** (a) merge the PR → deploy;
-   (b) 5.5 delivery-event ingestion (SNS→endpoint + SES config set) +
-   CloudWatch send-cap alarm; (c) Bedrock 5b full pass (provenance checks,
-   cost caps) if promoted beyond teaser; (d) owner live-send verification.
+   **UPDATE 2026-11-10: 5.5 + 5b now BUILT on the same branch** (signature-
+   verified SNS ingestion at POST /api/email/events with auto-confirm;
+   bounce/complaint suppression; EMAIL_DAILY_SEND_CAP + CloudWatch alarm
+   `life-planning-ses-daily-sends`; Bedrock provenance gate + token/daily
+   caps; SesSender now tags sends with SES_CONFIG_SET). AWS pipeline
+   provisioned via CLI: SNS topic `life-planning-email-events` (SES-publish
+   policy scoped to the config set), subscription to
+   `https://life-planning.my-deployment.com/api/email/events` (pending —
+   auto-confirms on first deploy), SES config-set event destination
+   `sns-email-events` (SEND/BOUNCE/COMPLAINT/DELIVERY), `SES_CONFIG_SET` env
+   set on BOTH App Runner regions. Full suite now 139 passing.
+   **Remaining email taskings (NOT cleared):** (a) merge the PR → deploy
+   (build_push.sh preserves the env); (b) confirm the SNS subscription
+   activates (auto-confirm hits the deployed endpoint; verify with
+   `aws sns list-subscriptions-by-topic`); (c) owner live-send test to
+   pmflani@gmail.com and watch the message status progress
+   submitted → delivered in the Sent history.
 4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
    OWNER-GATED: needs EIN/sole-prop details, cost sign-off (~$3–11/mo), and
    recipient consent records before the AWS-side brand/campaign can be created.

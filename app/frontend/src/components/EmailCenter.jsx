@@ -17,6 +17,99 @@ import {
  * "logged" status, no real email). Bedrock AI drafting appears when enabled.
  * Readonly/child roles never reach this view (admin-only backend + gating).
  */
+/**
+ * SearchSelect — a lightweight searchable multi-select (type-to-filter
+ * dropdown + removable selected chips). Used for recipients, highlights,
+ * and media so the composer scales past a handful of items.
+ */
+function SearchSelect({ options, selected, onToggle, placeholder, emptyText }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const q = query.trim().toLowerCase()
+  const matches = q
+    ? options.filter((o) =>
+        `${o.label} ${o.sub || ''} ${o.keywords || ''}`.toLowerCase().includes(q),
+      )
+    : options
+  const selectedSet = new Set(selected)
+  return (
+    <div style={ss.wrap}>
+      <div style={ss.selectedRow}>
+        {selected.length === 0 && (
+          <span style={ss.none}>Nothing selected yet — search below.</span>
+        )}
+        {options
+          .filter((o) => selectedSet.has(o.id))
+          .map((o) => (
+            <span
+              key={o.id}
+              style={{ ...ss.selChip, ...(o.color ? { borderColor: o.color } : {}) }}
+            >
+              {o.icon ? `${o.icon} ` : ''}
+              {o.label}
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onToggle(o.id)}
+                style={ss.x}
+                title="Remove"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+      </div>
+      <input
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setQuery('')
+            setOpen(false)
+          }
+          if (e.key === 'Enter' && matches.length) {
+            onToggle(matches[0].id)
+            setQuery('')
+          }
+        }}
+        placeholder={placeholder}
+        style={ss.input}
+      />
+      {open && (
+        <div style={ss.list}>
+          {matches.length === 0 && (
+            <div style={ss.noMatch}>No matches{emptyText ? ` — ${emptyText}` : ''}.</div>
+          )}
+          {matches.map((o) => (
+            <button
+              key={o.id}
+              // preventDefault keeps focus in the input so onBlur doesn't close
+              // the list before the click registers.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onToggle(o.id)
+                setQuery('')
+              }}
+              style={{ ...ss.option, ...(selectedSet.has(o.id) ? ss.optionOn : {}) }}
+            >
+              <span>
+                {o.icon ? `${o.icon} ` : ''}
+                {o.label}
+                {o.sub ? <span style={ss.sub}> · {o.sub}</span> : null}
+              </span>
+              <span style={ss.check}>{selectedSet.has(o.id) ? '✓' : '+'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function EmailCenter({ profileId, profileName, onBack, canWrite }) {
   const [facts, setFacts] = useState(null)
   const [recipients, setRecipients] = useState([])
@@ -138,22 +231,19 @@ export default function EmailCenter({ profileId, profileName, onBack, canWrite }
       {recipients.length === 0 && (
         <p style={s.hint}>No linked contacts with email yet — add them in Contacts.</p>
       )}
-      <div style={s.chipWrap}>
-        {recipients.map((r) => (
-          <button
-            key={r.method_id}
-            onClick={() => toggle(selRecipients, setSelRecipients, r.method_id)}
-            style={{
-              ...s.chip,
-              ...(selRecipients.includes(r.method_id) ? s.chipOn : {}),
-              ...(selRecipients.includes(r.method_id) ? { borderColor: AUDIENCE_COLOR[r.audience] } : {}),
-            }}
-            title={`${r.audience} audience · ${r.verified ? 'verified' : 'NOT verified'}`}
-          >
-            {r.display_name} <span style={s.chipSub}>{r.audience}{r.verified ? '' : ' · unverified'}</span>
-          </button>
-        ))}
-      </div>
+      <SearchSelect
+        options={recipients.map((r) => ({
+          id: r.method_id,
+          label: r.display_name,
+          sub: `${r.audience}${r.verified ? '' : ' · NOT verified'}`,
+          keywords: r.address,
+          color: AUDIENCE_COLOR[r.audience],
+        }))}
+        selected={selRecipients}
+        onToggle={(id) => toggle(selRecipients, setSelRecipients, id)}
+        placeholder="Search recipients by name, role, or email…"
+        emptyText="try a different name or role"
+      />
       {mixed && <p style={s.warn}>⚠️ Mixed audiences selected — the server will require separate drafts.</p>}
 
       {/* Facts */}
@@ -161,32 +251,44 @@ export default function EmailCenter({ profileId, profileName, onBack, canWrite }
       {facts && facts.highlights.length === 0 && facts.recent_events.length === 0 && (
         <p style={s.hint}>No child-development objectives or events yet.</p>
       )}
-      <div style={s.chipWrap}>
-        {(facts?.highlights || []).map((h) => (
-          <button key={h.id} onClick={() => toggle(selFacts, setSelFacts, h.id)}
-            style={{ ...s.chip, ...(selFacts.includes(h.id) ? s.chipOn : {}) }}>
-            {h.title} <span style={s.chipSub}>{(h.status || '').replace('_', ' ')}</span>
-          </button>
-        ))}
-        {(facts?.recent_events || []).map((h) => (
-          <button key={`e${h.id}`} onClick={() => toggle(selFacts, setSelFacts, h.id)}
-            style={{ ...s.chip, ...(selFacts.includes(h.id) ? s.chipOn : {}) }}>
-            📎 {h.title}
-          </button>
-        ))}
-      </div>
+      <SearchSelect
+        options={[
+          ...(facts?.highlights || []).map((h) => ({
+            id: h.id,
+            label: h.title,
+            sub: (h.status || '').replace('_', ' '),
+            keywords: `${h.content || ''} ${h.category || ''}`,
+          })),
+          ...(facts?.recent_events || []).map((h) => ({
+            id: h.id,
+            label: h.title,
+            sub: 'recent event',
+            icon: '📎',
+            keywords: h.content || '',
+          })),
+        ]}
+        selected={selFacts}
+        onToggle={(id) => toggle(selFacts, setSelFacts, id)}
+        placeholder="Search highlights and events…"
+        emptyText="try a different word"
+      />
 
       {/* Media */}
       <h3 style={s.h3}>3 · Photos & videos</h3>
       <p style={s.hint}>Photos attach (within the 10 MiB email budget); videos always become private share links.</p>
-      <div style={s.chipWrap}>
-        {(facts?.media || []).map((m) => (
-          <button key={m.id} onClick={() => toggle(selMedia, setSelMedia, m.id)}
-            style={{ ...s.chip, ...(selMedia.includes(m.id) ? s.chipOn : {}) }}>
-            {m.media_type === 'video' ? '🎬' : m.media_type === 'photo' ? '🖼️' : '📄'} {m.name}
-          </button>
-        ))}
-      </div>
+      <SearchSelect
+        options={(facts?.media || []).map((m) => ({
+          id: m.id,
+          label: m.name,
+          sub: m.media_type,
+          icon: m.media_type === 'video' ? '🎬' : m.media_type === 'photo' ? '🖼️' : '📄',
+          keywords: `${m.observation || ''} ${m.mime_type || ''}`,
+        }))}
+        selected={selMedia}
+        onToggle={(id) => toggle(selMedia, setSelMedia, id)}
+        placeholder="Search photos and videos…"
+        emptyText="no media matches that search"
+      />
 
       {/* Note + compose */}
       <h3 style={s.h3}>4 · Note & compose</h3>
@@ -281,4 +383,20 @@ const s = {
   row: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, marginBottom: 6 },
   previewBox: { marginTop: 16, background: '#fbfbf7', border: '2px solid #d9e7ff', borderRadius: 12, padding: 14 },
   pre: { whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6, background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: 12, overflow: 'auto' },
+}
+
+// SearchSelect styles (scoped to the combobox so they don't leak into `s`).
+const ss = {
+  wrap: { position: 'relative', marginBottom: 6 },
+  selectedRow: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6, minHeight: 24 },
+  none: { fontSize: 12, color: '#8a8a8a', alignSelf: 'center' },
+  selChip: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '4px 8px', borderRadius: 14, border: '1px solid #2563b0', background: '#eaf2fd', fontWeight: 600 },
+  x: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#595959', padding: '0 2px', lineHeight: 1 },
+  input: { padding: '8px 10px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13, width: '100%', boxSizing: 'border-box' },
+  list: { position: 'absolute', zIndex: 30, left: 0, right: 0, top: '100%', marginTop: 2, background: '#fff', border: '1px solid #cdd4dc', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', maxHeight: 240, overflowY: 'auto' },
+  option: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 10px', background: 'none', border: 'none', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', fontSize: 13, color: '#1a1a1a' },
+  optionOn: { background: '#eaf2fd', fontWeight: 600 },
+  sub: { fontSize: 11, color: '#595959', fontWeight: 400 },
+  check: { color: '#2563b0', fontWeight: 700 },
+  noMatch: { padding: 10, fontSize: 12, color: '#8a8a8a' },
 }

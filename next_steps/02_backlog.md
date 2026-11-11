@@ -448,9 +448,9 @@ in incremental, rollback-friendly passes. Local-first; each pass is tested
 | — | Live-bug fixes (gallery body-size cap, honest upload errors, accurate 403 toast) | ✅ **MERGED + LIVE** (PR #4) |
 | 3 | **Direct-to-S3** large-video upload (initiate → presigned PUT → finalize); uploads-bucket CORS applied both regions | ✅ **MERGED + LIVE** (PR #5) |
 | 4 | **Contacts** directory (owner-scoped `contacts`, per-child `profile_contact_links`, `contact_methods`, groups), **media share grants** (hashed token, expiry, revoke, public `/share/{token}` resolver), role **sub-types** + dependent 2nd dropdown, dual email+phone, **method verification** (provider-agnostic sender) | ✅ **MERGED + LIVE** (PR #6). Email verification proven live in prod 2026-11-09. |
-| 5 — Email Center | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | 🔶 **BUILT (5.1–5.6 incl. 5.5 delivery events + suppression + send cap) on branch `feat/email-center-local` — PR ready; AWS pipeline (SNS topic + SES config-set destination + CloudWatch alarm) provisioned** |
-| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | 🔶 **BUILT locally** (flag-gated Converse assembler + provenance gate: invented numbers/last-name/contact-name rejected; BEDROCK_MAX_TOKENS + BEDROCK_DAILY_AI_CAP cost caps; never auto-sends) |
-| 6 — SMS | One-way send (AWS End User Messaging), native-share fallback | ❌ not built (blocked on 10DLC) |
+| 5 — Email Center | SES outbound, deterministic templates, recipient-policy validation, draft/preview/send, delivery events | ✅ **MERGED + LIVE (PR #7, 2026-11-10).** 5.1–5.6 complete incl. 5.5 delivery events (signature-verified SNS pipeline CONFIRMED live — Subject string-to-sign fix in PR #8), suppression, daily send cap, CloudWatch alarm. Owner live send: Gmail delivered; Yahoo delivered-to-spam (new-domain reputation — warm-up guidance given). |
+| 5b — Bedrock | Feature-flagged Converse draft assembler, provenance checks, human approval | ✅ **MERGED + LIVE (PR #7/#8).** Flag-gated (`BEDROCK_DRAFT_ENABLED=1`); provenance gate (invented numbers/last-name/contact-name rejected); BEDROCK_MAX_TOKENS + BEDROCK_DAILY_AI_CAP cost caps; never auto-sends. |
+| 6 — SMS | One-way send (AWS End User Messaging), native-share fallback | 📐 **DESIGNED — build plan agreed 2026-11-11 (see "Pass 6 — SMS Center" below).** Code slices ready to start on `feat/sms-center` (console-mode testable immediately); real carrier sends blocked on A2P 10DLC registration (owner-gated). |
 | 7 — Inbound | SES receipt / SMS webhooks | ❌ not built (optional) |
 
 ### What's on branch `feat/contacts-and-docs` (unmerged, 2026-11-09)
@@ -557,14 +557,23 @@ source. `pmflani@gmail.com` is SES-send-capable (proven 2026-11-09).
    CONFIRMED (auto-confirm round-trip proven live: SNS → signed confirmation
    → /api/email/events verified + fetched the SubscribeURL; the endpoint
    correctly 403s unsigned garbage). The Email Center is LIVE in prod.
-   **Remaining email tasking (owner, ~2 min):** log in → Robert's profile →
-   Gallery → Email Center → compose (or ✨ Bedrock) → preview → send to
-   pmflani@gmail.com → watch the Sent history progress `submitted →
-   delivered` (the delivery event round-trips through SNS). Then Pass 5 is
-   ✅ DONE end-to-end.
-4. Start the **SMS/10DLC** registration (long lead time — see Texting path).
-   OWNER-GATED: needs EIN/sole-prop details, cost sign-off (~$3–11/mo), and
-   recipient consent records before the AWS-side brand/campaign can be created.
+   **✅ LIVE-SEND DONE (2026-11-10/11).** Owner sent real Email Center messages:
+   Gmail delivered (pmflani@gmail.com); a Yahoo recipient received it in the
+   spam folder — diagnosed as new-domain reputation filtering (DNS auth is
+   solid: DKIM-aligned, SPF present, DMARC p=none), not an auth fault.
+   Remediation = recipient "Not spam" clicks + replies + regular sending
+   (reputation warm-up); nothing to fix in the app. **Pass 5 is ✅ DONE
+   end-to-end.**
+4. **SMS (Pass 6) — build plan AGREED (2026-11-11, see "Pass 6 — SMS Center"
+   below).** Option A chosen: full SMS Center mirroring the Email Center
+   architecture, as a channel tab inside the Email Center. **Owner decision:
+   the v6 handoff's "omit child name/age/diagnosis" rule is DROPPED** —
+   disclosure is recipient-class-based (identical to email), names included.
+   Code slices (1–4) are console-mode testable immediately and do NOT need
+   10DLC; Slice 5 (A2P 10DLC brand/campaign/number via CLI) is OWNER-GATED:
+   needs EIN/sole-prop details, business address, and cost sign-off
+   (~$3–11/mo). Text-only MVP confirmed direction (media as share links;
+   MMS via send-media-message as a later slice).
 
 ### Texting path (SMS) — what it takes
 
@@ -707,3 +716,96 @@ relationship sub-types, verified methods, groups; media share grants (public
 - [ ] Readonly/child cannot compose/send; all routes profile-scoped.
 - [ ] Adversarial tests (MAIL-01..07, EMAIL-04/05, CONTACT-03, PRIV-04) green;
       device-eval + existing suites green; one real live send verified by owner.
+
+---
+
+## 6 — SMS Center (v6 Pass 6) — BUILD PLAN (agreed 2026-11-11; not started)
+
+Goal: one-way SMS updates to consented, verified phone contacts — same
+architecture and audit discipline as the Email Center, reusing its data model
+and patterns. **Decision record (owner, 2026-11-11):**
+
+- **Option A chosen**: full SMS Center mirroring the Email Center (drafts →
+  exact preview → explicit send → per-recipient immutable messages → delivery
+  events), implemented as a **channel tab inside the Email Center** ("✉️ Email
+  | 💬 SMS"), NOT a separate top-level section.
+- **The v6 handoff's "omit child name/age/diagnosis" rule is DROPPED** (owner
+  decision: "the goal of this messaging app is to get what we need to the
+  person — we should not omit things"). Disclosure is **recipient-class-based**,
+  identical to email: family/educator get highlights + media links + schedule;
+  clinicians additionally get clinical content only with the explicit
+  `include_clinical` opt-in. Names are included freely. One informational
+  (non-blocking) composer note: "SMS content is visible on lock screens and in
+  carrier logs."
+- **Text-only MVP**: photos/videos ride as app share links (already built);
+  MMS via `send-media-message` is a later slice if wanted.
+
+### Design (what makes SMS different from email — and what doesn't)
+
+- **ZERO new tables**: `message_drafts` and `messages` already carry
+  `channel` — SMS rows use `channel='sms'`. Same idempotency, outbox, and
+  immutable-snapshot machinery.
+- **Consent gating (TCPA)**: a phone method without `consent_at` set cannot be
+  texted — hard requirement, same pattern as email's verified-only rule.
+  Suppression via `opted_out_at` is reused (and fed by OPTED_OUT events).
+- **Segment budget**: 160 chars/segment (GSM-7) or 70 (UCS-2/emoji);
+  concatenated segments multiply cost and can arrive split. The exact preview
+  shows segment count; a hard cap (~5 segments) prevents accidental bills.
+- **Sender**: `notify.SmsSender` (AWS End User Messaging
+  `pinpoint-sms-voice-v2 send-text-message`) — already implemented, inert until
+  `NOTIFY_SMS_BACKEND=aws` + `NOTIFY_SMS_ORIGINATION` are set; console backend
+  works locally today.
+- **Events**: AWS End User Messaging event destinations (SNS) with SMS event
+  types (SENT/DELIVERED/FAILED/OPTED_OUT) — payload shape differs from SES
+  events, so the ingestion route gains an SMS branch (or sibling route) mapping
+  them onto `message_events` + message status; OPTED_OUT feeds suppression.
+- **Cost guard**: `SMS_DAILY_SEND_CAP` mirroring the email cap.
+
+### Build slices (each independently shippable; console-mode testable without 10DLC)
+
+- **Slice 1 — SMS policy + validation core**: channel-aware disclosure
+  validation (same audience classes as email; NO name-scrub per owner
+  decision), segment-count computation + hard cap, consent gating.
+- **Slice 2 — Send path**: drafts/preview/send with `channel='sms'` through
+  `get_sms_sender()`; per-recipient immutable messages; idempotency key
+  `sms:d{draft}:m{method}`; `SMS_DAILY_SEND_CAP`; suppression reuse.
+- **Slice 3 — Frontend**: channel tabs in Email Center; recipients filtered to
+  verified + consented phone methods; SMS preview with segment count and the
+  lock-screen note; sent history.
+- **Slice 4 — Event ingestion**: End User Messaging event destination → SNS →
+  ingestion → statuses (mirrors the proven email pipeline).
+- **Slice 5 — OWNER-GATED AWS provisioning**: A2P 10DLC Brand registration
+  (needs EIN or sole-prop identity details + business address from the owner),
+  Campaign registration (use case: low-volume transactional family
+  notifications; sample messages required), rent a 10DLC long-code origination
+  number (~$1/mo + campaign ~$2–10/mo), then `NOTIFY_SMS_BACKEND=aws` +
+  `NOTIFY_SMS_ORIGINATION` env in BOTH regions, and the live test to
+  540-209-0256. Carrier vetting takes days–weeks — start as early as the owner
+  provides the inputs.
+
+### Definition of done (Pass 6)
+- [ ] SMS draft → exact preview (with segment count) → explicit send →
+      End User Messaging, with truthful status.
+- [ ] Recipient-class disclosure (identical to email) enforced; mixed
+      audiences separated; private worries never included.
+- [ ] Consent gating enforced (no text without `consent_at`); suppression
+      honored and fed by OPTED_OUT events.
+- [ ] Per-recipient sends; idempotent; `SMS_DAILY_SEND_CAP` enforced.
+- [ ] SMS event ingestion live (SENT/DELIVERED/FAILED/OPTED_OUT → statuses).
+- [ ] Readonly/child cannot compose/send; all routes profile-scoped.
+- [ ] Adversarial tests green; one real live SMS to 540-209-0256 verified by
+      owner.
+
+---
+
+## Ops follow-up (spotted 2026-11-10, non-urgent)
+
+**Litestream S3 retention is failing in prod**: the App Runner instance role
+lacks `s3:DeleteObject` on the DB replica bucket
+(`life-planning-db-986c194983eeadd8a9813e5b`), so Litestream cannot prune
+expired L0 segments (~44 files/cycle; `l0 retention enforcement failed` in
+logs). **No data loss** — replica hygiene only (S3 accumulates old segments).
+Fix options: (a) grant `s3:DeleteObject` on the DB bucket to
+`life-planning-apprunner-instance` (scoped to the bucket), or (b) accept the
+growth and clean up manually/periodically. Recommend (a) at the next
+deploy-window touch.

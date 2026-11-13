@@ -499,6 +499,21 @@ BOUNTIES = [
         "reset_days": None,
     },
     {
+        "tier": "silver",
+        "title": "First Solo Transit: Destination of Your Choice",
+        "description": "Plan and complete your first public-transportation trip alone — you choose the destination, you build the route, you get there and back.",
+        "requirements": "First, agree with a parent on the minimum straight-line distance from home (recommended: at least 3 miles / 5 km) and the check-in protocol (a message or call at departure, on arrival, and before the return trip). Then: (1) Choose a destination you actually want to reach — a library, a store, a park, a museum — your choice, not an errand assigned to you. (2) Plan the full route yourself using transit maps or schedule apps: which line or bus, where transfers happen, fare cost each way, departure and arrival times, and the backup plan if you miss a connection. (3) Make the round trip solo: pay your own fare, board the right vehicle, handle any transfers, reach the destination, and return. (4) Document it: the route plan, fare evidence (receipt or transit card), a photo at the destination, and a short trip report — one thing that surprised you, one mistake you almost made, and what you would do differently next time.",
+        "criteria": "Complete when the child makes the round trip solo to the self-chosen destination at or beyond the agreed minimum distance, follows the check-in protocol, and delivers the four documentation items (route plan, fare evidence, destination photo, trip report). A parent confirms the distance and that no adult accompanied the trip.",
+        "reference": "docs/16_life_skills_practical_competence.md",
+        "reward_amount": 500,
+        "pillar": "life_skills",
+        "age_band": "6-12",
+        "category": "independent_mobility",
+        "repeatable": 0,
+        "decay_divisor": None,
+        "reset_days": None,
+    },
+    {
         "tier": "bronze",
         "title": "PMCS Monthly: Learning the Vehicle",
         "description": "Perform a monthly walk-around inspection on the family vehicle. Learn what to check and why maintenance matters before you can drive.",
@@ -3815,6 +3830,11 @@ MILESTONES = {
         {"age_band": "6-12", "title": "Cooking basics", "category": "Exploration"},
         {"age_band": "6-12", "title": "Cleaning", "category": "Exploration"},
         {"age_band": "6-12", "title": "Organization", "category": "Exploration"},
+        {
+            "age_band": "6-12",
+            "title": "First solo public-transit trip to a self-chosen destination (minimum distance set by parents)",
+            "category": "Exploration",
+        },
         {
             "age_band": "6-12",
             "title": "Buckslip habit: carries something to write on and a pen at all times — captures thoughts, observations, questions, and commitments before they disappear",

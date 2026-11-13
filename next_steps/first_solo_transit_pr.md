@@ -83,4 +83,3 @@ accompanied planned transit trip, then first solo trip.
   regular independent multi-modal transit use
 
 ## PR_URL
-

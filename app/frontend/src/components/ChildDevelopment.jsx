@@ -3,12 +3,20 @@ import {
   fetchCDOverview, fetchCDAgeGroup, seedCDAgeGroup, deactivateCDAgeGroup,
   fetchCDWorries, saveCDWorries, updateEntry, deleteEntry, createEntry,
   fetchGallery, smartUploadGalleryMedia, linkGalleryObjective, unlinkGalleryObjective,
+  createCDDomain, renameCDDomain, deleteCDDomain,
 } from '../services/api'
 
 const MARKS = [
   { key: 'not_started', label: 'not yet' },
   { key: 'in_progress', label: 'emerging' },
-  { key: 'complete', label: 'practicing' },
+  { key: 'complete', label: 'doing' },
+]
+
+// The legend shown on the page and on the printed stage sheet.
+const LEGEND = [
+  { label: 'not yet', text: 'not observed in this stage yet — every child moves at their own pace' },
+  { label: 'emerging', text: 'attempted sometimes or with help — the skill is forming' },
+  { label: 'doing', text: 'done reliably and independently' },
 ]
 
 
@@ -88,10 +96,79 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
     setAgeBand(null)
     setBusy(false)
   }
+  // Idempotent top-up: adds any checklist items added to the corpus since this
+  // age group was first seeded (skips everything already present).
+  const syncChecklist = async () => {
+    setBusy(true)
+    const r = await seedCDAgeGroup(profileId, ageBand)
+    await loadGroup(ageBand)
+    setBusy(false)
+    if (r && typeof r.created === 'number') {
+      alert(r.created > 0 ? `${r.created} new checklist item(s) added.` : 'Checklist is already up to date.')
+    }
+  }
+  // Print: browsers use document.title as the default "Save as PDF" filename.
+  const printSheet = () => {
+    const now = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    const fname = [
+      `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`,
+      `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`,
+      ageBand,
+      profileName,
+    ].join('-')
+    const prev = document.title
+    document.title = fname
+    window.print()
+    document.title = prev
+  }
+  const renameDomain = async (domainKey, domainLabel) => {
+    const name = prompt(`Rename "${domainLabel}" to:`, domainLabel)
+    if (!name || !name.trim() || name.trim() === domainLabel) return
+    setBusy(true)
+    try {
+      await renameCDDomain(profileId, ageBand, domainKey, name.trim())
+      await loadGroup(ageBand)
+    } catch (e) {
+      alert(e.message || 'Rename failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const removeDomain = async (domainKey, domainLabel, itemCount) => {
+    if (!confirm(`Delete the "${domainLabel}" category and its ${itemCount} objective(s)? Accomplishment photos stay in the Gallery.`)) return
+    setBusy(true)
+    try {
+      await deleteCDDomain(profileId, ageBand, domainKey)
+      await loadGroup(ageBand)
+    } catch (e) {
+      alert(e.message || 'Delete failed')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div style={s.container}>
-      <button onClick={() => setAgeBand(null)} style={s.back}>&larr; All age groups</button>
+      <style>{`
+        @media print {
+          .cd-no-print { display: none !important; }
+          .cd-print-header { display: block !important; }
+        }
+        .cd-print-header { display: none; }
+      `}</style>
+      <button onClick={() => setAgeBand(null)} className="cd-no-print" style={s.back}>&larr; All age groups</button>
+      {/* Print-only header: names the saved PDF and carries the legend */}
+      <div className="cd-print-header" style={{ marginBottom: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 18 }}>{profileName} — {group ? group.label : ageBand} Development Checklist</h2>
+        <p style={{ margin: '2px 0 6px', fontSize: 12 }}>
+          Printed {new Date().toLocaleString()} · Child Development · Early Growth Markers
+        </p>
+        <p style={{ margin: 0, fontSize: 11 }}>
+          <strong>Legend:</strong>{' '}
+          {LEGEND.map(l => `${l.label} = ${l.text}`).join(' · ')}
+        </p>
+      </div>
       <div style={s.header}>
         <span style={{ fontSize: 30 }}>🌿</span>
         <div>
@@ -100,11 +177,21 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
         </div>
       </div>
 
+      {/* Legend — how to mark */}
+      <div style={s.legend}>
+        <strong style={{ fontSize: 12 }}>How to mark:</strong>{' '}
+        {LEGEND.map(l => (
+          <span key={l.label} style={{ fontSize: 12, color: '#595959' }}>
+            <strong>{l.label}</strong> — {l.text}{'  '}
+          </span>
+        ))}
+      </div>
+
       {!group && <p style={{ color: '#595959' }}>Loading…</p>}
 
       {group && !hasObjectives && (
         <div style={{ textAlign: 'center', padding: 24 }}>
-          <p style={{ color: '#595959' }}>This age group isn&apos;t active yet.</p>
+          <p style={{ color: '#595959' }}>This age group isn't active yet.</p>
           {canWrite && (
             <button onClick={activate} disabled={busy} style={s.primaryBtn}>
               {busy ? 'Adding…' : 'Add this age group'}
@@ -119,7 +206,25 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
             const items = (group.objectives[domainKey] || [])
             return (
               <div key={domainKey} style={s.domain}>
-                <h3 style={{ margin: '0 0 6px', fontSize: 15 }}>{domainLabel}</h3>
+                <h3 style={{ margin: '0 0 6px', fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ flex: 1 }}>{domainLabel}</span>
+                  {canWrite && (
+                    <span className="cd-no-print" style={{ display: 'flex', gap: 2 }}>
+                      <button
+                        className="tap-target"
+                        onClick={() => renameDomain(domainKey, domainLabel)}
+                        style={s.iconBtn}
+                        title="Rename this category"
+                      >✎</button>
+                      <button
+                        className="tap-target"
+                        onClick={() => removeDomain(domainKey, domainLabel, items.length)}
+                        style={{ ...s.iconBtn, color: '#c0392b' }}
+                        title="Delete this category and its objectives"
+                      >✕</button>
+                    </span>
+                  )}
+                </h3>
                 {items.length === 0 && <p style={{ fontSize: 12, color: '#595959', margin: '0 0 8px' }}>No objectives.</p>}
                 {items.map(obj => (
                   <ObjectiveRow
@@ -142,10 +247,17 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
             )
           })}
 
+          {canWrite && <AddDomain profileId={profileId} ageBand={ageBand} onAdded={() => loadGroup(ageBand)} />}
+
           <Notes profileId={profileId} ageBand={ageBand} canWrite={canWrite} adminUser={adminUser} />
 
-          <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button onClick={() => window.print()} style={s.secondaryBtn}>🖨️ Print stage sheet</button>
+          <div className="cd-no-print" style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={printSheet} style={s.secondaryBtn}>🖨️ Print stage sheet</button>
+            {canWrite && (
+              <button onClick={syncChecklist} disabled={busy} style={s.smallGray} title="Adds any checklist items added to the app since this age group was first created. Never changes your marks or custom items.">
+                {busy ? 'Checking…' : '⟳ Sync new checklist items'}
+              </button>
+            )}
             {adminUser && <button onClick={deactivate} disabled={busy} style={s.dangerBtn}>Remove this age group</button>}
           </div>
         </>
@@ -158,9 +270,24 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
   const [photos, setPhotos] = useState(null)
   const [showPhotos, setShowPhotos] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [draftTitle, setDraftTitle] = useState('')
 
   const setMark = async (statusKey) => {
     await updateEntry(profileId, obj.id, { status: statusKey })
+    onChanged()
+  }
+  const startEdit = () => {
+    setDraftTitle(obj.title)
+    setEditing(true)
+  }
+  const saveEdit = async () => {
+    if (!draftTitle.trim() || draftTitle.trim() === obj.title) {
+      setEditing(false)
+      return
+    }
+    await updateEntry(profileId, obj.id, { title: draftTitle.trim() })
+    setEditing(false)
     onChanged()
   }
   const remove = async () => {
@@ -198,7 +325,21 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
   return (
     <div style={s.objRow}>
       <div style={{ flex: 1 }}>
-        <span style={{ fontSize: 14 }}>{obj.title}</span>
+        {editing ? (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              value={draftTitle}
+              onChange={e => setDraftTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false) }}
+              style={{ ...s.input, flex: 1 }}
+              autoFocus
+            />
+            <button onClick={saveEdit} style={s.smallBtn}>Save</button>
+            <button onClick={() => setEditing(false)} style={s.smallGray}>Cancel</button>
+          </div>
+        ) : (
+          <span style={{ fontSize: 14 }}>{obj.title}</span>
+        )}
         <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {MARKS.map(m => {
             const on = obj.status === m.key
@@ -211,7 +352,10 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <button className="tap-target" onClick={loadPhotos} style={s.iconBtn} title="Accomplishment photos &amp; videos">📷</button>
+        {canWrite && !editing && (
+          <button className="tap-target" onClick={startEdit} style={s.iconBtn} title="Edit this objective">✎</button>
+        )}
+        <button className="tap-target" onClick={loadPhotos} style={s.iconBtn} title="Accomplishment photos & videos">📷</button>
         {canWrite && <button className="tap-target" onClick={remove} style={s.iconBtn} title="Delete objective">✕</button>}
       </div>
       {showPhotos && (
@@ -255,6 +399,49 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function AddDomain({ profileId, ageBand, onAdded }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [firstItem, setFirstItem] = useState('')
+  const [error, setError] = useState('')
+  const add = async () => {
+    if (!name.trim()) return
+    setError('')
+    try {
+      await createCDDomain(profileId, ageBand, name.trim(), firstItem.trim() || null)
+      setName('')
+      setFirstItem('')
+      setOpen(false)
+      onAdded()
+    } catch (e) {
+      setError(e.message || 'Could not add category')
+    }
+  }
+  if (!open) return <button onClick={() => setOpen(true)} style={s.addBtn}>+ Add a category</button>
+  return (
+    <div style={{ background: '#f9fbf9', border: '1px dashed #cdd8ce', borderRadius: 10, padding: 10, marginBottom: 12 }}>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Category name (e.g. Self-help skills)"
+        style={{ ...s.input, width: '100%', boxSizing: 'border-box' }}
+        autoFocus
+      />
+      <input
+        value={firstItem}
+        onChange={e => setFirstItem(e.target.value)}
+        placeholder="First objective (optional — add more after)"
+        style={{ ...s.input, width: '100%', boxSizing: 'border-box', marginTop: 6 }}
+      />
+      {error && <p style={{ fontSize: 12, color: '#c0392b', margin: '6px 0 0' }}>{error}</p>}
+      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+        <button onClick={add} style={s.smallBtn}>Add category</button>
+        <button onClick={() => { setOpen(false); setName(''); setFirstItem(''); setError('') }} style={s.smallGray}>Cancel</button>
+      </div>
     </div>
   )
 }
@@ -341,4 +528,5 @@ const s = {
   secondaryBtn: { padding: '9px 18px', background: '#2563b0', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
   dangerBtn: { padding: '9px 18px', background: '#fdecea', color: '#c0392b', border: '1px solid #f3c6c0', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
   noteBox: { background: '#fffdf5', border: '1px solid #efe6c8', borderRadius: 10, padding: 12 },
+  legend: { background: '#f4f7f4', border: '1px solid #e2ebe2', borderRadius: 8, padding: '8px 10px', marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 10 },
 }

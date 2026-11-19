@@ -483,6 +483,45 @@ export async function saveCDWorries(profileId, ageBand, content) {
   return res.json()
 }
 
+// --- Child Development domain (category) CRUD --------------------------------
+
+export async function createCDDomain(profileId, ageBand, name, firstItem = null) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/${ageBand}/domains`, {
+    method: 'POST', headers: headers(), body: JSON.stringify({ name, first_item: firstItem }),
+  })
+  if (!res.ok) {
+    let detail = `Could not add category (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function renameCDDomain(profileId, ageBand, domainKey, name) {
+  const res = await fetch(
+    `/api/profiles/${profileId}/child-development/${ageBand}/domains/${encodeURIComponent(domainKey)}`,
+    { method: 'PATCH', headers: headers(), body: JSON.stringify({ name }) },
+  )
+  if (!res.ok) {
+    let detail = `Could not rename category (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+  return res.json()
+}
+
+export async function deleteCDDomain(profileId, ageBand, domainKey) {
+  const res = await fetch(
+    `/api/profiles/${profileId}/child-development/${ageBand}/domains/${encodeURIComponent(domainKey)}`,
+    { method: 'DELETE', headers: headers() },
+  )
+  if (!res.ok && res.status !== 204) {
+    let detail = `Could not delete category (HTTP ${res.status})`
+    try { const b = await res.json(); if (b?.detail) detail = typeof b.detail === 'string' ? b.detail : detail } catch { /* noop */ }
+    throw new Error(detail)
+  }
+}
+
 // --- Gallery (canonical child media) -----------------------------------------
 
 export async function fetchGallery(profileId, { ageBand, mediaType, objectiveId } = {}) {

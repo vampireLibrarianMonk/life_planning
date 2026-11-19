@@ -45,11 +45,13 @@ RUN apt-get update \
 # with the instance role's AWS creds, so a tampered/retagged asset = RCE).
 # Upgraded to v0.5.17 (2026-10-31) — the old v0.3.13 build triggered ~60 Trivy
 # findings from its stale Go stdlib/x-crypto; v0.5.17 is built with a current Go.
-# SHA256 is for the official v0.5.17 linux-x86_64 release artifact.
+# Upgraded to v0.5.18 (2026-11-19) — v0.5.17's Go stdlib (1.25.14) triggered
+# Trivy CVE-2026-97054 (HTTP/1 MaxBytesReader); v0.5.18 is built with a patched Go.
+# SHA256 is for the official v0.5.18 linux-x86_64 release artifact.
 # pipefail so a failed download/checksum aborts the piped sha256sum -c.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-ARG LITESTREAM_VERSION=0.5.17
-ARG LITESTREAM_SHA256=cfb371176d164437ae869f8351cfde49bd1804ae71c61923f75c9cba9c9c006d
+ARG LITESTREAM_VERSION=0.5.18
+ARG LITESTREAM_SHA256=d3687b9fd0f2e9426bbd3da828429ff3f1dfc5c9b74d54fdf028e4ee510e7dea
 RUN set -eux; \
     curl -fsSL -o /tmp/litestream.tar.gz \
       "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-x86_64.tar.gz"; \

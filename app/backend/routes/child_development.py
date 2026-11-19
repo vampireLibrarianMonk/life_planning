@@ -314,9 +314,7 @@ def create_domain(
     cat = category_for(domain_key)
     existing = [r for r in _cd_objective_rows(db, profile_id) if r.age_band == age_band]
     if any(r.category == cat for r in existing) and not req.first_item:
-        raise HTTPException(
-            status_code=409, detail="That domain already exists for this age group"
-        )
+        raise HTTPException(status_code=409, detail="That domain already exists for this age group")
     row = PillarEntry(
         profile_id=profile_id,
         pillar=CD_PILLAR,
@@ -366,9 +364,7 @@ def rename_domain(
         raise HTTPException(status_code=404, detail="Domain not found for this age group")
     new_cat = category_for(new_key)
     if new_key != domain_key and any(
-        r.category == new_cat
-        for r in _cd_objective_rows(db, profile_id)
-        if r.age_band == age_band
+        r.category == new_cat for r in _cd_objective_rows(db, profile_id) if r.age_band == age_band
     ):
         raise HTTPException(
             status_code=409, detail="A domain with that name already exists for this age group"

@@ -268,7 +268,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
         ],
         "communication": [
             "Says around 50 words and keeps adding more.",
-            "Puts two or more words together with meaning (\"want juice,\" \"go park\").",
+            'Puts two or more words together with meaning ("want juice," "go park").',
             "Points to things in books when named.",
         ],
         "thinking": [

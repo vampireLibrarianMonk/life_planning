@@ -14,7 +14,7 @@ Each objective becomes a PillarEntry row at seed time:
   is_milestone = 1 ; status defaults to "not_started" (= the "not yet" mark)
 
 Tri-state marks map onto the existing status ladder:
-  not yet -> not_started | emerging -> in_progress | practicing -> complete
+  not yet -> not_started | emerging -> in_progress | doing -> complete
 """
 
 # Storage constants
@@ -39,6 +39,7 @@ AGE_GROUPS = {
     "12mo": 12,
     "18mo": 18,
     "24mo": 24,
+    "30mo": 30,
     "36mo": 36,
     "48mo": 48,
     "60mo": 60,
@@ -52,6 +53,7 @@ AGE_GROUP_LABELS = {
     "12mo": "~12 Months",
     "18mo": "~18 Months",
     "24mo": "~24 Months (2 years)",
+    "30mo": "~30 Months (2.5 years)",
     "36mo": "~36 Months (3 years)",
     "48mo": "~48 Months (4 years)",
     "60mo": "~60 Months (5 years)",
@@ -89,6 +91,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Smiles on their own to get your attention.",
             "Enjoys playing with people and may cry when play stops.",
             "Mirrors expressions like a smile or frown.",
+            "Chuckles (laughs) — especially during play or peekaboo.",
         ],
         "communication": [
             'Babbles with expression and takes "turns" making sounds with you.',
@@ -115,11 +118,13 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Knows familiar faces and may begin to notice strangers.",
             "Enjoys looking at themselves in a mirror.",
             "Reacts when someone nearby seems happy or upset.",
+            "Laughs out loud.",
         ],
         "communication": [
             'Takes turns making sounds; strings vowels together ("ah," "eh," "oh").',
             "Responds to their name being called.",
             "Makes sounds to show pleasure or displeasure.",
+            "Blows raspberries (makes motorboat sounds with their lips).",
         ],
         "thinking": [
             "Looks around at nearby things with curiosity.",
@@ -156,6 +161,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Sits well without support.",
             "Gets into a sitting position by themselves.",
             'Pulls up to stand and may begin to "cruise."',
+            "Begins to crawl (or scoots and army-crawls to get around).",
         ],
         "fine_motor": [
             "Bangs two objects together.",
@@ -190,6 +196,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Picks up a small item with a refined pincer grasp (thumb + one fingertip).",
             "Points or pokes with one finger.",
             "Finger-feeds themselves small, soft pieces of food.",
+            "Drinks from an open cup with help.",
         ],
     },
     "18mo": {
@@ -209,6 +216,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Plays simple pretend, like feeding a doll.",
             "Points to get your attention to something.",
             "Scribbles on their own.",
+            "Copies you doing chores, like sweeping or wiping a table.",
         ],
         "gross_motor": [
             "Walks on their own.",
@@ -226,12 +234,15 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Copies others, especially adults and older children.",
             "Gets excited around other children.",
             "Plays alongside other children rather than directly with them.",
+            "Notices when others are hurt or upset — pauses or looks sad when someone is crying.",
+            "Looks at your face to see how you react to a new situation.",
         ],
         "communication": [
             'Says two-word phrases ("more milk," "go outside").',
             "Points to things in a book when named.",
             "Follows simple two-step instructions.",
             "Familiar people can understand much of their speech.",
+            "Says at least 50 words.",
         ],
         "thinking": [
             "Finds an object even after seeing it hidden under a cover.",
@@ -246,6 +257,34 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
         "fine_motor": [
             "Builds a small tower of several blocks.",
             "Scribbles and may imitate a straight line.",
+            "Uses both hands together — turns pages, opens doors, twists lids.",
+        ],
+    },
+    "30mo": {
+        "social_emotional": [
+            "Plays pretend with more detail (cooks food, talks on a toy phone).",
+            "Follows simple routines and helps with cleanup.",
+            "Shows a widening range of emotions — excitement, pride, frustration.",
+        ],
+        "communication": [
+            "Says around 50 words and keeps adding more.",
+            "Puts two or more words together with meaning (\"want juice,\" \"go park\").",
+            "Points to things in books when named.",
+        ],
+        "thinking": [
+            "Uses both hands together — turns pages, opens doors, twists lids.",
+            "Begins to sort shapes and colors.",
+            "Enjoys simple matching games.",
+        ],
+        "gross_motor": [
+            "Jumps with both feet leaving the ground.",
+            "Climbs on and off furniture and playground steps.",
+            "Walks and runs with more coordination.",
+        ],
+        "fine_motor": [
+            "Turns book pages one at a time.",
+            "Takes off some clothes by themselves (a hat, socks).",
+            "Begins to draw straight lines and circles.",
         ],
     },
     "36mo": {
@@ -253,6 +292,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Takes turns in simple games (with reminders).",
             "Shows concern when a playmate is upset.",
             "Separates from caregivers more easily.",
+            "Calms within about 10 minutes after you leave (like at drop-off).",
         ],
         "communication": [
             "Speaks in short sentences of 3+ words.",
@@ -274,6 +314,8 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Turns book pages one at a time.",
             "Copies a circle with a crayon.",
             "Builds a taller tower of blocks.",
+            "Strings large beads or pasta onto a string.",
+            "Puts on some loose clothes by themselves (pants, a coat).",
         ],
     },
     "48mo": {
@@ -281,6 +323,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Enjoys cooperative play and make-believe with other children.",
             "Would rather play with other children than alone.",
             "Talks about what they like and are interested in.",
+            "Pretends to be something else during play (a teacher, a superhero, a dinosaur).",
         ],
         "communication": [
             "Tells a simple story or recounts part of their day.",
@@ -301,6 +344,8 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Draws a person with a few body parts (roughly two to four).",
             "Uses child-safe scissors with help.",
             "Copies simple shapes like a plus sign and a few uppercase letters.",
+            "Pours and fills with little spilling.",
+            "Unbuttons some buttons.",
         ],
     },
     "60mo": {
@@ -328,6 +373,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Draws a person with at least 6 body parts.",
             "Prints some letters and numbers.",
             "Uses a fork and spoon well.",
+            "Buttons some buttons by themselves.",
         ],
     },
 }

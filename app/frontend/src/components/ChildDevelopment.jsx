@@ -14,9 +14,9 @@ const MARKS = [
 
 // The legend shown on the page and on the printed stage sheet.
 const LEGEND = [
-  { label: 'not yet', text: 'not observed in this stage yet — every child moves at their own pace' },
-  { label: 'emerging', text: 'attempted sometimes or with help — the skill is forming' },
-  { label: 'doing', text: 'done reliably and independently' },
+  { label: 'not yet', text: 'not observed in this stage yet. Every child moves at their own pace.' },
+  { label: 'emerging', text: 'attempted sometimes or with help. The skill is forming.' },
+  { label: 'doing', text: 'done reliably and independently.' },
 ]
 
 
@@ -164,10 +164,16 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
         <p style={{ margin: '2px 0 6px', fontSize: 12 }}>
           Printed {new Date().toLocaleString()} · Child Development · Early Growth Markers
         </p>
-        <p style={{ margin: 0, fontSize: 11 }}>
-          <strong>Legend:</strong>{' '}
-          {LEGEND.map(l => `${l.label} = ${l.text}`).join(' · ')}
-        </p>
+        <div style={{ margin: 0, fontSize: 11 }}>
+          <strong>Legend:</strong>
+          <ul style={{ margin: '2px 0 0', paddingLeft: 16 }}>
+            {LEGEND.map(l => (
+              <li key={l.label}>
+                <strong>{l.label}</strong>: {l.text}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
       <div style={s.header}>
         <span style={{ fontSize: 30 }}>🌿</span>
@@ -179,12 +185,14 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
 
       {/* Legend — how to mark */}
       <div style={s.legend}>
-        <strong style={{ fontSize: 12 }}>How to mark:</strong>{' '}
-        {LEGEND.map(l => (
-          <span key={l.label} style={{ fontSize: 12, color: '#595959' }}>
-            <strong>{l.label}</strong> — {l.text}{'  '}
-          </span>
-        ))}
+        <strong style={{ fontSize: 12 }}>How to mark:</strong>
+        <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+          {LEGEND.map(l => (
+            <li key={l.label} style={{ fontSize: 12, color: '#595959' }}>
+              <strong>{l.label}</strong>: {l.text}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {!group && <p style={{ color: '#595959' }}>Loading…</p>}

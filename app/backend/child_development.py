@@ -91,7 +91,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Smiles on their own to get your attention.",
             "Enjoys playing with people and may cry when play stops.",
             "Mirrors expressions like a smile or frown.",
-            "Chuckles (laughs) — especially during play or peekaboo.",
+            "Chuckles (laughs), especially during play or peekaboo.",
         ],
         "communication": [
             'Babbles with expression and takes "turns" making sounds with you.',
@@ -234,7 +234,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Copies others, especially adults and older children.",
             "Gets excited around other children.",
             "Plays alongside other children rather than directly with them.",
-            "Notices when others are hurt or upset — pauses or looks sad when someone is crying.",
+            "Notices when others are hurt or upset (pauses or looks sad when someone is crying).",
             "Looks at your face to see how you react to a new situation.",
         ],
         "communication": [
@@ -257,14 +257,14 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
         "fine_motor": [
             "Builds a small tower of several blocks.",
             "Scribbles and may imitate a straight line.",
-            "Uses both hands together — turns pages, opens doors, twists lids.",
+            "Uses both hands together (turns pages, opens doors, twists lids).",
         ],
     },
     "30mo": {
         "social_emotional": [
             "Plays pretend with more detail (cooks food, talks on a toy phone).",
             "Follows simple routines and helps with cleanup.",
-            "Shows a widening range of emotions — excitement, pride, frustration.",
+            "Shows a widening range of emotions (excitement, pride, frustration).",
         ],
         "communication": [
             "Says around 50 words and keeps adding more.",
@@ -272,7 +272,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Points to things in books when named.",
         ],
         "thinking": [
-            "Uses both hands together — turns pages, opens doors, twists lids.",
+            "Uses both hands together (turns pages, opens doors, twists lids).",
             "Begins to sort shapes and colors.",
             "Enjoys simple matching games.",
         ],

@@ -12,6 +12,11 @@ Automated browser testing for the Life Plan Tracker frontend using
   Board (asserts the new civic-sense commons bounties render).
 - **`tests/a11y.spec.js`** — axe-core WCAG 2.0/2.1 A & AA scans of the Login, Dashboard,
   Profile, Programs, and Bounty Board views.
+- **`tests/cd_walkthrough.spec.js`** — a screen-capture walkthrough of the Child
+  Development section (dashboard, age-group cards incl. 30mo, the 24mo detail with
+  the bulleted legend and CDC items, and the 36/48/60mo views with the
+  instruction-following + danger-awareness items). Full guide:
+  `docs/playwright_cd_walkthrough.md`.
 
 ## Prerequisites
 

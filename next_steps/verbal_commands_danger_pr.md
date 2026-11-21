@@ -43,12 +43,16 @@ ranking for young children is traffic and water, not strangers.
 - **60mo**: "Applies the family danger rules without reminders in familiar
   places (kitchen, street curb, pool)."
 
-## Playwright walkthrough extended
+## Playwright walkthrough extended + guide
 
 `cd_walkthrough.spec.js` now seeds the 36/48/60mo age groups via the API
 (idempotent) and captures each view, asserting the new instruction-following
 and danger-awareness items plus the alternating-legs stairs item from the
 previous PR. Screenshots land in test-results/cd-walkthrough/.
+
+**New guide:** `docs/playwright_cd_walkthrough.md` — what the walkthrough
+captures (screenshot inventory), prerequisites, how to run it, and where the
+captures land. The tests README now points at it.
 
 ## Verification
 

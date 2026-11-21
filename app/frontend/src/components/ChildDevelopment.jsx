@@ -186,7 +186,7 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
       {/* Legend — how to mark */}
       <div style={s.legend}>
         <strong style={{ fontSize: 12 }}>How to mark:</strong>
-        <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+        <ul className="cd-legend-list" style={{ margin: '4px 0 0', paddingLeft: 18 }}>
           {LEGEND.map(l => (
             <li key={l.label} style={{ fontSize: 12, color: '#595959' }}>
               <strong>{l.label}</strong>: {l.text}

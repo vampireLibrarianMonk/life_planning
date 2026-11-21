@@ -809,3 +809,28 @@ Fix options: (a) grant `s3:DeleteObject` on the DB bucket to
 `life-planning-apprunner-instance` (scoped to the bucket), or (b) accept the
 growth and clean up manually/periodically. Recommend (a) at the next
 deploy-window touch.
+
+---
+
+## 7. Alternating-legs motor milestones + CD walkthrough (NEXT, research attached)
+
+Owner request (2026-11-21): research alternating legs when climbing and
+jumping, then update the Early Growth Markers corpus; assemble the backlog
+documentation and create a Playwright screen-capture walkthrough.
+
+- **Research: DONE, attached** at
+  `draft_additions/alternating_legs_motor_research.md` — evidence-based age
+  windows: stairs UP alternating ~36-42mo (already covered at 36mo), stairs
+  DOWN alternating ~42-48mo, playground ladder/rung climbing ~4-5yr, and
+  alternating-legs WHILE jumping (jumping jacks / scissor jumps) at ~5-6yr
+  (bilateral coordination; later than stairs because the child generates the
+  alternation in the air).
+- **PENDING OWNER APPROVAL** (research attached for review): three corpus
+  additions — 48mo "Walks DOWN stairs alternating feet (holding the rail at
+  first)", 48mo "Climbs a playground ladder or climbing wall, alternating
+  feet and hands", 60mo "Does jumping jacks or scissor jumps (alternating
+  legs in rhythm)". Applied via the seed top-up (idempotent) after approval.
+- **Playwright screen-capture walkthrough: DONE** —
+  `app/frontend/tests/cd_walkthrough.spec.js` captures the CD section
+  end-to-end (dashboard, age-group cards, 24mo detail with legend + marks +
+  domains) into `app/frontend/test-results/cd-walkthrough/`.

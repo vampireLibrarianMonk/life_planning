@@ -339,6 +339,8 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
         "gross_motor": [
             "Hops and stands on one foot for a few seconds.",
             "Catches a bounced ball most of the time.",
+            "Walks down stairs alternating feet, holding the rail at first.",
+            "Climbs a playground ladder or climbing wall, alternating feet and hands.",
         ],
         "fine_motor": [
             "Draws a person with a few body parts (roughly two to four).",
@@ -368,6 +370,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
         "gross_motor": [
             "Hops on one foot and may skip.",
             "Does a somersault or swings and climbs with confidence.",
+            "Does jumping jacks or scissor jumps: jumps while alternating legs (and arms) in rhythm.",
         ],
         "fine_motor": [
             "Draws a person with at least 6 body parts.",

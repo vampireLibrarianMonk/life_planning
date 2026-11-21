@@ -1,8 +1,8 @@
 # Research: Alternating Legs When Climbing and Jumping
 
 Date: 2026-11-21. Purpose: establish the evidence-based age windows for
-alternating-leg climbing and jumping before adding milestones to the Early
-Growth Markers corpus. FOR OWNER REVIEW — no corpus changes yet.
+alternating-leg climbing and jumping, then add milestones to the Early Growth
+Markers corpus. APPROVED by the owner and APPLIED to the corpus (see section 5).
 
 ## Sources (public-domain facts only)
 
@@ -64,7 +64,7 @@ the step edges as external cues; jumping jacks do not).
 | 48mo | Hops and stands on one foot for a few seconds; catches a bounced ball | Missing: DOWN-alternating stairs; ladder/rung climbing |
 | 60mo | Hops on one foot and may skip; somersault/swings/climbs | Missing: jumping jacks / scissor jumps (alternating legs while jumping) |
 
-## 5. PROPOSED corpus additions (pending owner approval — not yet applied)
+## 5. Corpus additions (APPROVED by owner 2026-11-21 — applied to the corpus)
 
 1. **48mo gross motor**: "Walks DOWN stairs alternating feet, holding the rail
    at first." (descending is the later half of the stair progression)

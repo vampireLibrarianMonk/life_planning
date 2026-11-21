@@ -5,10 +5,12 @@ import { loginAsAdmin, openFirstProfile } from './helpers.js'
  * Child Development screen-capture walkthrough.
  *
  * Walks the CD section end-to-end and captures a screenshot at every step
- * into test-results/cd-walkthrough/ — dashboard, age-group cards, and the
- * 24mo detail view (legend, tri-state marks, domains, CDC items).
+ * into test-results/cd-walkthrough/ — dashboard, age-group cards, the 24mo
+ * detail view (legend, tri-state marks, domains, CDC items), and the
+ * 36/48/60mo views with the instruction-following + danger-awareness items.
  *
- * Read-only: no data is created or mutated.
+ * Seeds the 36/48/60mo age groups via the API (idempotent) so their items
+ * render; marks are never changed.
  */
 
 const SHOT_DIR = 'test-results/cd-walkthrough'
@@ -55,5 +57,53 @@ test.describe('Child Development walkthrough (screen capture)', () => {
     await page.getByRole('button', { name: /All age groups/ }).click()
     await expect(page.getByRole('heading', { name: 'Child Development' })).toBeVisible()
     await shot(page, '05-cd-back-to-cards')
+
+    // --- Instruction-following + danger-awareness capture (36/48/60mo) ---
+    // Seed the older groups via the API (idempotent) so their items render,
+    // then capture each and assert the research-backed additions.
+    const profileId = page.url().match(/\/profile\/(\d+)/)?.[1]
+    for (const band of ['36mo', '48mo', '60mo']) {
+      await page.request.post(
+        `/api/profiles/${profileId}/child-development/${band}/seed`,
+      )
+    }
+
+    await page.getByRole('button', { name: /~36 Months/ }).click()
+    await expect(page.getByRole('heading', { name: /~36 Months/ })).toBeVisible()
+    await expect(
+      page.getByText('Follows instructions with two or three steps', { exact: false }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Names the family danger rules', { exact: false }),
+    ).toBeVisible()
+    await shot(page, '06-cd-36mo-commands-danger')
+
+    await page.getByRole('button', { name: /All age groups/ }).click()
+    await page.getByRole('button', { name: /~48 Months/ }).click()
+    await expect(page.getByRole('heading', { name: /~48 Months/ })).toBeVisible()
+    await expect(
+      page.getByText('Carries out a multi-step instruction after a delay', { exact: false }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Explains why each family danger rule exists', { exact: false }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Walks down stairs alternating feet', { exact: false }),
+    ).toBeVisible()
+    await shot(page, '07-cd-48mo-commands-danger-stairs')
+
+    await page.getByRole('button', { name: /All age groups/ }).click()
+    await page.getByRole('button', { name: /~60 Months/ }).click()
+    await expect(page.getByRole('heading', { name: /~60 Months/ })).toBeVisible()
+    await expect(
+      page.getByText('Follows complex multi-step instructions', { exact: false }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Applies the family danger rules', { exact: false }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Does jumping jacks or scissor jumps', { exact: false }),
+    ).toBeVisible()
+    await shot(page, '08-cd-60mo-commands-danger-jumping')
   })
 })

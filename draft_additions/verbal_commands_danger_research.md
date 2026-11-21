@@ -1,9 +1,9 @@
 # Research: Following Verbal Commands and Sense of Danger
 
 Date: 2026-11-21. Purpose: establish the evidence-based progression for (1)
-listening to and acting on verbal commands, and (2) danger awareness, before
-adding milestones to the Early Growth Markers corpus. FOR OWNER REVIEW — no
-corpus changes yet.
+listening to and acting on verbal commands, and (2) danger awareness, then
+add milestones to the Early Growth Markers corpus. APPROVED by the owner and
+APPLIED to the corpus (see section 4).
 
 ## Sources (public-domain facts only)
 
@@ -63,7 +63,7 @@ Key points:
 | 36mo+ | (nothing) | GAP: no 2-3 step, delayed, or conditional instruction items |
 | Danger | Body-safety + unsafe-secrets items exist (civic/spiritual pillars) | GAP: no PHYSICAL danger progression (hot/sharp/street/water) in the CD corpus |
 
-## 4. PROPOSED corpus additions (pending owner approval — not yet applied)
+## 4. Corpus additions (APPROVED by owner 2026-11-21 — applied to the corpus)
 
 **Verbal commands (communication domain):**
 1. **36mo**: "Follows instructions with two or three steps in a row (take off

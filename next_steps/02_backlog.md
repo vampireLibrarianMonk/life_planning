@@ -834,3 +834,33 @@ documentation and create a Playwright screen-capture walkthrough.
   `app/frontend/tests/cd_walkthrough.spec.js` captures the CD section
   end-to-end (dashboard, age-group cards, 24mo detail with legend + marks +
   domains) into `app/frontend/test-results/cd-walkthrough/`.
+
+---
+
+## 8. Upload 403 saga — THREE diseases found + ONE open (2026-11-22)
+
+Owner-reported "upload failed 403" on gallery + development-goal photo/video
+uploads turned out to be THREE distinct causes with identical symptoms, plus
+one still-open issue. **Full handoff for Codex:**
+`next_steps/upload_troubleshooting_handoff.md` (architecture, changelog,
+ranked hypotheses, diagnostic runbook, versions).
+
+- **FIX 1 (deployed)**: session lifetime 2h -> 30 days (PR #14). Sessions
+  expired mid-use; every write 403'd. Verified live: 30.0-day tokens.
+- **FIX 2 (live, applied directly to the WAF)**: the AWS Managed Common
+  Rule Set's body-inspection rules were BLOCKing real photo uploads (binary
+  JPEG bytes trip XSS/SQLi text patterns; 5 blocks logged from the owner's
+  IP). All four body rules now COUNT mode; everything else stays BLOCK.
+  Verified live with the owner's actual 25MB jpg through the exact browser
+  flow. WAF logging now permanently ON (`aws-waf-logs-life-planning`).
+- **FIX 3 (PR OPEN — merge + deploy first)**: presigned PUT URL TTL was
+  15 min; large videos expire mid-upload -> S3 403 "Request has expired"
+  masked as a generic network error. Branch `fix/presign-ttl-large-uploads`
+  (900 -> 3600s; 148 tests green).
+- **OPEN — ~40MB phone video, Safari "Load failed"**: the direct-to-S3 PUT
+  fails at the network level on iPhone Safari (private browsing, WiFi).
+  Ranked hypotheses + fix directions in the handoff doc; strongest are
+  (1) Safari large-fetch-body limits (fix: XHR or S3 multipart upload) and
+  (2) Content-Type presign mismatch (fix: presign without ContentType).
+  Durable fix for all: S3 multipart upload (5-8MB presigned parts, per-part
+  retry, complete at finalize).

@@ -63,19 +63,23 @@ test.describe('Gallery', () => {
     await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible()
 
     // Track that the direct-upload endpoints are actually used (not the buffered POST).
-    const seen = { initiate: false, put: false, finalize: false }
+    const seen = { initiate: false, put: false, finalize: false, putTransport: null }
     page.on('request', (req) => {
       const u = req.url()
       if (u.includes('/gallery/uploads/initiate')) seen.initiate = true
-      else if (u.includes('/uploads/direct/')) seen.put = req.method() === 'PUT'
+      else if (u.includes('/uploads/direct/')) {
+        seen.put = req.method() === 'PUT'
+        seen.putTransport = req.resourceType()
+      }
       else if (/\/gallery\/uploads\/\d+\/finalize/.test(u)) seen.finalize = true
     })
 
-    // A ~22MB synthetic mp4 (over the 20MB direct-upload threshold). Minimal
-    // MP4 'ftyp' header + padding; the server stores bytes as-is.
+    // A 40MB synthetic mp4: reproduces the iPhone failure size while proving
+    // the direct path bypasses the app body cap. Minimal MP4 'ftyp' header +
+    // padding; the server stores bytes as-is.
     const big = Buffer.concat([
       Buffer.from('0000001866747970', 'hex'), // ftyp box start
-      Buffer.alloc(22 * 1024 * 1024, 0),
+      Buffer.alloc(40 * 1024 * 1024, 0),
     ])
     await page.setInputFiles('input[type=file]', {
       name: 'clip.mp4',
@@ -87,6 +91,7 @@ test.describe('Gallery', () => {
     await expect(page.locator('.gallery-grid video')).toHaveCount(1, { timeout: 20000 })
     expect(seen.initiate, 'initiate called').toBeTruthy()
     expect(seen.put, 'direct PUT used').toBeTruthy()
+    expect(seen.putTransport, 'large upload uses XMLHttpRequest').toBe('xhr')
     expect(seen.finalize, 'finalize called').toBeTruthy()
 
     // Clean up.

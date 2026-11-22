@@ -77,22 +77,40 @@ S3 error response, or Safari aborted the request. The 40MB file takes the
 DIRECT path (>= 20MB): initiate -> browser PUT to the S3 presigned URL ->
 finalize. The failure is almost certainly on the **cross-origin S3 PUT**.
 
+### Controlled east-region diagnostic (2026-11-22)
+Codex ran two disposable **40 MiB** direct-upload probes against the active
+east region, then deleted both media records and objects:
+
+- A normal `video/mp4` initiate -> CORS preflight -> PUT -> finalize completed
+  with **PUT 200** and `ready`. The app body limit, WAF, S3 direct path, and
+  a 40 MiB transfer are all healthy from a non-iOS client.
+- An intentionally mismatched request (initiate as `video/quicktime`, PUT as
+  `video/mp4`) returned S3 **403 `SignatureDoesNotMatch`**. This confirms that
+  the old signed `ContentType` parameter can produce the same opaque
+  cross-origin failure class as Safari's `Load failed`.
+
+The direct-upload fix removes `ContentType` from the presigned PUT signature;
+S3 records the actual PUT header instead. The gallery still validates the
+declared MIME family before issuing a URL. The client now uses XHR rather than
+`fetch()` for the large PUT and retries one transient network/5xx failure.
+
 ### Ranked hypotheses
 1. **Safari + large fetch() body (STRONGEST).** Safari buffers large
    request bodies and has documented problems with fetch PUTs of large
    Blobs on iOS (memory pressure, especially private browsing). 25MB
    worked from desktop curl; 40MB from a PHONE is a different memory
-   envelope. Fix direction: switch the PUT to **XMLHttpRequest** (streams
-   better on Safari) or implement **S3 multipart upload** (chunk the file
-   into 5-8MB parts, presign each part, PUT parts + complete). Multipart
-   also fixes the TTL issue for huge files and enables resume.
-2. **Content-Type signature mismatch.** storage.py signs the presigned URL
+   envelope. The immediate fix switches the PUT to **XMLHttpRequest** with
+   one retry. If that does not resolve the phone repro, implement **S3
+   multipart upload** (chunk the file into 5-8MB parts, presign each part,
+   PUT parts + complete). Multipart also fixes the TTL issue for huge files
+   and enables resume.
+2. **Content-Type signature mismatch.** storage.py used to sign the presigned URL
    WITH ContentType. If the phone's file.type (e.g. video/quicktime for
    .mov, or an empty type) differs from what Safari actually sends on the
    PUT, S3 returns SignatureDoesNotMatch (403) and Safari masks it as
-   "Load failed". Fix direction: log/compare the initiate content_type vs
-   the PUT; or presign WITHOUT ContentType and set the object content-type
-   at finalize (copy-with-metadata) so a mismatch is impossible.
+   "Load failed". The controlled probe reproduced the S3 error. The immediate
+   fix presigns WITHOUT ContentType, so a browser MIME normalization cannot
+   invalidate the URL; S3 stores the actual PUT header.
 3. **WiFi/network interruption on a long PUT.** A 40MB PUT on congested
    WiFi can drop; fetch has no retry. Fix direction: retry with backoff on
    the PUT (idempotent — same presigned URL until TTL), or multipart with
@@ -118,9 +136,10 @@ finalize. The failure is almost certainly on the **cross-origin S3 PUT**.
   the phone.
 
 ### Suggested fix order
-1. Merge + deploy the open presign-TTL PR (removes hypothesis 4).
-2. Add PUT retry-on-network-error with one re-initiate (cheap, helps 3).
-3. Investigate 1 vs 2 with the diagnostics above; the durable fix for
+1. Deploy the presign-TTL + XHR/retry/unsigned-ContentType change.
+2. Reproduce on the owner's iPhone. If it still fails, collect Safari console
+   output and app/WAF evidence before changing the architecture again.
+3. The durable fix for
    both is **S3 multipart upload** (5-8MB parts, presigned per part,
    per-part retry, complete-multipart at finalize) — it sidesteps Safari's
    large-body problems, the TTL, and single-connection drops all at once.

@@ -30,7 +30,11 @@ AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 ADMIN_SECRET_ARN = os.getenv("ADMIN_SECRET_ARN", "")  # Secrets Manager ARN or name
 JWT_SECRET_ARN = os.getenv("JWT_SECRET_ARN", "")  # Secrets Manager ARN or name
 UPLOADS_BUCKET = os.getenv("UPLOADS_BUCKET", "")  # S3 bucket for attachments
-PRESIGN_TTL_SECONDS = int(os.getenv("PRESIGN_TTL_SECONDS", "900"))
+# Presigned URL lifetime. Must comfortably exceed the SLOWEST upload: a 1GB
+# phone video on a ~3 Mbps uplink takes ~45 min; the old 15-min default
+# expired the PUT URL mid-upload and S3 returned 403 "Request has expired" —
+# which surfaced as a misleading "upload failed (HTTP 403)".
+PRESIGN_TTL_SECONDS = int(os.getenv("PRESIGN_TTL_SECONDS", "3600"))
 
 # Dev-only fallbacks (local mode only — never used when IS_AWS).
 _LOCAL_JWT_DEFAULT = "change-me-in-production-use-openssl-rand-hex-32"

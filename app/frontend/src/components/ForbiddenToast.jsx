@@ -11,27 +11,35 @@ import { isReadonly } from '../services/auth'
 export default function ForbiddenToast() {
   const [visible, setVisible] = useState(false)
   const [readonly, setReadonly] = useState(false)
+  const [expired, setExpired] = useState(false)
 
   useEffect(() => {
     let timer
-    const onForbidden = () => {
+    const show = (isExpired) => {
+      setExpired(isExpired)
       setReadonly(isReadonly())
       setVisible(true)
       clearTimeout(timer)
       timer = setTimeout(() => setVisible(false), 4000)
     }
+    const onForbidden = () => show(false)
+    const onUnauthorized = () => show(true)
     window.addEventListener('api-forbidden', onForbidden)
+    window.addEventListener('api-unauthorized', onUnauthorized)
     return () => {
       window.removeEventListener('api-forbidden', onForbidden)
+      window.removeEventListener('api-unauthorized', onUnauthorized)
       clearTimeout(timer)
     }
   }, [])
 
   if (!visible) return null
 
-  const message = readonly
-    ? '👁️ Read-only mode — that change wasn’t saved.'
-    : '⚠️ That action was blocked. Your session may have expired — try signing in again.'
+  const message = expired
+    ? '⏳ Your session has expired — please sign in again.'
+    : readonly
+      ? '👁️ Read-only mode — that change wasn’t saved.'
+      : '⚠️ That action was blocked. Your session may have expired — try signing in again.'
 
   return (
     <div

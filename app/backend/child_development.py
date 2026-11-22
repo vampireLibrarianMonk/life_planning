@@ -248,6 +248,7 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Finds an object even after seeing it hidden under a cover.",
             "Fills and dumps containers over and over.",
             "Plays make-believe.",
+            "Stops at the curb when told (holds an adult's hand near the street).",
         ],
         "gross_motor": [
             "Runs.",
@@ -299,11 +300,13 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Says their first name and age when asked.",
             "Strangers can understand most of their speech.",
             'Begins asking "why" questions.',
+            "Follows instructions with two or three steps in a row (take off your shoes and put them in the closet).",
         ],
         "thinking": [
             "Works a toy with buttons, levers, or moving parts.",
             "Does simple puzzles (3-4 pieces).",
             "Plays pretend with dolls, animals, or people.",
+            "Names the family danger rules when asked: hot things, sharp things, the street, water, and going with unknown adults.",
         ],
         "gross_motor": [
             "Climbs well and runs easily.",
@@ -330,11 +333,13 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Speaks clearly enough for strangers to understand.",
             'Knows some basic grammar rules ("he," "she").',
             "Sings a song or says a short poem from memory.",
+            "Carries out a multi-step instruction after a delay (when we get home, hang up your coat).",
         ],
         "thinking": [
             "Names a few colors and some numbers.",
             "Understands the idea of counting.",
             "Begins to grasp time (morning, night, soon).",
+            "Explains why each family danger rule exists (what could happen if it is broken).",
         ],
         "gross_motor": [
             "Hops and stands on one foot for a few seconds.",
@@ -361,11 +366,13 @@ OBJECTIVES: dict[str, dict[str, list[str]]] = {
             "Tells a simple story with a beginning, middle, and end.",
             'Uses future tense ("we will go").',
             "Says their full name and address with help.",
+            "Follows complex multi-step instructions with conditionals (after you hang your coat, wash your hands, then come to the table).",
         ],
         "thinking": [
             "Counts 10 or more things.",
             "Names several colors and some letters/numbers.",
             "Knows about everyday things like money and food.",
+            "Applies the family danger rules without reminders in familiar places (kitchen, street curb, pool).",
         ],
         "gross_motor": [
             "Hops on one foot and may skip.",

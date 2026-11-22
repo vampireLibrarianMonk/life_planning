@@ -63,6 +63,14 @@ def test_s3_storage_uses_presigned_urls(config_in_mode, monkeypatch):
     assert url == "https://signed.example/obj"
     assert calls["presign"][1] == {"Bucket": "test-bucket", "Key": "k.jpg"}
 
+    put_url = s.presigned_put_url("clip.mov", "video/quicktime")
+    assert put_url == "https://signed.example/obj"
+    # Do not bind ContentType into the signature: iOS Safari can normalize a
+    # MIME type between initiate and PUT, which otherwise returns an opaque
+    # cross-origin SignatureDoesNotMatch error.
+    assert calls["presign"][1] == {"Bucket": "test-bucket", "Key": "clip.mov"}
+    assert calls["presign"][2] == 3600
+
     # S3 never serves from local disk.
     assert s.open_local("k.jpg") is None
 

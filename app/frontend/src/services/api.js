@@ -570,6 +570,54 @@ export async function uploadGalleryMedia(profileId, files) {
 // under that 50MB cap for the buffered path. Phone videos routinely exceed it.
 export const DIRECT_UPLOAD_THRESHOLD = 20 * 1024 * 1024 // 20 MB
 
+function directPut(uploadUrl, file) {
+  // WebKit can abort a large cross-origin fetch() body with only the unhelpful
+  // TypeError "Load failed". XMLHttpRequest uses WebKit's older, more stable
+  // upload transport and lets us distinguish an HTTP failure from a transport
+  // failure for a retry.
+  const sameOrigin = uploadUrl.startsWith('/')
+  const contentType = file.type || 'application/octet-stream'
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', uploadUrl)
+    xhr.withCredentials = sameOrigin
+    xhr.setRequestHeader('Content-Type', contentType)
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve()
+        return
+      }
+      const err = new Error(`Upload transfer failed (HTTP ${xhr.status})`)
+      err.status = xhr.status
+      reject(err)
+    }
+    xhr.onerror = () => reject(new Error('Upload transfer failed due to a network error.'))
+    xhr.onabort = () => reject(new Error('Upload transfer was aborted.'))
+    xhr.ontimeout = () => reject(new Error('Upload transfer timed out.'))
+    xhr.send(file)
+  })
+}
+
+async function directPutWithRetry(uploadUrl, file) {
+  // A single retry is safe: a direct S3 PUT replaces the same object key
+  // atomically, and the presigned URL remains valid for its configured TTL.
+  // Retry transient browser/network failures and 5xx responses, never a 4xx
+  // response (which needs a useful error, not another identical request).
+  let lastError
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await directPut(uploadUrl, file)
+      return
+    } catch (err) {
+      lastError = err
+      if (err?.status && err.status < 500) throw err
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 750))
+    }
+  }
+  throw lastError
+}
+
 /**
  * Upload a single file via the direct-to-storage flow. Returns the finalized
  * media object. Used for large videos; small files use uploadGalleryMedia.
@@ -598,16 +646,9 @@ export async function directUploadGalleryMedia(profileId, file, { observation, a
   const { media_id, upload_url } = await initRes.json()
 
   // 2. PUT the bytes straight to storage (S3 presigned URL, or local receiver).
-  // credentials only for the same-origin local receiver; a presigned S3 URL
-  // must NOT carry our cookie, so omit credentials for cross-origin targets.
-  const sameOrigin = upload_url.startsWith('/')
-  const putRes = await fetch(upload_url, {
-    method: 'PUT',
-    body: file,
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-    credentials: sameOrigin ? 'include' : 'omit',
-  })
-  if (!putRes.ok) throw new Error(`Upload transfer failed (HTTP ${putRes.status})`)
+  // XHR is intentionally used here rather than fetch: it is more reliable for
+  // large Blob PUTs in iOS Safari and gives transient Wi-Fi failures one retry.
+  await directPutWithRetry(upload_url, file)
 
   // 3. finalize — server verifies the object landed, flips to ready
   const finRes = await fetch(`/api/profiles/${profileId}/gallery/uploads/${media_id}/finalize`, {

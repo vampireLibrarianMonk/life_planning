@@ -142,9 +142,19 @@ class S3Storage(Storage):
         return None  # S3 objects are served via presigned URLs, not local files
 
     def presigned_put_url(self, key: str, content_type: str) -> str:
+        """Return a direct-upload URL without signing the Content-Type header.
+
+        The client still supplies Content-Type, and S3 stores that value as
+        object metadata. Binding it into the SigV4 signature made harmless
+        browser-side MIME normalization (notably on iOS Safari) turn into an
+        opaque cross-origin ``SignatureDoesNotMatch`` failure. The gallery
+        already validates the declared MIME family before issuing this URL, so
+        signing that client-controlled header provides no meaningful extra
+        protection.
+        """
         return self._s3.generate_presigned_url(
             "put_object",
-            Params={"Bucket": self._bucket, "Key": key, "ContentType": content_type},
+            Params={"Bucket": self._bucket, "Key": key},
             ExpiresIn=config.PRESIGN_TTL_SECONDS,
         )
 

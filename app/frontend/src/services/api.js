@@ -9,8 +9,13 @@ if (typeof window !== 'undefined' && !window.__api403Patched) {
     const res = await origFetch(input, merged)
     try {
       const url = typeof input === 'string' ? input : input?.url || ''
-      if (res.status === 403 && url.includes('/api/')) {
-        window.dispatchEvent(new CustomEvent('api-forbidden'))
+      if (url.includes('/api/')) {
+        if (res.status === 403) window.dispatchEvent(new CustomEvent('api-forbidden'))
+        // 401 = the session itself is gone (expired/revoked). Surface it so a
+        // failed write reads as "sign in again", not a mystery error.
+        if (res.status === 401 && !url.includes('/api/auth/')) {
+          window.dispatchEvent(new CustomEvent('api-unauthorized'))
+        }
       }
     } catch {
       /* never let the interceptor break a request */

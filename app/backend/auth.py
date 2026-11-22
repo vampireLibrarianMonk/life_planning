@@ -15,7 +15,10 @@ from models import Role, User
 
 SECRET_KEY = config.get_jwt_secret()
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours (short-lived; re-login as needed)
+# 30 days: a family app used in short bursts. The previous 2-hour lifetime
+# expired sessions mid-use, which surfaced as confusing 403/401 errors on
+# writes (uploads, saves) with no obvious cause.
+ACCESS_TOKEN_EXPIRE_MINUTES = 43200
 # bcrypt silently truncates input beyond 72 bytes; cap so long passphrases are
 # fully honored (and newer bcrypt builds that raise on >72 bytes don't 500).
 _BCRYPT_MAX_BYTES = 72

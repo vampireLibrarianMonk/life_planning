@@ -145,7 +145,36 @@ declared MIME family before issuing a URL. The client now uses XHR rather than
    large-body problems, the TTL, and single-connection drops all at once.
    The initiate/finalize API shape extends naturally (part URLs list).
 
-## 4. Versions / state at handoff
+## 4. Appendix: how the pre-filled PRs were made (no API, no tokens)
+
+The PRs in this repo have pre-filled titles + descriptions because of
+GitHub's **compare-URL query parameters** — no `gh` CLI, no REST API, no
+auth needed. Format:
+
+```
+https://github.com/{owner}/{repo}/compare/{base}...{head}?quick_pull=1&title={url-encoded title}&body={url-encoded markdown}
+```
+
+Opening that URL in a browser shows GitHub's "Create pull request" form with
+the title and body ALREADY populated — one click creates the PR.
+
+Workflow used throughout this repo:
+1. Push the branch to the remote first (the compare page needs it).
+2. Write the PR description as a markdown file in the repo (e.g.
+   `next_steps/foo_pr.md`, with `## TITLE` and `## DESCRIPTION` sections) —
+   it doubles as documentation and as the URL source.
+3. Generate the URL with a tiny Python script (urllib.parse.quote on the
+   title and body) and save it to `next_steps/FOO_PR_URL.txt`.
+4. Paste the URL into a browser → click "Create pull request".
+5. Commit the description + URL files to the branch so the PR content lives
+   in the repo too.
+
+Notes: keep the body under ~5-6K URL-encoded chars (browsers/CDNs can
+truncate very long URLs); the repo's master branch is PR-protected, so
+this flow satisfies the "changes through a pull request" rule without any
+credentials.
+
+## 5. Versions / state at handoff
 
 - master: PR #14 merged (session fix); presign-TTL PR open
   (`fix/presign-ttl-large-uploads`).

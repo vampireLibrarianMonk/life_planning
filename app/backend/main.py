@@ -116,6 +116,11 @@ async def security_headers(request, call_next):
         "https://*.s3.us-east-1.amazonaws.com https://*.s3.us-west-2.amazonaws.com; "
         "media-src 'self' blob: https://*.s3.amazonaws.com "
         "https://*.s3.us-east-1.amazonaws.com https://*.s3.us-west-2.amazonaws.com; "
+        # Direct gallery uploads use XMLHttpRequest PUTs to short-lived S3
+        # presigned URLs.  Without this explicit directive, default-src
+        # ('self') blocks the browser request before it reaches S3.
+        "connect-src 'self' https://*.s3.amazonaws.com "
+        "https://*.s3.us-east-1.amazonaws.com https://*.s3.us-west-2.amazonaws.com; "
         "style-src 'self' 'unsafe-inline'; "
         "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
     )

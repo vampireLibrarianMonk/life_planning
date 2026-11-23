@@ -1,10 +1,10 @@
 # Upload Troubleshooting Handoff — for Codex
 
-Date: 2026-11-22. State: image uploads FIXED and verified live; ONE issue
-remains open: **~40MB phone videos fail in Safari with "Load failed"** after
-the upload appears to complete. This document gives you the full context,
-the changelog of what was fixed, and the ranked hypotheses + fix directions
-for the remaining issue.
+Date: 2026-11-23. State: image uploads FIXED and verified live; the multipart
+video implementation has been deployed, but a browser-level Gallery test
+identified one remaining deployment fix: **CSP must permit the browser's S3
+part PUTs via `connect-src`**. This document gives you the full context and
+the changelog of what was fixed.
 
 ## 1. Upload architecture (as built)
 
@@ -62,6 +62,23 @@ Branch: `fix/presign-ttl-large-uploads`. **MERGE + DEPLOY THIS FIRST** — it
 is verified (148 tests) and removes the expiry failure mode for big files.
 
 ## 3. THE OPEN ISSUE: ~40MB phone video -> Safari "Load failed"
+
+### Root cause identified — CSP blocks the browser before S3 (2026-11-23)
+
+An authenticated production Gallery UI test with a disposable 40 MiB
+`video/mp4` file reproduced the failure. The browser trace showed the first
+presigned S3 `PUT` failed with the explicit internal reason `csp`, rather than
+an HTTP status or an S3 response. `main.py` allowed S3 in `img-src` and
+`media-src` but omitted `connect-src`; CSP therefore fell back to
+`default-src 'self'` and blocked the XMLHttpRequest before it left the
+browser. This produces the same generic network/load failure in Safari and
+DuckDuckGo.
+
+The narrow fix is on branch `fix/gallery-s3-connect-csp`: add only the three
+S3 host patterns already approved for Gallery media to `connect-src`. It does
+not introduce a wildcard or broad HTTPS egress rule. After merge/deploy,
+repeat the authenticated Gallery test with a disposable 40 MiB video and
+delete its record/object.
 
 ### Symptom (owner, 2026-11-22)
 On iPhone Safari (private browsing, on WiFi): a ~40MB video "seems to

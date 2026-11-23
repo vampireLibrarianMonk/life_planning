@@ -94,6 +94,20 @@ def test_get_never_blocked_and_no_store(app):
     assert r.headers.get("cache-control") == "no-store"
 
 
+def test_csp_allows_only_configured_s3_hosts_for_direct_uploads(app):
+    """Gallery multipart XHR PUTs need an explicit S3 connect-src rule.
+
+    A missing connect-src falls back to default-src 'self' and presents to
+    Safari/DuckDuckGo as a generic network failure before S3 sees the request.
+    Keep the destination allow-list as narrow as the image/media rules.
+    """
+    csp = request(app, "GET", "/gallery").headers["content-security-policy"]
+    assert "connect-src 'self' https://*.s3.amazonaws.com " in csp
+    assert "https://*.s3.us-east-1.amazonaws.com" in csp
+    assert "https://*.s3.us-west-2.amazonaws.com" in csp
+    assert "connect-src *" not in csp
+
+
 # --- Request-body-size cap (regression for the gallery 413 bug) --------------
 
 

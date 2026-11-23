@@ -22,8 +22,11 @@ can verify._
 >   `token_version` revocation claim (TODO-5).
 > - **ECR is IMMUTABLE + digest-promote deploy** (TODO-8/14), not `:latest`
 >   auto-deploy.
-> - **WAF `CrossSiteScripting_BODY` = Block** (TODO-3); only `SizeRestrictions_
->   BODY` stays Count.
+> - **WAF body-rule status is a live infrastructure concern, not settled
+>   history.** The 2026-11-22 read-only verification found all four managed
+>   body rules (`SizeRestrictions_BODY`, `CrossSiteScripting_BODY`,
+>   `SQLi_BODY`, and `GenericRFI_BODY`) globally in `COUNT`; see the current
+>   remediation note below.
 > See §12 "FINAL STATUS" for the full done-list.
 
 ---
@@ -603,14 +606,30 @@ allow-list), TODO-12 (grandchild profile-scope), TODO-15-partial (bcrypt 72-byte
 guard). Commit `b635b4a`, both regions RUNNING; all 3 users + image loading +
 wishlist/url fixes verified live.
 
-**FINAL STATUS (2026-10-31): all 15 §12 TODOs remediated in code/infra.** Every
-item is DONE and verified live across both regions (TODO-1…15), including the
-infra set: WAF XSS-body Block (TODO-3), DB buckets recreated with S3 Object Lock
+**Historical status (2026-10-31): all 15 §12 TODOs were remediated in code/infra
+at that point in time.** Every item was verified live across both regions
+(TODO-1…15), including the then-current infra set: WAF XSS-body Block (TODO-3), DB buckets recreated with S3 Object Lock
 + DeleteObject removed (TODO-4), east secrets on the MRK (TODO-10), ECR IMMUTABLE
 + digest-promote deploy (TODO-8/14), CloudWatch retention + CMK log encryption
 (TODO-15). App-code items (wishlist authz, JWT revocation + change-password,
 PyJWT, cookie-only tokens, rate-limiting, CSP, url/IDOR hardening) shipped,
 tested (68 backend tests), and deployed. Both regions RUNNING; 3 users verified.
+
+### Current WAF follow-up (verified 2026-11-22)
+
+Read-only `wafv2 get-web-acl` inspection of east found `AWSCommonRules` with
+`SizeRestrictions_BODY`, `CrossSiteScripting_BODY`, `SQLi_BODY`, and
+`GenericRFI_BODY` all globally overridden to `COUNT`. This is deliberate
+operational compatibility for binary app uploads, but it is broader than the
+historical TODO-3 resolution and must not be represented as body inspection
+blocking outside uploads.
+
+Do not flip those overrides globally to `BLOCK`: ordinary buffered image and
+attachment uploads previously triggered the managed body signatures. The safe
+infra follow-up is a tested, dual-region WAF design that preserves AWS managed
+rule coverage for non-upload routes while applying only the necessary body-rule
+exception to the exact authenticated binary-upload routes. Validate it against
+the real upload flows and WAF logs before changing the live ACL.
 
 **Only remaining item is a GitHub UI toggle (owner):** enable branch protection
 on `master` requiring the CI checks (`gates`, `backend-tests`, `frontend`,

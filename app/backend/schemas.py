@@ -398,12 +398,22 @@ class UploadInitiateResponse(BaseModel):
     upload_url: str
     storage_key: str
     method: str = "PUT"
+    part_size: int | None = None
+    part_urls: list[str] | None = None
+
+
+class MultipartCompletePart(BaseModel):
+    part_number: Annotated[int, Field(ge=1, le=10_000)]
+    # S3 returns a quoted hexadecimal ETag.  Keeping a sane upper bound also
+    # prevents an oversized finalize request from becoming an application DoS.
+    etag: Annotated[str, Field(min_length=1, max_length=256)]
 
 
 class UploadFinalizeRequest(BaseModel):
     # Optional metadata the client can attach at finalize time.
     observation: str | None = None
     age_band: str | None = None
+    parts: list[MultipartCompletePart] | None = None
 
 
 class MediaObjectiveLinkResponse(BaseModel):

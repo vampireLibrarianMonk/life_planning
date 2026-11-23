@@ -290,6 +290,8 @@ class ProfileMedia(Base):
     observation = Column(Text, nullable=True)  # free-text note
     age_band = Column(String(10), nullable=True)  # optional convenience tag
     status = Column(String(20), nullable=False, default="ready")  # pending|ready|failed
+    # Server-issued S3 multipart capability. Never supplied by the client.
+    multipart_upload_id = Column(String(512), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)  # soft delete
 

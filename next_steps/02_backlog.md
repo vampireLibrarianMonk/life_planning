@@ -853,14 +853,73 @@ ranked hypotheses, diagnostic runbook, versions).
   IP). All four body rules now COUNT mode; everything else stays BLOCK.
   Verified live with the owner's actual 25MB jpg through the exact browser
   flow. WAF logging now permanently ON (`aws-waf-logs-life-planning`).
-- **FIX 3 (PR OPEN — merge + deploy first)**: presigned PUT URL TTL was
-  15 min; large videos expire mid-upload -> S3 403 "Request has expired"
-  masked as a generic network error. Branch `fix/presign-ttl-large-uploads`
-  (900 -> 3600s; 148 tests green).
-- **OPEN — ~40MB phone video, Safari "Load failed"**: the direct-to-S3 PUT
-  fails at the network level on iPhone Safari (private browsing, WiFi).
-  Ranked hypotheses + fix directions in the handoff doc; strongest are
-  (1) Safari large-fetch-body limits (fix: XHR or S3 multipart upload) and
-  (2) Content-Type presign mismatch (fix: presign without ContentType).
-  Durable fix for all: S3 multipart upload (5-8MB presigned parts, per-part
-  retry, complete at finalize).
+- **FIX 3 (merged + deployed, PR #15)**: presign TTL is now 3600 seconds;
+  URLs no longer sign client-controlled `Content-Type`; large direct uploads
+  use XHR with one retry. Both App Runner regions run digest `d3d7d227…`.
+- **OPEN — 40MB phone video still fails**: failure reproduces in both Safari
+  and the DuckDuckGo browser as `Upload transfer failed due to a network error`.
+  The deployed single-PUT/XHR retry is therefore insufficient. Do not describe
+  this as Safari-only.
+
+## 9. Multipart video upload + WAF scope remediation (NEXT — implementation WIP)
+
+**Goal:** replace one fragile cross-origin 40MB PUT with S3 multipart upload,
+and restore body-rule blocking everywhere except the exact binary-upload
+surface that requires an exception.
+
+### Multipart requirements
+
+- Server creates the multipart session after existing admin/child and
+  profile-scoped authorization; persist the S3 `UploadId` on `ProfileMedia`.
+- Split files into 8MiB parts (S3 minimum is 5MiB except the final part), issue
+  short-lived presigned `upload_part` URLs, retry each transient part failure,
+  then submit only numbered ETags to the authenticated finalize route.
+- Finalize must complete the server-owned upload ID for that media row only,
+  verify the object exists, clear the upload ID, and mark it ready. Reject
+  missing/duplicate/out-of-range parts and cross-profile completion.
+- Deleting/cancelling a pending upload must call `AbortMultipartUpload`; add a
+  lifecycle rule for abandoned multipart uploads as defense in depth.
+- Keep local mode functional (single local direct PUT is acceptable in tests)
+  while AWS mode uses multipart.
+
+### Security / infrastructure requirements
+
+- Live WAF currently has `SizeRestrictions_BODY`, `CrossSiteScripting_BODY`,
+  `SQLi_BODY`, and `GenericRFI_BODY` in global `COUNT` mode. This contradicts
+  parts of `deploy/SECURITY_REVIEW.md`; reconcile the documentation.
+- Do **not** blindly restore global `BLOCK`: it previously broke binary uploads.
+  Create and validate an exact upload-route scope-down/exception design in both
+  regions, retaining managed-rule blocking for all other paths. Capture the
+  before/after ACL JSON and a rollback command in the PR.
+
+### Test / release gate
+
+- Backend unit tests: multipart initiate, authorized completion, rejected
+  forged/cross-profile/missing parts, abort-on-delete, and no ready state before
+  successful completion.
+- Frontend E2E: 40MiB synthetic video, multipart part requests, retry, final
+  tile, cleanup; the existing test now also asserts XHR transport.
+- Run pytest, frontend build/E2E, pre-commit security hooks, npm audit, and
+  Trivy. Deploy only after PR approval; live acceptance requires the owner to
+  retry the real video in Safari and DuckDuckGo, then clean up test media.
+
+### Current branch state (implementation complete; final PR checks in progress)
+
+`security/upload-waf-and-test-hardening` is pushed with commit `3daf6c4`
+(40MiB/XHR E2E regression). The pending commit adds server-persisted multipart
+state, 8MiB S3 parts with per-part retry, browser ETag collection,
+server-side ordered-part + exact-size validation, abort-on-delete, additive
+SQLite migration, and storage-adapter tests. It intentionally does **not**
+return the S3 `UploadId` to the browser.
+
+Read-only AWS verification on 2026-11-22 confirmed the uploads bucket CORS is
+restricted to the production origin, permits `Content-Type`, exposes `ETag`,
+and has an `AbortIncompleteMultipartUpload` lifecycle rule after 7 days.
+It also reconfirmed the four global WAF `COUNT` overrides above; no live WAF
+change belongs in this code PR until the scoped dual-region design is tested.
+
+**Test-runner follow-up:** the upload-focused backend tests and the rewritten
+CSRF/body-cap tests pass in the pinned `.venv-test` environment. A full-suite
+run reaches the separate archive-streaming test, which still hangs after its
+Python-3.12 event-loop compatibility failure; do not treat the full-suite gate
+as green until that legacy test is repaired.

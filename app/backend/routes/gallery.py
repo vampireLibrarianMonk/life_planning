@@ -12,11 +12,13 @@ Design (per v6 handoff, Pass 1):
 """
 
 import hashlib
+import math
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+import config
 from auth import require_admin_or_child, require_profile_access
 from database import get_db
 from models import MediaObjectiveLink, PillarEntry, ProfileMedia, User
@@ -39,6 +41,7 @@ ALLOWED_MIME_PREFIXES = (
     "text/",
 )
 MAX_FILE_BYTES = 25 * 1024 * 1024  # 25 MB per file (matches events.py; direct-S3 comes in Pass 3)
+MULTIPART_PART_BYTES = 8 * 1024 * 1024
 
 router = APIRouter(
     prefix="/api/profiles/{profile_id}/gallery",
@@ -190,7 +193,18 @@ def initiate_upload(
     db.add(media)
     db.commit()
     db.refresh(media)
-    upload_url = get_storage().presigned_put_url(storage_key, req.content_type)
+    storage = get_storage()
+    if config.IS_AWS:
+        upload_id = storage.create_multipart_upload(storage_key, req.content_type)
+        media.multipart_upload_id = upload_id
+        db.commit()
+        count = math.ceil(req.size_bytes / MULTIPART_PART_BYTES)
+        return UploadInitiateResponse(
+            media_id=media.id, upload_url="", storage_key=storage_key,
+            method="multipart", part_size=MULTIPART_PART_BYTES,
+            part_urls=[storage.presigned_part_url(storage_key, upload_id, n) for n in range(1, count + 1)],
+        )
+    upload_url = storage.presigned_put_url(storage_key, req.content_type)
     return UploadInitiateResponse(media_id=media.id, upload_url=upload_url, storage_key=storage_key)
 
 
@@ -211,12 +225,29 @@ def finalize_upload(
         raise HTTPException(status_code=404, detail="Upload not found")
     if media.status == "ready":
         return _serialize(media)
-    # The object must actually be present before we mark it ready — a forged
-    # finalize before the PUT lands must NOT flip the row to ready.
-    if not get_storage().exists(media.storage_key):
+    if media.multipart_upload_id:
+        if not req.parts:
+            raise HTTPException(status_code=400, detail="Multipart upload parts are required.")
+        expected = math.ceil(media.size_bytes / MULTIPART_PART_BYTES)
+        numbers = [p.part_number for p in req.parts]
+        if numbers != list(range(1, expected + 1)):
+            raise HTTPException(status_code=400, detail="Multipart upload parts are incomplete or invalid.")
+        try:
+            get_storage().complete_multipart_upload(
+                media.storage_key, media.multipart_upload_id,
+                [{"PartNumber": p.part_number, "ETag": p.etag} for p in req.parts],
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=409, detail="Could not complete multipart upload.") from exc
+        media.multipart_upload_id = None
+    # The object must actually be present *and match the initiated size* before
+    # we mark it ready.  A forged finalize or a client that uploads a different
+    # sized object must not create a ready gallery record.
+    stored_size = get_storage().object_size(media.storage_key)
+    if stored_size != media.size_bytes:
         media.status = "failed"
         db.commit()
-        raise HTTPException(status_code=409, detail="Upload not found in storage yet.")
+        raise HTTPException(status_code=409, detail="Uploaded object is missing or has an unexpected size.")
     media.status = "ready"
     if req.observation is not None:
         media.observation = req.observation
@@ -252,6 +283,14 @@ def delete_media(
 ):
     """Soft-delete a gallery item. The stored object is removed too."""
     media = _get_media_or_404(db, profile_id, media_id)
+    # A pending multipart session otherwise retains S3 parts until provider
+    # cleanup. Abort it before tombstoning the application record.
+    if media.multipart_upload_id:
+        try:
+            get_storage().abort_multipart_upload(media.storage_key, media.multipart_upload_id)
+        except Exception:
+            pass
+        media.multipart_upload_id = None
     from datetime import datetime
 
     media.deleted_at = datetime.utcnow()

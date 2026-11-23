@@ -7,7 +7,6 @@ Origin header is rejected 403, while same-origin and header-less requests pass.
 
 import asyncio
 import importlib
-import sys
 
 import pytest
 from starlette.requests import Request
@@ -15,27 +14,13 @@ from starlette.responses import Response
 
 
 @pytest.fixture
-def app(monkeypatch, tmp_path):
-    monkeypatch.setenv("DEPLOY_MODE", "local")
-    monkeypatch.setenv("SECRET_KEY", "z" * 40)
-    # Never bind an HTTP test to the shared developer SQLite database; it can
-    # be held by a local server and makes TestClient startup block on a lock.
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/csrf.db")
-    # Routes import SessionLocal/models at module load time, so reload the
-    # complete application graph against this fixture's isolated database.
-    for m in list(sys.modules):
-        if (
-            m == "database"
-            or m == "config"
-            or m == "models"
-            or m == "auth"
-            or m == "main"
-            or m.startswith("routes")
-        ):
-            sys.modules.pop(m, None)
+def app(monkeypatch):
+    # This is a middleware-only test.  Do not unload/reload modules here:
+    # SQLAlchemy relationship strings share one class registry for the entire
+    # process, and reloading models mid-suite can split that registry.
     main = importlib.import_module("main")
     # Pin an allow-list as in AWS mode so the check is active.
-    main._allowed_origins = ["https://life-planning.my-deployment.com"]
+    monkeypatch.setattr(main, "_allowed_origins", ["https://life-planning.my-deployment.com"])
     return main
 
 

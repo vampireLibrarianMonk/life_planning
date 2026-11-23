@@ -257,7 +257,9 @@ def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
     monkeypatch.setattr(gallery, "get_storage", lambda: fake_storage)
     init = gallery.initiate_upload(
         a,
-        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=9 * 1024 * 1024),
+        UploadInitiateRequest(
+            filename="clip.mp4", content_type="video/mp4", size_bytes=9 * 1024 * 1024
+        ),
         db=db,
         current_user=admin,
     )
@@ -268,19 +270,25 @@ def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
 
     with pytest.raises(HTTPException) as exc:
         gallery.finalize_upload(
-            a, init.media_id,
+            a,
+            init.media_id,
             UploadFinalizeRequest(parts=[{"part_number": 1, "etag": '"one"'}]),
-            db=db, _=admin,
+            db=db,
+            _=admin,
         )
     assert exc.value.status_code == 400
 
     out = gallery.finalize_upload(
-        a, init.media_id,
-        UploadFinalizeRequest(parts=[
-            {"part_number": 1, "etag": '"one"'},
-            {"part_number": 2, "etag": '"two"'},
-        ]),
-        db=db, _=admin,
+        a,
+        init.media_id,
+        UploadFinalizeRequest(
+            parts=[
+                {"part_number": 1, "etag": '"one"'},
+                {"part_number": 2, "etag": '"two"'},
+            ]
+        ),
+        db=db,
+        _=admin,
     )
     assert out.status == "ready"
     assert calls["complete"][1:] == (
@@ -316,9 +324,11 @@ def test_multipart_size_mismatch_never_becomes_ready(ctx, monkeypatch):
     )
     with pytest.raises(HTTPException) as exc:
         gallery.finalize_upload(
-            a, init.media_id,
+            a,
+            init.media_id,
             UploadFinalizeRequest(parts=[{"part_number": 1, "etag": '"one"'}]),
-            db=db, _=admin,
+            db=db,
+            _=admin,
         )
     assert exc.value.status_code == 409
     assert gallery.list_gallery(a, db=db) == []

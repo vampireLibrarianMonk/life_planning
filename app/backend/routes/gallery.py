@@ -200,9 +200,14 @@ def initiate_upload(
         db.commit()
         count = math.ceil(req.size_bytes / MULTIPART_PART_BYTES)
         return UploadInitiateResponse(
-            media_id=media.id, upload_url="", storage_key=storage_key,
-            method="multipart", part_size=MULTIPART_PART_BYTES,
-            part_urls=[storage.presigned_part_url(storage_key, upload_id, n) for n in range(1, count + 1)],
+            media_id=media.id,
+            upload_url="",
+            storage_key=storage_key,
+            method="multipart",
+            part_size=MULTIPART_PART_BYTES,
+            part_urls=[
+                storage.presigned_part_url(storage_key, upload_id, n) for n in range(1, count + 1)
+            ],
         )
     upload_url = storage.presigned_put_url(storage_key, req.content_type)
     return UploadInitiateResponse(media_id=media.id, upload_url=upload_url, storage_key=storage_key)
@@ -231,14 +236,19 @@ def finalize_upload(
         expected = math.ceil(media.size_bytes / MULTIPART_PART_BYTES)
         numbers = [p.part_number for p in req.parts]
         if numbers != list(range(1, expected + 1)):
-            raise HTTPException(status_code=400, detail="Multipart upload parts are incomplete or invalid.")
+            raise HTTPException(
+                status_code=400, detail="Multipart upload parts are incomplete or invalid."
+            )
         try:
             get_storage().complete_multipart_upload(
-                media.storage_key, media.multipart_upload_id,
+                media.storage_key,
+                media.multipart_upload_id,
                 [{"PartNumber": p.part_number, "ETag": p.etag} for p in req.parts],
             )
         except Exception as exc:
-            raise HTTPException(status_code=409, detail="Could not complete multipart upload.") from exc
+            raise HTTPException(
+                status_code=409, detail="Could not complete multipart upload."
+            ) from exc
         media.multipart_upload_id = None
     # The object must actually be present *and match the initiated size* before
     # we mark it ready.  A forged finalize or a client that uploads a different
@@ -247,7 +257,9 @@ def finalize_upload(
     if stored_size != media.size_bytes:
         media.status = "failed"
         db.commit()
-        raise HTTPException(status_code=409, detail="Uploaded object is missing or has an unexpected size.")
+        raise HTTPException(
+            status_code=409, detail="Uploaded object is missing or has an unexpected size."
+        )
     media.status = "ready"
     if req.observation is not None:
         media.observation = req.observation

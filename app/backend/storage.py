@@ -199,7 +199,12 @@ class S3Storage(Storage):
     def presigned_part_url(self, key: str, upload_id: str, part_number: int) -> str:
         return self._s3.generate_presigned_url(
             "upload_part",
-            Params={"Bucket": self._bucket, "Key": key, "UploadId": upload_id, "PartNumber": part_number},
+            Params={
+                "Bucket": self._bucket,
+                "Key": key,
+                "UploadId": upload_id,
+                "PartNumber": part_number,
+            },
             ExpiresIn=config.PRESIGN_TTL_SECONDS,
         )
 

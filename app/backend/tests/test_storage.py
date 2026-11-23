@@ -86,7 +86,9 @@ def test_s3_storage_uses_presigned_urls(config_in_mode, monkeypatch):
     upload_id = s.create_multipart_upload("clip.mov", "video/quicktime")
     assert upload_id == "test-upload-id"
     assert calls["create_multipart"] == {
-        "Bucket": "test-bucket", "Key": "clip.mov", "ContentType": "video/quicktime"
+        "Bucket": "test-bucket",
+        "Key": "clip.mov",
+        "ContentType": "video/quicktime",
     }
     part_url = s.presigned_part_url("clip.mov", upload_id, 2)
     assert part_url == "https://signed.example/obj"
@@ -101,7 +103,9 @@ def test_s3_storage_uses_presigned_urls(config_in_mode, monkeypatch):
     }
     s.abort_multipart_upload("clip.mov", upload_id)
     assert calls["abort_multipart"] == {
-        "Bucket": "test-bucket", "Key": "clip.mov", "UploadId": "test-upload-id"
+        "Bucket": "test-bucket",
+        "Key": "clip.mov",
+        "UploadId": "test-upload-id",
     }
 
     # S3 never serves from local disk.

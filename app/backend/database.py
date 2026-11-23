@@ -87,4 +87,6 @@ def ensure_columns():
 
         pm_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(profile_media)"))}
         if pm_cols and "multipart_upload_id" not in pm_cols:
-            conn.execute(text("ALTER TABLE profile_media ADD COLUMN multipart_upload_id VARCHAR(512)"))
+            conn.execute(
+                text("ALTER TABLE profile_media ADD COLUMN multipart_upload_id VARCHAR(512)")
+            )

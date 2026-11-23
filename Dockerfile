@@ -29,14 +29,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # curl + ca-certificates are needed to fetch + checksum-verify Litestream below;
 # removed in the same layer to keep the runtime image lean.
-# We also pull the latest security patches for base-image OS packages (e.g. the
-# zlib1g heap-overflow CVE-2026-85091 fixed in Debian 13 deb13u1); Trivy's
-# image-scan gate fails on fixed HIGH/CRITICAL OS CVEs, and these are the kind
-# we SHOULD patch rather than suppress.
+# Apply all available Debian security updates rather than upgrading one package
+# at a time. Trivy's image gate must fail for fixed HIGH/CRITICAL OS CVEs, and
+# the Python base image can otherwise retain vulnerable packages such as krb5.
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
-    && apt-get upgrade -y zlib1g \
+    && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Litestream (SQLite -> S3 continuous replication) so the DB survives

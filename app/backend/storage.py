@@ -61,9 +61,26 @@ class Storage(ABC):
         """
         ...
 
+    @abstractmethod
+    def create_multipart_upload(self, key: str, content_type: str) -> str: ...
+
+    @abstractmethod
+    def presigned_part_url(self, key: str, upload_id: str, part_number: int) -> str: ...
+
+    @abstractmethod
+    def complete_multipart_upload(self, key: str, upload_id: str, parts: list[dict]) -> None: ...
+
+    @abstractmethod
+    def abort_multipart_upload(self, key: str, upload_id: str) -> None: ...
+
     def exists(self, key: str) -> bool:
         """Whether an object is present (used to finalize direct uploads)."""
         return self.read(key) is not None
+
+    @abstractmethod
+    def object_size(self, key: str) -> int | None:
+        """Return the stored byte size, or None when the object is absent."""
+        ...
 
 
 class LocalStorage(Storage):
@@ -94,6 +111,22 @@ class LocalStorage(Storage):
         # No real presigning for local disk: hand back the app's own direct-PUT
         # endpoint so the browser/tests use the identical two-step flow.
         return f"/api/uploads/direct/{key}"
+
+    def create_multipart_upload(self, key: str, content_type: str) -> str:
+        return key
+
+    def presigned_part_url(self, key: str, upload_id: str, part_number: int) -> str:
+        return f"/api/uploads/direct/{key}"
+
+    def complete_multipart_upload(self, key: str, upload_id: str, parts: list[dict]) -> None:
+        return None
+
+    def abort_multipart_upload(self, key: str, upload_id: str) -> None:
+        return None
+
+    def object_size(self, key: str) -> int | None:
+        path = self.open_local(key)
+        return path.stat().st_size if path else None
 
 
 class S3Storage(Storage):
@@ -158,12 +191,43 @@ class S3Storage(Storage):
             ExpiresIn=config.PRESIGN_TTL_SECONDS,
         )
 
+    def create_multipart_upload(self, key: str, content_type: str) -> str:
+        return self._s3.create_multipart_upload(
+            Bucket=self._bucket, Key=key, ContentType=content_type
+        )["UploadId"]
+
+    def presigned_part_url(self, key: str, upload_id: str, part_number: int) -> str:
+        return self._s3.generate_presigned_url(
+            "upload_part",
+            Params={
+                "Bucket": self._bucket,
+                "Key": key,
+                "UploadId": upload_id,
+                "PartNumber": part_number,
+            },
+            ExpiresIn=config.PRESIGN_TTL_SECONDS,
+        )
+
+    def complete_multipart_upload(self, key: str, upload_id: str, parts: list[dict]) -> None:
+        self._s3.complete_multipart_upload(
+            Bucket=self._bucket, Key=key, UploadId=upload_id, MultipartUpload={"Parts": parts}
+        )
+
+    def abort_multipart_upload(self, key: str, upload_id: str) -> None:
+        self._s3.abort_multipart_upload(Bucket=self._bucket, Key=key, UploadId=upload_id)
+
     def exists(self, key: str) -> bool:
         try:
             self._s3.head_object(Bucket=self._bucket, Key=key)
             return True
         except Exception:  # noqa: BLE001 - any 404/403/client error -> treat as absent
             return False
+
+    def object_size(self, key: str) -> int | None:
+        try:
+            return self._s3.head_object(Bucket=self._bucket, Key=key)["ContentLength"]
+        except Exception:  # noqa: BLE001 - any 404/403/client error -> treat as absent
+            return None
 
 
 @lru_cache(maxsize=1)

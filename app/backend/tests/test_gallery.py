@@ -13,6 +13,7 @@ release-gate cases from the v6 handoff that apply to this pass:
 import asyncio
 import importlib
 import sys
+import tempfile
 
 import pytest
 from fastapi import HTTPException, UploadFile
@@ -74,13 +75,18 @@ def ctx(monkeypatch, tmp_path):
 
 
 def _upload(gallery, db, pid, user, name="p.jpg", mime="image/jpeg", data=b"JPEGDATA"):
-    import io
-
     from starlette.datastructures import Headers
 
+    # Starlette treats a bare BytesIO as a disk-backed upload and schedules its
+    # read on AnyIO's worker pool.  A real multipart upload is a
+    # SpooledTemporaryFile, which stays in-memory for these small synthetic
+    # fixtures and prevents a deadlock when the route is called directly.
+    file = tempfile.SpooledTemporaryFile(max_size=max(len(data) + 1, 1))
+    file.write(data)
+    file.seek(0)
     uf = UploadFile(
         filename=name,
-        file=io.BytesIO(data),
+        file=file,
         headers=Headers({"content-type": mime}),
     )
     return asyncio.run(gallery.upload_media(pid, files=[uf], db=db, current_user=user))
@@ -205,7 +211,7 @@ def test_direct_upload_initiate_finalize_happy_path(ctx):
 
     init = gallery.initiate_upload(
         a,
-        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=5_000_000),
+        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=1000),
         db=db,
         current_user=admin,
     )
@@ -219,6 +225,144 @@ def test_direct_upload_initiate_finalize_happy_path(ctx):
     )
     assert out.status == "ready" and out.media_type == "video" and out.observation == "first swim"
     assert [m.id for m in gallery.list_gallery(a, db=db)] == [init.media_id]
+
+
+def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
+    """A multipart completion needs every signed part and the initiated size."""
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadFinalizeRequest, UploadInitiateRequest
+
+    calls = {}
+
+    class MultipartStorage:
+        def create_multipart_upload(self, key, content_type):
+            calls["create"] = (key, content_type)
+            return "server-only-upload-id"
+
+        def presigned_part_url(self, key, upload_id, part_number):
+            assert upload_id == "server-only-upload-id"
+            return f"https://storage.example/{part_number}"
+
+        def complete_multipart_upload(self, key, upload_id, parts):
+            calls["complete"] = (key, upload_id, parts)
+
+        def object_size(self, key):
+            return 9 * 1024 * 1024
+
+        def url_for(self, key):
+            return f"https://storage.example/object/{key}"
+
+    fake_storage = MultipartStorage()
+    monkeypatch.setattr(gallery.config, "IS_AWS", True)
+    monkeypatch.setattr(gallery, "get_storage", lambda: fake_storage)
+    init = gallery.initiate_upload(
+        a,
+        UploadInitiateRequest(
+            filename="clip.mp4", content_type="video/mp4", size_bytes=9 * 1024 * 1024
+        ),
+        db=db,
+        current_user=admin,
+    )
+    assert init.method == "multipart"
+    assert init.part_size == 8 * 1024 * 1024
+    assert init.part_urls == ["https://storage.example/1", "https://storage.example/2"]
+    assert "multipart_upload_id" not in init.model_dump()
+
+    with pytest.raises(HTTPException) as exc:
+        gallery.finalize_upload(
+            a,
+            init.media_id,
+            UploadFinalizeRequest(parts=[{"part_number": 1, "etag": '"one"'}]),
+            db=db,
+            _=admin,
+        )
+    assert exc.value.status_code == 400
+
+    out = gallery.finalize_upload(
+        a,
+        init.media_id,
+        UploadFinalizeRequest(
+            parts=[
+                {"part_number": 1, "etag": '"one"'},
+                {"part_number": 2, "etag": '"two"'},
+            ]
+        ),
+        db=db,
+        _=admin,
+    )
+    assert out.status == "ready"
+    assert calls["complete"][1:] == (
+        "server-only-upload-id",
+        [{"PartNumber": 1, "ETag": '"one"'}, {"PartNumber": 2, "ETag": '"two"'}],
+    )
+
+
+def test_multipart_size_mismatch_never_becomes_ready(ctx, monkeypatch):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadFinalizeRequest, UploadInitiateRequest
+
+    class WrongSizeStorage:
+        def create_multipart_upload(self, key, content_type):
+            return "upload-id"
+
+        def presigned_part_url(self, key, upload_id, part_number):
+            return f"https://storage.example/{part_number}"
+
+        def complete_multipart_upload(self, key, upload_id, parts):
+            return None
+
+        def object_size(self, key):
+            return 0
+
+    monkeypatch.setattr(gallery.config, "IS_AWS", True)
+    monkeypatch.setattr(gallery, "get_storage", lambda: WrongSizeStorage())
+    init = gallery.initiate_upload(
+        a,
+        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=1),
+        db=db,
+        current_user=admin,
+    )
+    with pytest.raises(HTTPException) as exc:
+        gallery.finalize_upload(
+            a,
+            init.media_id,
+            UploadFinalizeRequest(parts=[{"part_number": 1, "etag": '"one"'}]),
+            db=db,
+            _=admin,
+        )
+    assert exc.value.status_code == 409
+    assert gallery.list_gallery(a, db=db) == []
+
+
+def test_deleting_pending_multipart_aborts_the_server_upload(ctx, monkeypatch):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadInitiateRequest
+
+    calls = []
+
+    class MultipartStorage:
+        def create_multipart_upload(self, key, content_type):
+            return "upload-id"
+
+        def presigned_part_url(self, key, upload_id, part_number):
+            return f"https://storage.example/{part_number}"
+
+        def abort_multipart_upload(self, key, upload_id):
+            calls.append((key, upload_id))
+
+        def delete(self, key):
+            return None
+
+    monkeypatch.setattr(gallery.config, "IS_AWS", True)
+    monkeypatch.setattr(gallery, "get_storage", lambda: MultipartStorage())
+    init = gallery.initiate_upload(
+        a,
+        UploadInitiateRequest(filename="cancel.mp4", content_type="video/mp4", size_bytes=1),
+        db=db,
+        current_user=admin,
+    )
+    gallery.delete_media(a, init.media_id, db=db, _=admin)
+    assert calls == [(init.storage_key, "upload-id")]
 
 
 def test_up01_forged_finalize_before_put_is_rejected(ctx):

@@ -585,7 +585,7 @@ function directPut(uploadUrl, file) {
     xhr.setRequestHeader('Content-Type', contentType)
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve()
+        resolve(xhr.getResponseHeader('ETag'))
         return
       }
       const err = new Error(`Upload transfer failed (HTTP ${xhr.status})`)
@@ -607,8 +607,7 @@ async function directPutWithRetry(uploadUrl, file) {
   let lastError
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      await directPut(uploadUrl, file)
-      return
+      return await directPut(uploadUrl, file)
     } catch (err) {
       lastError = err
       if (err?.status && err.status < 500) throw err
@@ -643,18 +642,29 @@ export async function directUploadGalleryMedia(profileId, file, { observation, a
     }
     throw new Error(detail)
   }
-  const { media_id, upload_url } = await initRes.json()
+  const { media_id, upload_url, method, part_size, part_urls } = await initRes.json()
 
   // 2. PUT the bytes straight to storage (S3 presigned URL, or local receiver).
   // XHR is intentionally used here rather than fetch: it is more reliable for
   // large Blob PUTs in iOS Safari and gives transient Wi-Fi failures one retry.
-  await directPutWithRetry(upload_url, file)
+  let parts = null
+  if (method === 'multipart') {
+    parts = []
+    for (let index = 0; index < part_urls.length; index += 1) {
+      const chunk = file.slice(index * part_size, Math.min((index + 1) * part_size, file.size))
+      const etag = await directPutWithRetry(part_urls[index], chunk)
+      if (!etag) throw new Error('Upload transfer failed: storage did not return a part ETag.')
+      parts.push({ part_number: index + 1, etag })
+    }
+  } else {
+    await directPutWithRetry(upload_url, file)
+  }
 
   // 3. finalize — server verifies the object landed, flips to ready
   const finRes = await fetch(`/api/profiles/${profileId}/gallery/uploads/${media_id}/finalize`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ observation: observation ?? null, age_band: ageBand ?? null }),
+    body: JSON.stringify({ observation: observation ?? null, age_band: ageBand ?? null, parts }),
   })
   if (!finRes.ok) {
     let detail = `Could not finalize upload (HTTP ${finRes.status})`

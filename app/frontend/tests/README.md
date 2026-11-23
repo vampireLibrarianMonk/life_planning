@@ -17,6 +17,14 @@ Automated browser testing for the Life Plan Tracker frontend using
   the bulleted legend and CDC items, and the 36/48/60mo views with the
   instruction-following + danger-awareness items). Full guide:
   `docs/playwright_cd_walkthrough.md`.
+- **`tests/development_goals_pdf.spec.js`** — renders the Child Development
+  stage sheet through Chromium's actual PDF pipeline and verifies the
+  time-and-child filename, print-only header and legend, hidden controls, PDF
+  validity/size budget, and the absence of S3 or presigned URLs. The PDF is
+  retained and attached to the Playwright result on each run. Its faux-media
+  case verifies the evidence appendix layout: two bounded photo cards, one
+  non-playable video-cover card, captions, omitted count, authenticated app
+  deep links, and the PDF file-size budget.
 
 ## Prerequisites
 

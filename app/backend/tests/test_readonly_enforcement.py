@@ -46,7 +46,15 @@ EXEMPT_PATHS = {
 def backend(monkeypatch):
     monkeypatch.setenv("DEPLOY_MODE", "local")
     monkeypatch.setenv("SECRET_KEY", "z" * 40)
-    for mod in ("config", "database", "models", "auth", "main"):
+    for mod in (
+        "config",
+        "database",
+        "models",
+        "auth",
+        "storage",
+        "main",
+        "routes.events",
+    ):
         sys.modules.pop(mod, None)
     models = importlib.import_module("models")
     auth = importlib.import_module("auth")

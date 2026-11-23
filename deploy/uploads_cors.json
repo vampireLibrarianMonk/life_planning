@@ -1,0 +1,22 @@
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": [
+        "Content-Type",
+        "x-amz-checksum-sha256"
+      ],
+      "AllowedMethods": [
+        "PUT",
+        "GET",
+        "HEAD"
+      ],
+      "AllowedOrigins": [
+        "https://life-planning.my-deployment.com"
+      ],
+      "ExposeHeaders": [
+        "ETag"
+      ],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}

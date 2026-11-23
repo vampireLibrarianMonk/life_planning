@@ -95,6 +95,21 @@ def test_seed_is_idempotent_and_grouped(ctx):
             assert it["status"] == "not_started"
 
 
+def test_objective_choices_include_only_this_childs_development_goals(ctx):
+    cd, _pillars, models, db, pid = ctx
+    admin = _admin(models)
+    cd.seed_age_group(profile_id=pid, age_band="12mo", db=db, _=admin)
+    other = models.Profile(name="Other", date_of_birth="2025-01-01")
+    db.add(other)
+    db.commit()
+    cd.seed_age_group(profile_id=other.id, age_band="2mo", db=db, _=admin)
+
+    choices = cd.objective_choices(profile_id=pid, db=db, _=admin)
+    assert choices
+    assert all(choice["age_band"] == "12mo" for choice in choices)
+    assert all({"id", "title", "age_band", "domain"} <= choice.keys() for choice in choices)
+
+
 def test_unknown_age_group_404(ctx):
     cd, _pillars, models, db, pid = ctx
     with pytest.raises(HTTPException) as e:

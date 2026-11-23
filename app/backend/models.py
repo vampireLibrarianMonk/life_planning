@@ -3,7 +3,18 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    and_,
+)
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -284,6 +295,10 @@ class ProfileMedia(Base):
     media_type = Column(String(20), nullable=False, default="other")  # photo|video|document|other
     size_bytes = Column(Integer, default=0)
     sha256 = Column(String(64), nullable=True)  # content hash (dedupe / integrity)
+    # Reservation key for new uploads. Kept separate from sha256 so the
+    # additive migration can enforce future dedupe without rewriting historical
+    # Gallery rows, whose hashes were optional.
+    dedupe_key = Column(String(80), nullable=True)
     # Independent timestamps: when it was captured vs. recorded in the app.
     taken_at = Column(DateTime, nullable=True)
     observed_at = Column(DateTime, nullable=True)
@@ -298,7 +313,19 @@ class ProfileMedia(Base):
     profile = relationship("Profile")
     owner = relationship("User")
     objective_links = relationship(
-        "MediaObjectiveLink", back_populates="media", cascade="all, delete-orphan"
+        "MediaObjectiveLink",
+        back_populates="media",
+        cascade="all, delete-orphan",
+        foreign_keys="MediaObjectiveLink.media_id",
+    )
+    __table_args__ = (
+        Index(
+            "uq_profile_media_active_dedupe_key",
+            "profile_id",
+            "dedupe_key",
+            unique=True,
+            sqlite_where=and_(dedupe_key.is_not(None), deleted_at.is_(None)),
+        ),
     )
 
 
@@ -324,8 +351,15 @@ class MediaObjectiveLink(Base):
         Integer, ForeignKey("pillar_entries.id", ondelete="CASCADE"), nullable=False, index=True
     )
     linked_at = Column(DateTime, default=datetime.utcnow)
+    # Print evidence is opt-in per objective.  A Gallery item can be featured
+    # on one goal without appearing in another goal's printed appendix.
+    featured_for_print = Column(Boolean, nullable=False, default=False)
+    print_order = Column(Integer, nullable=True)
+    # Videos are represented in print by a parent-selected Gallery photo.  It
+    # is intentionally a media id rather than a copied derivative/video frame.
+    cover_media_id = Column(Integer, ForeignKey("profile_media.id"), nullable=True)
 
-    media = relationship("ProfileMedia", back_populates="objective_links")
+    media = relationship("ProfileMedia", back_populates="objective_links", foreign_keys=[media_id])
 
 
 class EventAttachment(Base):

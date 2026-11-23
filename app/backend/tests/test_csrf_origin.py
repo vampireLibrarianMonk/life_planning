@@ -53,13 +53,13 @@ def request(app, method, path, *, headers=None):
     async def downstream(_request):
         return Response(status_code=204)
 
-    # Keep a current loop installed: a legacy archive test below this module in
-    # the suite uses get_event_loop().run_until_complete().  asyncio.run()
-    # closes and unsets that loop, making otherwise-independent tests order
-    # dependent on Python 3.12.
+    # This direct ASGI test owns and closes its loop, so it cannot leak global
+    # asyncio state into another module.
     loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    return loop.run_until_complete(app.security_headers(Request(scope, receive), downstream))
+    try:
+        return loop.run_until_complete(app.security_headers(Request(scope, receive), downstream))
+    finally:
+        loop.close()
 
 
 def test_cross_origin_post_blocked(app):

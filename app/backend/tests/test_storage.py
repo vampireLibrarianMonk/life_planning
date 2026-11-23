@@ -89,12 +89,19 @@ def test_s3_storage_uses_presigned_urls(config_in_mode, monkeypatch):
         "Bucket": "test-bucket",
         "Key": "clip.mov",
         "ContentType": "video/quicktime",
+        "ChecksumAlgorithm": "SHA256",
     }
-    part_url = s.presigned_part_url("clip.mov", upload_id, 2)
+    part_url = s.presigned_part_url("clip.mov", upload_id, 2, "A" * 43 + "=")
     assert part_url == "https://signed.example/obj"
     assert calls["presign"] == (
         "upload_part",
-        {"Bucket": "test-bucket", "Key": "clip.mov", "UploadId": "test-upload-id", "PartNumber": 2},
+        {
+            "Bucket": "test-bucket",
+            "Key": "clip.mov",
+            "UploadId": "test-upload-id",
+            "PartNumber": 2,
+            "ChecksumSHA256": "A" * 43 + "=",
+        },
         3600,
     )
     s.complete_multipart_upload("clip.mov", upload_id, [{"PartNumber": 1, "ETag": '"etag"'}])

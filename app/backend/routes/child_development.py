@@ -32,7 +32,7 @@ from child_development import (
     category_for,
 )
 from database import get_db
-from models import MediaObjectiveLink, PillarEntry, User
+from models import MediaObjectiveLink, PillarEntry, ProfileMedia, User
 
 router = APIRouter(
     prefix="/api/profiles/{profile_id}/child-development",
@@ -74,6 +74,26 @@ def overview(
         for b in sorted(AGE_GROUPS, key=lambda b: AGE_GROUPS[b])
     ]
     return {"active": active, "catalog": catalog, "domains": DOMAINS}
+
+
+@router.get("/objectives/choices")
+def objective_choices(
+    profile_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_profile_access),
+):
+    """Compact, same-profile development-goal list for Gallery linking."""
+    rows = _cd_objective_rows(db, profile_id)
+    rows.sort(key=lambda row: (AGE_GROUPS.get(row.age_band or "", 9999), row.title.lower(), row.id))
+    return [
+        {
+            "id": row.id,
+            "title": row.title,
+            "age_band": row.age_band,
+            "domain": _domain_label((row.category or "").split(":", 1)[-1]),
+        }
+        for row in rows
+    ]
 
 
 def _domain_label(domain_key: str) -> str:
@@ -130,6 +150,113 @@ def age_group(
         "label": AGE_GROUP_LABELS[age_band],
         "domains": domains,
         "objectives": by_domain,
+    }
+
+
+@router.get("/{age_band}/print-evidence")
+def print_evidence(
+    profile_id: int,
+    age_band: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_profile_access),
+):
+    """Bulk, authorized evidence for one printable development age band.
+
+    Deliberately returns app-relative preview/deep-link paths only.  In
+    particular, it never calls storage.url_for(), which would leak expiring S3
+    URLs into browser print output.
+    """
+    if age_band not in AGE_GROUPS:
+        raise HTTPException(status_code=404, detail="Unknown age group")
+    objectives = [row for row in _cd_objective_rows(db, profile_id) if row.age_band == age_band]
+    if not objectives:
+        return {"age_band": age_band, "objectives": [], "selected_count": 0, "omitted_count": 0}
+
+    objective_ids = [row.id for row in objectives]
+    links = (
+        db.query(MediaObjectiveLink, ProfileMedia)
+        .join(ProfileMedia, ProfileMedia.id == MediaObjectiveLink.media_id)
+        .filter(
+            MediaObjectiveLink.profile_id == profile_id,
+            MediaObjectiveLink.objective_id.in_(objective_ids),
+            ProfileMedia.deleted_at.is_(None),
+            ProfileMedia.status == "ready",
+            ProfileMedia.media_type.in_(("photo", "video")),
+        )
+        .all()
+    )
+    covers = {
+        media.id: media
+        for media in db.query(ProfileMedia)
+        .filter(
+            ProfileMedia.profile_id == profile_id,
+            ProfileMedia.deleted_at.is_(None),
+            ProfileMedia.status == "ready",
+            ProfileMedia.media_type == "photo",
+        )
+        .all()
+    }
+    rows_by_id = {row.id: row for row in objectives}
+    selected: dict[int, list[tuple[MediaObjectiveLink, ProfileMedia]]] = {
+        oid: [] for oid in objective_ids
+    }
+    omitted: dict[int, int] = {oid: 0 for oid in objective_ids}
+    for link, media in links:
+        if link.featured_for_print:
+            selected[link.objective_id].append((link, media))
+        else:
+            omitted[link.objective_id] += 1
+
+    output = []
+    for objective_id in objective_ids:
+        chosen = sorted(
+            selected[objective_id],
+            key=lambda pair: (pair[0].print_order is None, pair[0].print_order or 0, pair[0].id),
+        )
+        if not chosen and not omitted[objective_id]:
+            continue
+        row = rows_by_id[objective_id]
+        deep_link = f"/profile/{profile_id}?section=child-development&age_band={age_band}&objective_id={objective_id}"
+        evidence = []
+        for link, media in chosen:
+            item = {
+                "media_id": media.id,
+                "kind": media.media_type,
+                "title": media.original_name,
+                "caption": media.observation or "",
+                "recorded_at": (
+                    media.taken_at or media.observed_at or media.created_at
+                ).isoformat(),
+                "deep_link": deep_link,
+            }
+            if media.media_type == "photo":
+                item["preview_url"] = f"/api/profiles/{profile_id}/gallery/{media.id}/print-preview"
+            else:
+                cover = covers.get(link.cover_media_id)
+                # Configuration writes guarantee this. Retain a defensive
+                # check so a legacy/broken row cannot leak an arbitrary image.
+                if not cover:
+                    omitted[objective_id] += 1
+                    continue
+                item["cover_preview_url"] = (
+                    f"/api/profiles/{profile_id}/gallery/{cover.id}/print-preview"
+                )
+            evidence.append(item)
+        if evidence or omitted[objective_id]:
+            output.append(
+                {
+                    "objective_id": objective_id,
+                    "objective_title": row.title,
+                    "deep_link": deep_link,
+                    "evidence": evidence,
+                    "omitted_count": omitted[objective_id],
+                }
+            )
+    return {
+        "age_band": age_band,
+        "objectives": output,
+        "selected_count": sum(len(item["evidence"]) for item in output),
+        "omitted_count": sum(item["omitted_count"] for item in output),
     }
 
 

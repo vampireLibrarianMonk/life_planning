@@ -11,7 +11,9 @@ release-gate cases from the v6 handoff that apply to this pass:
 """
 
 import asyncio
+import base64
 import importlib
+import math
 import sys
 import tempfile
 
@@ -90,6 +92,10 @@ def _upload(gallery, db, pid, user, name="p.jpg", mime="image/jpeg", data=b"JPEG
         headers=Headers({"content-type": mime}),
     )
     return asyncio.run(gallery.upload_media(pid, files=[uf], db=db, current_user=user))
+
+
+def _part_checksums(size_bytes):
+    return ["A" * 43 + "="] * math.ceil(size_bytes / (8 * 1024 * 1024))
 
 
 def test_upload_then_list_scoped_to_profile(ctx):
@@ -202,6 +208,59 @@ def test_unsupported_mime_rejected(ctx):
     assert e.value.status_code == 400
 
 
+def test_buffered_duplicate_reuses_canonical_media_and_soft_delete_allows_reupload(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    first = _upload(gallery, db, a, admin, name="same.jpg", data=b"same bytes")[0]
+    repeated = _upload(gallery, db, a, admin, name="renamed.jpg", data=b"same bytes")[0]
+    assert repeated.id == first.id
+    assert repeated.reused is True
+    assert len(gallery.list_gallery(a, db=db)) == 1
+
+    gallery.delete_media(a, first.id, db=db, _=admin)
+    replacement = _upload(gallery, db, a, admin, name="same.jpg", data=b"same bytes")[0]
+    assert replacement.id != first.id
+    assert replacement.reused is False
+
+
+def test_direct_duplicate_is_reused_before_a_second_transfer(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadFinalizeRequest, UploadInitiateRequest
+
+    req = UploadInitiateRequest(
+        filename="clip.mp4",
+        content_type="video/mp4",
+        size_bytes=1000,
+        part_checksums=_part_checksums(1000),
+    )
+    first = gallery.initiate_upload(a, req, db=db, current_user=admin)
+    storage.get_storage().save(first.storage_key, b"x" * 1000, "video/mp4")
+    gallery.finalize_upload(a, first.media_id, UploadFinalizeRequest(), db=db, _=admin)
+
+    repeated = gallery.initiate_upload(a, req, db=db, current_user=admin)
+    assert repeated.method == "existing"
+    assert repeated.reused is True
+    assert repeated.media_id == first.media_id
+
+
+def test_direct_duplicate_lookup_is_scoped_to_the_child_profile(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import UploadFinalizeRequest, UploadInitiateRequest
+
+    req = UploadInitiateRequest(
+        filename="clip.mp4",
+        content_type="video/mp4",
+        size_bytes=1000,
+        part_checksums=_part_checksums(1000),
+    )
+    first = gallery.initiate_upload(a, req, db=db, current_user=admin)
+    storage.get_storage().save(first.storage_key, b"x" * 1000, "video/mp4")
+    gallery.finalize_upload(a, first.media_id, UploadFinalizeRequest(), db=db, _=admin)
+
+    other_child = gallery.initiate_upload(b, req, db=db, current_user=admin)
+    assert other_child.method == "PUT"
+    assert other_child.media_id != first.media_id
+
+
 # --- Direct-to-storage upload (initiate -> PUT -> finalize) ------------------
 
 
@@ -211,7 +270,12 @@ def test_direct_upload_initiate_finalize_happy_path(ctx):
 
     init = gallery.initiate_upload(
         a,
-        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=1000),
+        UploadInitiateRequest(
+            filename="clip.mp4",
+            content_type="video/mp4",
+            size_bytes=1000,
+            part_checksums=_part_checksums(1000),
+        ),
         db=db,
         current_user=admin,
     )
@@ -239,7 +303,7 @@ def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
             calls["create"] = (key, content_type)
             return "server-only-upload-id"
 
-        def presigned_part_url(self, key, upload_id, part_number):
+        def presigned_part_url(self, key, upload_id, part_number, checksum_sha256):
             assert upload_id == "server-only-upload-id"
             return f"https://storage.example/{part_number}"
 
@@ -258,7 +322,10 @@ def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
     init = gallery.initiate_upload(
         a,
         UploadInitiateRequest(
-            filename="clip.mp4", content_type="video/mp4", size_bytes=9 * 1024 * 1024
+            filename="clip.mp4",
+            content_type="video/mp4",
+            size_bytes=9 * 1024 * 1024,
+            part_checksums=_part_checksums(9 * 1024 * 1024),
         ),
         db=db,
         current_user=admin,
@@ -272,7 +339,9 @@ def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
         gallery.finalize_upload(
             a,
             init.media_id,
-            UploadFinalizeRequest(parts=[{"part_number": 1, "etag": '"one"'}]),
+            UploadFinalizeRequest(
+                parts=[{"part_number": 1, "etag": '"one"', "checksum_sha256": "A" * 43 + "="}]
+            ),
             db=db,
             _=admin,
         )
@@ -283,8 +352,8 @@ def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
         init.media_id,
         UploadFinalizeRequest(
             parts=[
-                {"part_number": 1, "etag": '"one"'},
-                {"part_number": 2, "etag": '"two"'},
+                {"part_number": 1, "etag": '"one"', "checksum_sha256": "A" * 43 + "="},
+                {"part_number": 2, "etag": '"two"', "checksum_sha256": "A" * 43 + "="},
             ]
         ),
         db=db,
@@ -293,7 +362,10 @@ def test_multipart_upload_is_server_bound_and_size_checked(ctx, monkeypatch):
     assert out.status == "ready"
     assert calls["complete"][1:] == (
         "server-only-upload-id",
-        [{"PartNumber": 1, "ETag": '"one"'}, {"PartNumber": 2, "ETag": '"two"'}],
+        [
+            {"PartNumber": 1, "ETag": '"one"', "ChecksumSHA256": "A" * 43 + "="},
+            {"PartNumber": 2, "ETag": '"two"', "ChecksumSHA256": "A" * 43 + "="},
+        ],
     )
 
 
@@ -305,7 +377,7 @@ def test_multipart_size_mismatch_never_becomes_ready(ctx, monkeypatch):
         def create_multipart_upload(self, key, content_type):
             return "upload-id"
 
-        def presigned_part_url(self, key, upload_id, part_number):
+        def presigned_part_url(self, key, upload_id, part_number, checksum_sha256):
             return f"https://storage.example/{part_number}"
 
         def complete_multipart_upload(self, key, upload_id, parts):
@@ -318,7 +390,12 @@ def test_multipart_size_mismatch_never_becomes_ready(ctx, monkeypatch):
     monkeypatch.setattr(gallery, "get_storage", lambda: WrongSizeStorage())
     init = gallery.initiate_upload(
         a,
-        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=1),
+        UploadInitiateRequest(
+            filename="clip.mp4",
+            content_type="video/mp4",
+            size_bytes=1,
+            part_checksums=_part_checksums(1),
+        ),
         db=db,
         current_user=admin,
     )
@@ -326,7 +403,9 @@ def test_multipart_size_mismatch_never_becomes_ready(ctx, monkeypatch):
         gallery.finalize_upload(
             a,
             init.media_id,
-            UploadFinalizeRequest(parts=[{"part_number": 1, "etag": '"one"'}]),
+            UploadFinalizeRequest(
+                parts=[{"part_number": 1, "etag": '"one"', "checksum_sha256": "A" * 43 + "="}]
+            ),
             db=db,
             _=admin,
         )
@@ -344,7 +423,7 @@ def test_deleting_pending_multipart_aborts_the_server_upload(ctx, monkeypatch):
         def create_multipart_upload(self, key, content_type):
             return "upload-id"
 
-        def presigned_part_url(self, key, upload_id, part_number):
+        def presigned_part_url(self, key, upload_id, part_number, checksum_sha256):
             return f"https://storage.example/{part_number}"
 
         def abort_multipart_upload(self, key, upload_id):
@@ -357,7 +436,12 @@ def test_deleting_pending_multipart_aborts_the_server_upload(ctx, monkeypatch):
     monkeypatch.setattr(gallery, "get_storage", lambda: MultipartStorage())
     init = gallery.initiate_upload(
         a,
-        UploadInitiateRequest(filename="cancel.mp4", content_type="video/mp4", size_bytes=1),
+        UploadInitiateRequest(
+            filename="cancel.mp4",
+            content_type="video/mp4",
+            size_bytes=1,
+            part_checksums=_part_checksums(1),
+        ),
         db=db,
         current_user=admin,
     )
@@ -372,7 +456,12 @@ def test_up01_forged_finalize_before_put_is_rejected(ctx):
 
     init = gallery.initiate_upload(
         a,
-        UploadInitiateRequest(filename="clip.mp4", content_type="video/mp4", size_bytes=1000),
+        UploadInitiateRequest(
+            filename="clip.mp4",
+            content_type="video/mp4",
+            size_bytes=1000,
+            part_checksums=_part_checksums(1000),
+        ),
         db=db,
         current_user=admin,
     )
@@ -391,7 +480,10 @@ def test_direct_upload_oversize_rejected_at_initiate(ctx):
 
     with pytest.raises(pydantic.ValidationError):
         UploadInitiateRequest(
-            filename="huge.mp4", content_type="video/mp4", size_bytes=MAX_DIRECT_UPLOAD_BYTES + 1
+            filename="huge.mp4",
+            content_type="video/mp4",
+            size_bytes=MAX_DIRECT_UPLOAD_BYTES + 1,
+            part_checksums=_part_checksums(MAX_DIRECT_UPLOAD_BYTES + 1),
         )
 
 
@@ -401,7 +493,12 @@ def test_direct_upload_cross_profile_finalize_denied(ctx):
 
     init = gallery.initiate_upload(
         a,
-        UploadInitiateRequest(filename="c.mp4", content_type="video/mp4", size_bytes=1000),
+        UploadInitiateRequest(
+            filename="c.mp4",
+            content_type="video/mp4",
+            size_bytes=1000,
+            part_checksums=_part_checksums(1000),
+        ),
         db=db,
         current_user=admin,
     )
@@ -420,7 +517,10 @@ def test_direct_upload_bad_mime_rejected_at_initiate(ctx):
         gallery.initiate_upload(
             a,
             UploadInitiateRequest(
-                filename="x.exe", content_type="application/x-msdownload", size_bytes=10
+                filename="x.exe",
+                content_type="application/x-msdownload",
+                size_bytes=10,
+                part_checksums=_part_checksums(10),
             ),
             db=db,
             current_user=admin,
@@ -485,3 +585,139 @@ def test_objective_linked_media_shows_in_main_gallery_and_filtered(ctx):
     assert [m.id for m in filtered] == [media.id]
     # Filtered by a different objective shows nothing.
     assert gallery.list_gallery(a, objective_id=obj.id + 999, db=db) == []
+
+
+def test_print_evidence_caps_video_cover_and_safe_bulk_output(ctx):
+    """The printable appendix is bounded server-side and never exposes storage URLs."""
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    from schemas import PrintEvidenceUpdate
+
+    cd = importlib.import_module("routes.child_development")
+    objective = models.PillarEntry(
+        profile_id=a,
+        pillar=models.Pillar.education,
+        entry_type="milestone",
+        is_milestone=1,
+        status="complete",
+        age_band="12mo",
+        category="child_development:movement",
+        title="Takes first steps",
+    )
+    db.add(objective)
+    db.flush()
+
+    def media(name, media_type, mime):
+        row = models.ProfileMedia(
+            profile_id=a,
+            owner_id=admin.id,
+            storage_key=name,
+            original_name=name,
+            mime_type=mime,
+            media_type=media_type,
+            size_bytes=1,
+            status="ready",
+            observation=f"Caption for {name}",
+        )
+        db.add(row)
+        db.flush()
+        db.add(models.MediaObjectiveLink(profile_id=a, media_id=row.id, objective_id=objective.id))
+        db.flush()
+        return row
+
+    photo_one = media("one.png", "photo", "image/png")
+    photo_two = media("two.png", "photo", "image/png")
+    photo_three = media("three.png", "photo", "image/png")
+    video = media("walk.mp4", "video", "video/mp4")
+    db.commit()
+
+    for row in (photo_one, photo_two):
+        gallery.update_print_evidence(
+            a, row.id, objective.id, PrintEvidenceUpdate(featured_for_print=True), db=db, _=admin
+        )
+    with pytest.raises(HTTPException) as cap:
+        gallery.update_print_evidence(
+            a,
+            photo_three.id,
+            objective.id,
+            PrintEvidenceUpdate(featured_for_print=True),
+            db=db,
+            _=admin,
+        )
+    assert cap.value.status_code == 409
+
+    with pytest.raises(HTTPException) as missing_cover:
+        gallery.update_print_evidence(
+            a, video.id, objective.id, PrintEvidenceUpdate(featured_for_print=True), db=db, _=admin
+        )
+    assert missing_cover.value.status_code == 400
+    gallery.update_print_evidence(
+        a,
+        video.id,
+        objective.id,
+        PrintEvidenceUpdate(featured_for_print=True, cover_media_id=photo_one.id),
+        db=db,
+        _=admin,
+    )
+
+    result = cd.print_evidence(a, "12mo", db=db, _=admin)
+    assert result["selected_count"] == 3
+    assert result["omitted_count"] == 1
+    item = result["objectives"][0]
+    assert len(item["evidence"]) == 3
+    assert item["omitted_count"] == 1
+    assert all("amazonaws" not in str(evidence) for evidence in item["evidence"])
+    assert all("X-Amz-" not in str(evidence) for evidence in item["evidence"])
+    assert item["deep_link"].startswith(f"/profile/{a}?")
+    assert any(
+        evidence["kind"] == "video" and "cover_preview_url" in evidence
+        for evidence in item["evidence"]
+    )
+
+    other = models.ProfileMedia(
+        profile_id=b,
+        owner_id=admin.id,
+        storage_key="other.png",
+        original_name="other.png",
+        mime_type="image/png",
+        media_type="photo",
+        size_bytes=1,
+        status="ready",
+    )
+    db.add(other)
+    db.commit()
+    with pytest.raises(HTTPException) as cross_profile:
+        gallery.update_print_evidence(
+            a,
+            video.id,
+            objective.id,
+            PrintEvidenceUpdate(featured_for_print=True, cover_media_id=other.id),
+            db=db,
+            _=admin,
+        )
+    assert cross_profile.value.status_code == 404
+
+
+def test_print_preview_is_a_bounded_authenticated_derivative(ctx):
+    gallery, models, storage, db, a, b, admin, ro = ctx
+    photo = models.ProfileMedia(
+        profile_id=a,
+        owner_id=admin.id,
+        storage_key="source.png",
+        original_name="source.png",
+        mime_type="image/png",
+        media_type="photo",
+        size_bytes=1,
+        status="ready",
+    )
+    db.add(photo)
+    db.commit()
+    png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+    )
+    storage.get_storage().save(photo.storage_key, png, "image/png")
+    preview = gallery.print_preview(a, photo.id, db=db, _=admin)
+    assert preview.media_type == "image/jpeg"
+    assert preview.body.startswith(b"\xff\xd8")
+    with pytest.raises(HTTPException) as cross_profile:
+        gallery.print_preview(b, photo.id, db=db, _=admin)
+    assert cross_profile.value.status_code == 404

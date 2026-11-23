@@ -119,6 +119,22 @@ def _verify_archive_token(token: str, profile_id: int, user_id: int) -> None:
         raise HTTPException(status_code=403, detail="Archive token not valid for this user.")
 
 
+async def _stream_buffer(buffer: io.BytesIO, chunk_bytes: int = 64 * 1024):
+    """Yield a completed archive predictably, without a threadpool file iterator.
+
+    Passing ``BytesIO`` directly to StreamingResponse uses Starlette's sync
+    iterator adapter. That adapter can leave an archive response open under the
+    current AnyIO runtime, which made the archive round-trip test hang. This
+    async generator has an explicit EOF condition and bounds each response
+    chunk while retaining the existing in-memory archive construction.
+    """
+    try:
+        while chunk := buffer.read(chunk_bytes):
+            yield chunk
+    finally:
+        buffer.close()
+
+
 @router.post("/{profile_id}/archive", dependencies=[Depends(rate_limit("archive", 5, 300))])
 def archive_profile(
     profile_id: int,
@@ -195,7 +211,7 @@ def archive_profile(
     token = _mint_archive_token(profile_id, current_user.id)
     filename = f"life-plan-profile-{profile_id}-archive.zip"
     return StreamingResponse(
-        buf,
+        _stream_buffer(buf),
         media_type="application/zip",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',

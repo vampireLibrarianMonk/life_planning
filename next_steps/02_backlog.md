@@ -861,7 +861,7 @@ ranked hypotheses, diagnostic runbook, versions).
   The deployed single-PUT/XHR retry is therefore insufficient. Do not describe
   this as Safari-only.
 
-## 9. Multipart video upload + WAF scope remediation (NEXT — implementation WIP)
+## 9. Multipart video upload + WAF scope remediation (PR pending review)
 
 **Goal:** replace one fragile cross-origin 40MB PUT with S3 multipart upload,
 and restore body-rule blocking everywhere except the exact binary-upload
@@ -903,14 +903,14 @@ surface that requires an exception.
   Trivy. Deploy only after PR approval; live acceptance requires the owner to
   retry the real video in Safari and DuckDuckGo, then clean up test media.
 
-### Current branch state (implementation complete; final PR checks in progress)
+### Current branch state (implementation complete; PR pending review)
 
-`security/upload-waf-and-test-hardening` is pushed with commit `3daf6c4`
-(40MiB/XHR E2E regression). The pending commit adds server-persisted multipart
-state, 8MiB S3 parts with per-part retry, browser ETag collection,
-server-side ordered-part + exact-size validation, abort-on-delete, additive
-SQLite migration, and storage-adapter tests. It intentionally does **not**
-return the S3 `UploadId` to the browser.
+`security/upload-waf-and-test-hardening` contains the completed multipart
+implementation (`29d383c`) and CI/security follow-up (`638cbdf`):
+server-persisted multipart state, 8MiB S3 parts with per-part retry, browser
+ETag collection, server-side ordered-part + exact-size validation,
+abort-on-delete, additive SQLite migration, and storage-adapter tests. It
+intentionally does **not** return the S3 `UploadId` to the browser.
 
 Read-only AWS verification on 2026-11-22 confirmed the uploads bucket CORS is
 restricted to the production origin, permits `Content-Type`, exposes `ETag`,
@@ -918,8 +918,14 @@ and has an `AbortIncompleteMultipartUpload` lifecycle rule after 7 days.
 It also reconfirmed the four global WAF `COUNT` overrides above; no live WAF
 change belongs in this code PR until the scoped dual-region design is tested.
 
-**Test-runner follow-up:** the upload-focused backend tests and the rewritten
-CSRF/body-cap tests pass in the pinned `.venv-test` environment. A full-suite
-run reaches the separate archive-streaming test, which still hangs after its
-Python-3.12 event-loop compatibility failure; do not treat the full-suite gate
-as green until that legacy test is repaired.
+**Verified before PR creation:** the Python 3.12 backend suite passes (147
+tests), as do the full pre-commit gate (including mypy, Bandit, pip-audit,
+Hadolint, npm audit, secret detection, and SPA XSS checks), the frontend
+production build, and the Docker/Trivy High/Critical image scan (zero
+findings). The CSRF fixture was corrected to avoid reloading SQLAlchemy models
+mid-suite, which had caused the `BountyLog` mapper failures seen in CI.
+
+**Remaining before closure:** merge and deploy this PR to both App Runner
+regions, validate a real phone video in Safari and DuckDuckGo, clean up that
+test media, and separately design/test the narrowly scoped WAF body-rule
+exception before restoring those managed rules from global `COUNT` to `BLOCK`.

@@ -65,7 +65,9 @@ class Storage(ABC):
     def create_multipart_upload(self, key: str, content_type: str) -> str: ...
 
     @abstractmethod
-    def presigned_part_url(self, key: str, upload_id: str, part_number: int) -> str: ...
+    def presigned_part_url(
+        self, key: str, upload_id: str, part_number: int, checksum_sha256: str
+    ) -> str: ...
 
     @abstractmethod
     def complete_multipart_upload(self, key: str, upload_id: str, parts: list[dict]) -> None: ...
@@ -115,7 +117,9 @@ class LocalStorage(Storage):
     def create_multipart_upload(self, key: str, content_type: str) -> str:
         return key
 
-    def presigned_part_url(self, key: str, upload_id: str, part_number: int) -> str:
+    def presigned_part_url(
+        self, key: str, upload_id: str, part_number: int, checksum_sha256: str
+    ) -> str:
         return f"/api/uploads/direct/{key}"
 
     def complete_multipart_upload(self, key: str, upload_id: str, parts: list[dict]) -> None:
@@ -193,10 +197,17 @@ class S3Storage(Storage):
 
     def create_multipart_upload(self, key: str, content_type: str) -> str:
         return self._s3.create_multipart_upload(
-            Bucket=self._bucket, Key=key, ContentType=content_type
+            Bucket=self._bucket,
+            Key=key,
+            ContentType=content_type,
+            # S3 validates every browser-provided part checksum and stores a
+            # composite object checksum for audit/integrity verification.
+            ChecksumAlgorithm="SHA256",
         )["UploadId"]
 
-    def presigned_part_url(self, key: str, upload_id: str, part_number: int) -> str:
+    def presigned_part_url(
+        self, key: str, upload_id: str, part_number: int, checksum_sha256: str
+    ) -> str:
         return self._s3.generate_presigned_url(
             "upload_part",
             Params={
@@ -204,6 +215,7 @@ class S3Storage(Storage):
                 "Key": key,
                 "UploadId": upload_id,
                 "PartNumber": part_number,
+                "ChecksumSHA256": checksum_sha256,
             },
             ExpiresIn=config.PRESIGN_TTL_SECONDS,
         )

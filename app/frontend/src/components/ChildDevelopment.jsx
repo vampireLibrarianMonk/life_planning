@@ -3,6 +3,7 @@ import {
   fetchCDOverview, fetchCDAgeGroup, seedCDAgeGroup, deactivateCDAgeGroup,
   fetchCDWorries, saveCDWorries, updateEntry, deleteEntry, createEntry,
   fetchGallery, smartUploadGalleryMedia, linkGalleryObjective, unlinkGalleryObjective,
+  fetchCDPrintEvidence, updateGalleryObjectivePrintEvidence,
   createCDDomain, renameCDDomain, deleteCDDomain,
 } from '../services/api'
 
@@ -31,10 +32,18 @@ const LEGEND = [
 export default function ChildDevelopment({ profileId, profileName, ageBand, setAgeBand, onBack, canWrite, adminUser }) {
   const [overview, setOverview] = useState(null)
   const [group, setGroup] = useState(null)
+  const [printEvidence, setPrintEvidence] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const loadOverview = () => fetchCDOverview(profileId).then(setOverview)
-  const loadGroup = (b) => fetchCDAgeGroup(profileId, b).then(setGroup)
+  const loadGroup = async (b) => {
+    const [nextGroup, nextEvidence] = await Promise.all([
+      fetchCDAgeGroup(profileId, b),
+      fetchCDPrintEvidence(profileId, b),
+    ])
+    setGroup(nextGroup)
+    setPrintEvidence(nextEvidence)
+  }
 
   useEffect(() => {
     if (ageBand) loadGroup(ageBand)
@@ -156,6 +165,8 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
           .cd-print-header { display: block !important; }
         }
         .cd-print-header { display: none; }
+          .cd-evidence-card { break-inside: avoid; page-break-inside: avoid; }
+          .cd-evidence-image { max-width: 100%; max-height: 240px; object-fit: contain; }
       `}</style>
       <button onClick={() => setAgeBand(null)} className="cd-no-print" style={s.back}>&larr; All age groups</button>
       {/* Print-only header: names the saved PDF and carries the legend */}
@@ -163,6 +174,9 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
         <h2 style={{ margin: 0, fontSize: 18 }}>{profileName} — {group ? group.label : ageBand} Development Checklist</h2>
         <p style={{ margin: '2px 0 6px', fontSize: 12 }}>
           Printed {new Date().toLocaleString()} · Child Development · Early Growth Markers
+        </p>
+        <p style={{ margin: '0 0 6px', fontSize: 11, color: '#7a3418' }}>
+          <strong>Private family record:</strong> keep this child-development information secure.
         </p>
         <div style={{ margin: 0, fontSize: 11 }}>
           <strong>Legend:</strong>
@@ -259,6 +273,8 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
 
           <Notes profileId={profileId} ageBand={ageBand} canWrite={canWrite} adminUser={adminUser} />
 
+          <EvidenceAppendix evidence={printEvidence} />
+
           <div className="cd-no-print" style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button onClick={printSheet} style={s.secondaryBtn}>🖨️ Print stage sheet</button>
             {canWrite && (
@@ -274,10 +290,55 @@ export default function ChildDevelopment({ profileId, profileName, ageBand, setA
   )
 }
 
+function EvidenceAppendix({ evidence }) {
+  if (!evidence || (!evidence.selected_count && !evidence.omitted_count)) return null
+  return (
+    <section className="cd-evidence-appendix" style={{ marginTop: 24, borderTop: '2px solid #8bc79b', paddingTop: 14 }}>
+      <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>Evidence appendix</h2>
+      <p style={{ margin: '0 0 12px', fontSize: 12, color: '#595959' }}>
+        Selected family evidence for this stage. Links open in the signed-in app.
+      </p>
+      {evidence.objectives.map((objective) => (
+        <article key={objective.objective_id} className="cd-evidence-card" style={{ border: '1px solid #d8e5d8', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>{objective.objective_title}</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {objective.evidence.map((item) => (
+              <div key={`${item.kind}-${item.media_id}`} style={{ width: 190 }}>
+                <img
+                  className="cd-evidence-image"
+                  src={item.kind === 'video' ? item.cover_preview_url : item.preview_url}
+                  alt={item.kind === 'video' ? `Cover image for ${item.title}` : item.caption || item.title}
+                  style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 5, background: '#f2f2f2' }}
+                />
+                <div style={{ marginTop: 4, fontSize: 12, fontWeight: 600 }}>
+                  {item.kind === 'video' ? 'Video evidence' : 'Photo evidence'}: {item.title}
+                </div>
+                <div style={{ fontSize: 11, color: '#595959' }}>{new Date(item.recorded_at).toLocaleDateString()}</div>
+                {item.caption && <p style={{ margin: '3px 0', fontSize: 11 }}>{item.caption}</p>}
+                <a href={item.deep_link} style={{ fontSize: 11 }}>Open in Life Plan</a>
+              </div>
+            ))}
+          </div>
+          {objective.omitted_count > 0 && (
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: '#595959' }}>
+              {objective.omitted_count} additional linked item{objective.omitted_count === 1 ? '' : 's'} omitted; see the Gallery in Life Plan.
+            </p>
+          )}
+        </article>
+      ))}
+    </section>
+  )
+}
+
 function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
   const [photos, setPhotos] = useState(null)
   const [showPhotos, setShowPhotos] = useState(false)
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
+  const [galleryChoices, setGalleryChoices] = useState(null)
+  const [allGallery, setAllGallery] = useState([])
+  const [videoCoverIds, setVideoCoverIds] = useState({})
   const [uploadError, setUploadError] = useState('')
+  const [uploadNotice, setUploadNotice] = useState('')
   const [editing, setEditing] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
 
@@ -307,8 +368,12 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
   // objective. That means it ALSO appears in the main Gallery and, critically,
   // survives this objective (or the whole age group) being deleted.
   const loadPhotos = async () => {
-    const a = await fetchGallery(profileId, { objectiveId: obj.id })
+    const [a, gallery] = await Promise.all([
+      fetchGallery(profileId, { objectiveId: obj.id }),
+      fetchGallery(profileId),
+    ])
     setPhotos(Array.isArray(a) ? a : [])
+    setAllGallery(Array.isArray(gallery) ? gallery : [])
     setShowPhotos(true)
   }
   const onUpload = async (e) => {
@@ -316,10 +381,14 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
     e.target.value = ''
     if (!files.length) return
     setUploadError('')
+    setUploadNotice('')
     try {
       const created = await smartUploadGalleryMedia(profileId, files)
       for (const m of created) {
         await linkGalleryObjective(profileId, m.id, obj.id)
+      }
+      if (created.some((media) => media.reused)) {
+        setUploadNotice('Existing Gallery media was added to this objective; no duplicate file was uploaded.')
       }
       const a = await fetchGallery(profileId, { objectiveId: obj.id })
       setPhotos(Array.isArray(a) ? a : [])
@@ -327,6 +396,51 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
     } catch (err) {
       setUploadError(err.message || 'Upload failed')
       setShowPhotos(true)
+    }
+  }
+  const openGalleryPicker = async () => {
+    setUploadError('')
+    setUploadNotice('')
+    setShowGalleryPicker(true)
+    setGalleryChoices(null)
+    try {
+      const allMedia = await fetchGallery(profileId)
+      setGalleryChoices(Array.isArray(allMedia) ? allMedia : [])
+      setAllGallery(Array.isArray(allMedia) ? allMedia : [])
+    } catch (err) {
+      setUploadError(err.message || 'Could not load the Gallery.')
+      setGalleryChoices([])
+    }
+  }
+  const addGalleryMedia = async (media) => {
+    setUploadError('')
+    setUploadNotice('')
+    try {
+      await linkGalleryObjective(profileId, media.id, obj.id)
+      const [linked, allMedia] = await Promise.all([
+        fetchGallery(profileId, { objectiveId: obj.id }),
+        fetchGallery(profileId),
+      ])
+      setPhotos(Array.isArray(linked) ? linked : [])
+      setGalleryChoices(Array.isArray(allMedia) ? allMedia : [])
+      setShowPhotos(true)
+    } catch (err) {
+      setUploadError(err.message || 'Could not add this Gallery item.')
+    }
+  }
+  const setPrintEvidence = async (media, featured) => {
+    const printLink = media.objective_links?.find((link) => link.objective_id === obj.id)
+    const coverMediaId = videoCoverIds[media.id] ?? printLink?.cover_media_id ?? null
+    setUploadError('')
+    try {
+      const updated = await updateGalleryObjectivePrintEvidence(profileId, media.id, obj.id, {
+        featured_for_print: featured,
+        cover_media_id: media.media_type === 'video' && featured ? coverMediaId : null,
+      })
+      setPhotos((previous) => (previous || []).map((item) => item.id === media.id ? updated : item))
+      onChanged()
+    } catch (err) {
+      setUploadError(err.message || 'Could not update print evidence.')
     }
   }
 
@@ -369,10 +483,13 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
       {showPhotos && (
         <div style={s.photoPanel}>
           {canWrite && (
-            <label style={s.uploadLabel}>
-              + Add photo/video
-              <input type="file" multiple accept="image/*,video/*,.pdf" onChange={onUpload} style={{ display: 'none' }} />
-            </label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <label style={s.uploadLabel}>
+                + Add photo/video
+                <input type="file" multiple accept="image/*,video/*,.pdf" onChange={onUpload} style={{ display: 'none' }} />
+              </label>
+              <button onClick={openGalleryPicker} style={s.smallGray}>+ From Gallery</button>
+            </div>
           )}
           <p style={{ fontSize: 11, color: '#767676', margin: '4px 0 0' }}>
             Also appears in this child&rsquo;s Gallery; kept even if this objective is removed.
@@ -382,7 +499,41 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
               {uploadError}
             </p>
           )}
+          {uploadNotice && (
+            <p style={{ fontSize: 12, color: '#166534', background: '#ecfdf3', borderRadius: 6, padding: '6px 10px', margin: '6px 0 0' }}>
+              {uploadNotice}
+            </p>
+          )}
           {photos && photos.length === 0 && <span style={{ fontSize: 12, color: '#595959' }}>No media yet.</span>}
+          {showGalleryPicker && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <strong style={{ fontSize: 12 }}>Choose existing Gallery media</strong>
+                <button onClick={() => setShowGalleryPicker(false)} style={s.photoPickerClose}>Done</button>
+              </div>
+              {galleryChoices === null ? (
+                <p style={{ fontSize: 12, color: '#595959', margin: '6px 0 0' }}>Loading Gallery…</p>
+              ) : galleryChoices.length === 0 ? (
+                <p style={{ fontSize: 12, color: '#595959', margin: '6px 0 0' }}>No Gallery media yet.</p>
+              ) : (
+                <div style={s.galleryChoiceList}>
+                  {galleryChoices.map((media) => {
+                    const linked = media.objective_ids.includes(obj.id)
+                    return (
+                      <div key={media.id} style={s.galleryChoice}>
+                        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {media.media_type === 'video' ? '🎬' : media.media_type === 'photo' ? '🖼️' : '📄'} {media.original_name}
+                        </span>
+                        <button disabled={linked} onClick={() => addGalleryMedia(media)} style={linked ? s.galleryLinked : s.galleryAdd}>
+                          {linked ? 'Added' : 'Add'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
             {(photos || []).map(p => (
               <div key={p.id} style={{ position: 'relative' }}>
@@ -395,6 +546,32 @@ function ObjectiveRow({ profileId, obj, canWrite, onChanged }) {
                 ) : (
                   <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>📄 {p.original_name}</a>
                 )}
+                {canWrite && (p.media_type === 'photo' || p.media_type === 'video') && (() => {
+                  const printLink = p.objective_links?.find((link) => link.objective_id === obj.id)
+                  const featured = Boolean(printLink?.featured_for_print)
+                  const covers = allGallery.filter((media) => media.media_type === 'photo')
+                  const selectedCover = videoCoverIds[p.id] ?? printLink?.cover_media_id ?? ''
+                  return (
+                    <div style={{ marginTop: 4, width: 150 }}>
+                      {p.media_type === 'video' && (
+                        <select
+                          aria-label={`PDF cover for ${p.original_name}`}
+                          value={selectedCover}
+                          onChange={(e) => setVideoCoverIds((current) => ({ ...current, [p.id]: Number(e.target.value) || null }))}
+                          style={{ ...s.input, width: '100%', fontSize: 10, padding: 3 }}
+                        >
+                          <option value="">Choose PDF cover…</option>
+                          {covers.map((cover) => <option key={cover.id} value={cover.id}>{cover.original_name}</option>)}
+                        </select>
+                      )}
+                      <button
+                        onClick={() => setPrintEvidence(p, !featured)}
+                        style={featured ? s.galleryLinked : s.galleryAdd}
+                        title="Include this item in the printed evidence appendix"
+                      >{featured ? 'In PDF' : 'Include in PDF'}</button>
+                    </div>
+                  )
+                })()}
                 {canWrite && (
                   <button
                     title="Remove from this objective (keeps it in the Gallery)"
@@ -528,6 +705,11 @@ const s = {
   photoPanel: { width: '100%', background: '#fff', border: '1px dashed #d6e0d6', borderRadius: 8, padding: 8, marginTop: 6 },
   uploadLabel: { fontSize: 12, color: '#2563b0', cursor: 'pointer' },
   photoDel: { position: 'absolute', top: -6, right: -6, background: '#c0392b', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', fontSize: 11 },
+  photoPickerClose: { border: 'none', background: 'none', color: '#2563b0', cursor: 'pointer', fontSize: 12, padding: 2 },
+  galleryChoiceList: { display: 'flex', flexDirection: 'column', gap: 5, marginTop: 7, maxHeight: 180, overflowY: 'auto' },
+  galleryChoice: { display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', padding: '5px 7px', background: '#f8fafc', borderRadius: 6, fontSize: 12 },
+  galleryAdd: { padding: '3px 8px', border: 'none', borderRadius: 5, background: '#2563b0', color: '#fff', cursor: 'pointer', fontSize: 11 },
+  galleryLinked: { padding: '3px 8px', border: 'none', borderRadius: 5, background: '#e5e7eb', color: '#666', cursor: 'default', fontSize: 11 },
   addBtn: { fontSize: 12, color: '#2563b0', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', textAlign: 'left' },
   input: { padding: '7px 10px', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 },
   smallBtn: { padding: '7px 14px', background: '#2a7d45', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 },

@@ -4,6 +4,8 @@ import {
   smartUploadGalleryMedia,
   updateGalleryMedia,
   deleteGalleryMedia,
+  fetchCDObjectiveChoices,
+  linkGalleryObjective,
 } from '../services/api'
 
 /**
@@ -31,8 +33,14 @@ export default function Gallery({ profileId, profileName, onBack, canWrite, onEm
   const [mediaType, setMediaType] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [editing, setEditing] = useState(null) // media id being edited
   const [draftObs, setDraftObs] = useState('')
+  const [goalPicker, setGoalPicker] = useState(null)
+  const [goalChoices, setGoalChoices] = useState([])
+  const [selectedGoalIds, setSelectedGoalIds] = useState([])
+  const [goalBusy, setGoalBusy] = useState(false)
+  const [goalError, setGoalError] = useState('')
   const fileRef = useRef(null)
 
   const load = () =>
@@ -50,8 +58,13 @@ export default function Gallery({ profileId, profileName, onBack, canWrite, onEm
     if (!files.length) return
     setBusy(true)
     setError('')
+    setNotice('')
     try {
-      await smartUploadGalleryMedia(profileId, files)
+      const uploaded = await smartUploadGalleryMedia(profileId, files)
+      const reused = uploaded.filter((media) => media.reused).length
+      if (reused) {
+        setNotice(`${reused} existing Gallery item${reused === 1 ? '' : 's'} reused; no duplicate file was uploaded.`)
+      }
       await load()
     } catch (err) {
       setError(err.message || 'Upload failed')
@@ -72,6 +85,48 @@ export default function Gallery({ profileId, profileName, onBack, canWrite, onEm
     if (!confirm('Delete this item from the gallery? This cannot be undone.')) return
     await deleteGalleryMedia(profileId, id)
     await load()
+  }
+
+  async function openGoalPicker(media) {
+    setGoalPicker(media)
+    setSelectedGoalIds(media.objective_ids || [])
+    setGoalError('')
+    setGoalChoices([])
+    setGoalBusy(true)
+    try {
+      const choices = await fetchCDObjectiveChoices(profileId)
+      setGoalChoices(Array.isArray(choices) ? choices : [])
+    } catch (err) {
+      setGoalError(err.message || 'Could not load development goals.')
+    } finally {
+      setGoalBusy(false)
+    }
+  }
+
+  async function saveGoalLinks() {
+    if (!goalPicker) return
+    setGoalBusy(true)
+    setGoalError('')
+    try {
+      const alreadyLinked = new Set(goalPicker.objective_ids || [])
+      for (const objectiveId of selectedGoalIds) {
+        if (!alreadyLinked.has(objectiveId)) {
+          await linkGalleryObjective(profileId, goalPicker.id, objectiveId)
+        }
+      }
+      await load()
+      setGoalPicker(null)
+    } catch (err) {
+      setGoalError(err.message || 'Could not add the Gallery item to the selected goal.')
+    } finally {
+      setGoalBusy(false)
+    }
+  }
+
+  function toggleGoal(objectiveId) {
+    setSelectedGoalIds((ids) => (
+      ids.includes(objectiveId) ? ids.filter((id) => id !== objectiveId) : [...ids, objectiveId]
+    ))
   }
 
   return (
@@ -127,6 +182,7 @@ export default function Gallery({ profileId, profileName, onBack, canWrite, onEm
       </div>
 
       {error && <p style={s.error}>{error}</p>}
+      {notice && <p style={s.notice}>{notice}</p>}
       {items === null && <p style={{ color: '#595959' }}>Loading…</p>}
       {items !== null && items.length === 0 && (
         <div style={s.empty}>
@@ -191,6 +247,14 @@ export default function Gallery({ profileId, profileName, onBack, canWrite, onEm
                           </button>
                           <button
                             className="tap-target"
+                            title="Add to development goal"
+                            onClick={() => openGoalPicker(m)}
+                            style={s.iconBtn}
+                          >
+                            🌱
+                          </button>
+                          <button
+                            className="tap-target"
                             title="Delete"
                             onClick={() => remove(m.id)}
                             style={{ ...s.iconBtn, color: '#c0392b' }}
@@ -205,6 +269,48 @@ export default function Gallery({ profileId, profileName, onBack, canWrite, onEm
               </figcaption>
             </figure>
           ))}
+        </div>
+      )}
+      {goalPicker && (
+        <div role="dialog" aria-modal="true" aria-label="Add Gallery item to development goals" style={s.modalShade}>
+          <div style={s.modal}>
+            <h3 style={{ margin: 0, fontSize: 16 }}>Add to development goals</h3>
+            <p style={{ margin: '6px 0 10px', fontSize: 13, color: '#595959' }}>
+              {goalPicker.original_name} stays in this child&apos;s Gallery; selecting goals only adds links.
+            </p>
+            {goalError && <p style={s.error}>{goalError}</p>}
+            {goalBusy && goalChoices.length === 0 ? (
+              <p style={{ color: '#595959' }}>Loading goals…</p>
+            ) : goalChoices.length === 0 ? (
+              <p style={{ color: '#595959' }}>No development goals are active yet.</p>
+            ) : (
+              <div style={s.goalList}>
+                {goalChoices.map((goal) => {
+                  const wasLinked = (goalPicker.objective_ids || []).includes(goal.id)
+                  return (
+                    <label key={goal.id} style={s.goalChoice}>
+                      <input
+                        type="checkbox"
+                        checked={selectedGoalIds.includes(goal.id)}
+                        disabled={wasLinked || goalBusy}
+                        onChange={() => toggleGoal(goal.id)}
+                      />
+                      <span>
+                        {goal.title}
+                        <small style={s.goalMeta}>{goal.age_band} · {goal.domain}{wasLinked ? ' · already added' : ''}</small>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+              <button onClick={() => setGoalPicker(null)} disabled={goalBusy} style={s.smallGray}>Cancel</button>
+              <button onClick={saveGoalLinks} disabled={goalBusy || goalChoices.length === 0} style={s.smallBtn}>
+                {goalBusy ? 'Adding…' : 'Add selected'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -234,4 +340,10 @@ const s = {
   smallGray: { padding: '6px 12px', background: '#eee', color: '#333', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 },
   empty: { textAlign: 'center', padding: 40, background: '#fafafa', border: '1px dashed #ddd', borderRadius: 12 },
   error: { color: '#c0392b', background: '#fdf0ef', padding: 12, borderRadius: 8, marginBottom: 12 },
+  notice: { color: '#166534', background: '#ecfdf3', padding: 12, borderRadius: 8, marginBottom: 12 },
+  modalShade: { position: 'fixed', inset: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0, 0, 0, .42)' },
+  modal: { width: 'min(520px, 100%)', maxHeight: 'min(640px, calc(100vh - 32px))', overflowY: 'auto', boxSizing: 'border-box', padding: 18, borderRadius: 12, background: '#fff', boxShadow: '0 12px 36px rgba(0,0,0,.25)' },
+  goalList: { display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 360, overflowY: 'auto', padding: '2px 0' },
+  goalChoice: { display: 'flex', gap: 9, alignItems: 'flex-start', padding: 8, border: '1px solid #e4e7eb', borderRadius: 7, fontSize: 13, cursor: 'pointer' },
+  goalMeta: { display: 'block', marginTop: 2, color: '#666', fontSize: 11 },
 }

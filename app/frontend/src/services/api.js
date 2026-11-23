@@ -457,8 +457,20 @@ export async function fetchCDOverview(profileId) {
   return res.json()
 }
 
+export async function fetchCDObjectiveChoices(profileId) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/objectives/choices`, { headers: headers() })
+  if (!res.ok) throw new Error('Could not load development goals.')
+  return res.json()
+}
+
 export async function fetchCDAgeGroup(profileId, ageBand) {
   const res = await fetch(`/api/profiles/${profileId}/child-development/${ageBand}`, { headers: headers() })
+  return res.json()
+}
+
+export async function fetchCDPrintEvidence(profileId, ageBand) {
+  const res = await fetch(`/api/profiles/${profileId}/child-development/${ageBand}/print-evidence`, { headers: headers() })
+  if (!res.ok) throw new Error('Could not load print evidence.')
   return res.json()
 }
 
@@ -569,8 +581,29 @@ export async function uploadGalleryMedia(profileId, files) {
 // finalize) so they bypass the app's request-body size cap. Must stay well
 // under that 50MB cap for the buffered path. Phone videos routinely exceed it.
 export const DIRECT_UPLOAD_THRESHOLD = 20 * 1024 * 1024 // 20 MB
+// Must stay in lockstep with gallery.MULTIPART_PART_BYTES. Hashing fixed-size
+// slices avoids making a second full-size in-memory copy of a phone video.
+const MULTIPART_PART_BYTES = 8 * 1024 * 1024
 
-function directPut(uploadUrl, file) {
+function base64(bytes) {
+  let binary = ''
+  for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
+async function multipartPartChecksums(file) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error('This browser cannot safely check a video for duplicates. Please update it and try again.')
+  }
+  const checksums = []
+  for (let offset = 0; offset < file.size; offset += MULTIPART_PART_BYTES) {
+    const bytes = await file.slice(offset, Math.min(offset + MULTIPART_PART_BYTES, file.size)).arrayBuffer()
+    checksums.push(base64(await globalThis.crypto.subtle.digest('SHA-256', bytes)))
+  }
+  return checksums
+}
+
+function directPut(uploadUrl, file, checksumSha256 = null) {
   // WebKit can abort a large cross-origin fetch() body with only the unhelpful
   // TypeError "Load failed". XMLHttpRequest uses WebKit's older, more stable
   // upload transport and lets us distinguish an HTTP failure from a transport
@@ -583,6 +616,7 @@ function directPut(uploadUrl, file) {
     xhr.open('PUT', uploadUrl)
     xhr.withCredentials = sameOrigin
     xhr.setRequestHeader('Content-Type', contentType)
+    if (checksumSha256) xhr.setRequestHeader('x-amz-checksum-sha256', checksumSha256)
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve(xhr.getResponseHeader('ETag'))
@@ -599,7 +633,7 @@ function directPut(uploadUrl, file) {
   })
 }
 
-async function directPutWithRetry(uploadUrl, file) {
+async function directPutWithRetry(uploadUrl, file, checksumSha256 = null) {
   // A single retry is safe: a direct S3 PUT replaces the same object key
   // atomically, and the presigned URL remains valid for its configured TTL.
   // Retry transient browser/network failures and 5xx responses, never a 4xx
@@ -607,7 +641,7 @@ async function directPutWithRetry(uploadUrl, file) {
   let lastError
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      return await directPut(uploadUrl, file)
+      return await directPut(uploadUrl, file, checksumSha256)
     } catch (err) {
       lastError = err
       if (err?.status && err.status < 500) throw err
@@ -622,7 +656,10 @@ async function directPutWithRetry(uploadUrl, file) {
  * media object. Used for large videos; small files use uploadGalleryMedia.
  */
 export async function directUploadGalleryMedia(profileId, file, { observation, ageBand } = {}) {
-  // 1. initiate — reserve a pending media row + get an upload URL
+  // 1. Preflight in bounded slices, then reserve a pending media row + get
+  // signed URLs. The server can return an already-existing same-child item
+  // before any video bytes are transferred.
+  const partChecksums = await multipartPartChecksums(file)
   const initRes = await fetch(`/api/profiles/${profileId}/gallery/uploads/initiate`, {
     method: 'POST',
     headers: headers(),
@@ -630,6 +667,7 @@ export async function directUploadGalleryMedia(profileId, file, { observation, a
       filename: file.name,
       content_type: file.type || 'application/octet-stream',
       size_bytes: file.size,
+      part_checksums: partChecksums,
     }),
   })
   if (!initRes.ok) {
@@ -643,6 +681,10 @@ export async function directUploadGalleryMedia(profileId, file, { observation, a
     throw new Error(detail)
   }
   const { media_id, upload_url, method, part_size, part_urls } = await initRes.json()
+  if (method === 'existing') {
+    const existing = await getGalleryMedia(profileId, media_id)
+    return { ...existing, reused: true }
+  }
 
   // 2. PUT the bytes straight to storage (S3 presigned URL, or local receiver).
   // XHR is intentionally used here rather than fetch: it is more reliable for
@@ -652,9 +694,10 @@ export async function directUploadGalleryMedia(profileId, file, { observation, a
     parts = []
     for (let index = 0; index < part_urls.length; index += 1) {
       const chunk = file.slice(index * part_size, Math.min((index + 1) * part_size, file.size))
-      const etag = await directPutWithRetry(part_urls[index], chunk)
+      const checksumSha256 = partChecksums[index]
+      const etag = await directPutWithRetry(part_urls[index], chunk, checksumSha256)
       if (!etag) throw new Error('Upload transfer failed: storage did not return a part ETag.')
-      parts.push({ part_number: index + 1, etag })
+      parts.push({ part_number: index + 1, etag, checksum_sha256: checksumSha256 })
     }
   } else {
     await directPutWithRetry(upload_url, file)
@@ -704,6 +747,12 @@ export async function updateGalleryMedia(profileId, mediaId, updates) {
   return res.json()
 }
 
+export async function getGalleryMedia(profileId, mediaId) {
+  const res = await fetch(`/api/profiles/${profileId}/gallery/${mediaId}`, { headers: headers() })
+  if (!res.ok) throw new Error('Could not load the existing Gallery item.')
+  return res.json()
+}
+
 export async function deleteGalleryMedia(profileId, mediaId) {
   await fetch(`/api/profiles/${profileId}/gallery/${mediaId}`, { method: 'DELETE' })
 }
@@ -719,6 +768,17 @@ export async function unlinkGalleryObjective(profileId, mediaId, objectiveId) {
   await fetch(`/api/profiles/${profileId}/gallery/${mediaId}/objective-links/${objectiveId}`, {
     method: 'DELETE',
   })
+}
+
+export async function updateGalleryObjectivePrintEvidence(profileId, mediaId, objectiveId, evidence) {
+  const res = await fetch(`/api/profiles/${profileId}/gallery/${mediaId}/objective-links/${objectiveId}/print-evidence`, {
+    method: 'PUT', headers: headers(), body: JSON.stringify(evidence),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail || 'Could not update print evidence.')
+  }
+  return res.json()
 }
 
 // --- Contacts & groups (v6 Pass 4) -------------------------------------------

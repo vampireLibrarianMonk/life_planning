@@ -123,6 +123,19 @@ done
 # -> record UPLOADS_BUCKET, DB_REPLICA_BUCKET in .arn-env
 ```
 
+#### Gallery direct-upload CORS
+
+The Gallery uses short-lived, checksum-bound S3 multipart PUTs. Apply the
+checked-in, origin-restricted CORS policy to **each uploads bucket** before
+deploying a build that uses it; do not replace the explicit header list with
+`*`.
+
+```bash
+set -a; . ./.arn-env; set +a
+aws s3api put-bucket-cors --bucket "$UPLOADS_BUCKET" --region us-east-1 --cors-configuration file://deploy/uploads_cors.json
+aws s3api put-bucket-cors --bucket "$UPLOADS_BUCKET_WEST" --region us-west-2 --cors-configuration file://deploy/uploads_cors.json
+```
+
 ### 4. Instance role (least-privilege, app assumes this)
 Trust: `tasks.apprunner.amazonaws.com`. Inline policy (specific ARNs, **no
 wildcards**): `secretsmanager:GetSecretValue` on both secrets;

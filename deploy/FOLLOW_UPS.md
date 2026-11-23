@@ -42,6 +42,54 @@ Resource IDs: see git-ignored `.arn-env`.
 
 ## This week
 
+- [x] **Development-goals PDF evidence appendix (implemented, 2026-11-23).**
+      Upgrade the current browser-printed age-band checklist into a two-part
+      family record: keep the complete checklist first, then add a bounded
+      evidence appendix. Evidence is **opt-in**, not automatically selected:
+      add `featured_for_print` and `print_order` to the existing
+      `MediaObjectiveLink` relationship and allow at most **two photos and one
+      video per objective**. Add a Gallery-to-goal picker in both useful
+      directions: let an objective select existing Gallery media, and let a
+      Gallery item's actions select one or more development goals. Reuse the
+      canonical `ProfileMedia` object through `MediaObjectiveLink`; do not copy,
+      move, or re-upload the file. Add exact-content duplicate prevention for
+      all upload paths, including direct/multipart videos: persist a SHA-256 for
+      every upload and, before a transfer, look only within that child's active
+      Gallery for a matching hash. If a match exists, make **Use existing
+      evidence** (and link it to the selected goal) the only matching-file
+      action, and handle a match already linked to that goal without creating a
+      second link. Do not trust a browser-supplied hash by itself: confirm it
+      against the completed object's provider/object checksum before marking a
+      direct upload ready. Enforce the active `(profile_id, sha256)` invariant
+      server-side to close concurrent-upload races while preserving soft-delete
+      semantics; never reveal a duplicate or hash match across profiles. Show
+      an omitted-item count linking the reader back
+      to the in-app Gallery. Do not embed playable video or original-size media
+      in the PDF; render photos as bounded preview derivatives, and render each
+      selected video as a static cover/poster card with title, date, caption,
+      and a QR/deep link to the authenticated app. The link must be a stable,
+      login-protected objective/Gallery URL — never an S3 object key,
+      presigned URL, share token, or public media URL (presigned Gallery GET
+      URLs expire after one hour). Prompt for/use the existing observation as a
+      visible caption. Add a bulk, authorized print-evidence API for an age
+      band (avoid one request per objective), print CSS with page-break-safe
+      evidence cards, a child-data print warning, and tests for limits,
+      captions, output page/file-size budgets, deep-link authorization,
+      cross-profile denial, omitted counts, and absence of S3 URLs in the
+      generated document. For a first release, require a user-selected cover
+      photo for videos rather than adding FFmpeg to App Runner; evaluate a
+      thumbnail service/Lambda only if automatic video posters become needed.
+      **Test status (2026-11-23):** implemented and covered by
+      `app/frontend/tests/development_goals_pdf.spec.js` and backend Gallery
+      tests. Chromium creates a real PDF with deterministic, non-personal
+      fixtures: two selected photos, one selected video represented only by a
+      parent-selected cover photo, caption/date/title, and a third linked image
+      omitted with a visible count. The tests enforce the two-photo/one-video
+      server-side cap, no playable `<video>` or original-size image in print,
+      authenticated app deep links only, page/file budgets, cross-profile
+      denial, and no object/presigned URLs. Fixtures are generated in tests;
+      no real family media or deployed environment is used.
+
 - [ ] **Manual secret-rotation drill (proves the kill switch).** Rotate both
       `life-planning/admin-credentials` and `life-planning/jwt-secret` once by
       updating the secret value and restarting/redeploying the service, then

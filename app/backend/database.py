@@ -90,3 +90,25 @@ def ensure_columns():
             conn.execute(
                 text("ALTER TABLE profile_media ADD COLUMN multipart_upload_id VARCHAR(512)")
             )
+        if pm_cols and "dedupe_key" not in pm_cols:
+            conn.execute(text("ALTER TABLE profile_media ADD COLUMN dedupe_key VARCHAR(80)"))
+        # Only freshly created media rows receive a dedupe_key. That preserves
+        # historical Gallery records (which may already contain duplicates)
+        # while making same-content upload reservations race-safe from now on.
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_profile_media_active_dedupe_key "
+                "ON profile_media(profile_id, dedupe_key) "
+                "WHERE dedupe_key IS NOT NULL AND deleted_at IS NULL"
+            )
+        )
+
+        mol_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(media_objective_link)"))}
+        if mol_cols:
+            for col, clause in {
+                "featured_for_print": "featured_for_print BOOLEAN NOT NULL DEFAULT 0",
+                "print_order": "print_order INTEGER",
+                "cover_media_id": "cover_media_id INTEGER",
+            }.items():
+                if col not in mol_cols:
+                    conn.execute(text(f"ALTER TABLE media_objective_link ADD COLUMN {clause}"))

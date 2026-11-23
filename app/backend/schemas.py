@@ -391,6 +391,11 @@ class UploadInitiateRequest(BaseModel):
     filename: str
     content_type: str
     size_bytes: Annotated[int, Field(gt=0, le=MAX_DIRECT_UPLOAD_BYTES)]
+    # SHA-256 checksums of the fixed 8 MiB browser parts. They allow a same-child
+    # duplicate to be found before transfer and are bound into each S3 signed URL.
+    part_checksums: list[Annotated[str, Field(pattern=r"^[A-Za-z0-9+/]{43}=$")]] = Field(
+        min_length=1, max_length=63
+    )
 
 
 class UploadInitiateResponse(BaseModel):
@@ -400,6 +405,7 @@ class UploadInitiateResponse(BaseModel):
     method: str = "PUT"
     part_size: int | None = None
     part_urls: list[str] | None = None
+    reused: bool = False
 
 
 class MultipartCompletePart(BaseModel):
@@ -407,6 +413,7 @@ class MultipartCompletePart(BaseModel):
     # S3 returns a quoted hexadecimal ETag.  Keeping a sane upper bound also
     # prevents an oversized finalize request from becoming an application DoS.
     etag: Annotated[str, Field(min_length=1, max_length=256)]
+    checksum_sha256: Annotated[str, Field(pattern=r"^[A-Za-z0-9+/]{43}=$")]
 
 
 class UploadFinalizeRequest(BaseModel):
@@ -420,6 +427,9 @@ class MediaObjectiveLinkResponse(BaseModel):
     id: int
     objective_id: int
     linked_at: datetime
+    featured_for_print: bool = False
+    print_order: int | None = None
+    cover_media_id: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -439,8 +449,17 @@ class MediaResponse(BaseModel):
     created_at: datetime
     url: str | None = None  # resolved at serialization time (storage.url_for)
     objective_ids: list[int] = []
+    objective_links: list[MediaObjectiveLinkResponse] = []
+    # Set only when an upload request reused this canonical Gallery object.
+    reused: bool = False
 
     model_config = {"from_attributes": True}
+
+
+class PrintEvidenceUpdate(BaseModel):
+    featured_for_print: bool
+    print_order: Annotated[int | None, Field(ge=0, le=10_000)] = None
+    cover_media_id: int | None = None
 
 
 # --- Contacts / groups / share grants (v6 Pass 4) ----------------------------

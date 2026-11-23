@@ -13,6 +13,19 @@ import sys
 import pytest
 from fastapi import HTTPException
 
+pytestmark = pytest.mark.archive
+
+
+def _run(coro):
+    """Run a coroutine in a test-owned loop without polluting global loop state."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
 
 @pytest.fixture
 def ctx(monkeypatch, tmp_path):
@@ -86,6 +99,7 @@ def _seed(models, storage, db):
     return pid
 
 
+@pytest.mark.integration
 def test_archive_delete_restore_roundtrip(ctx):
     archive, models, storage, db = ctx
     admin = _Admin()
@@ -96,16 +110,15 @@ def test_archive_delete_restore_roundtrip(ctx):
     # ARCHIVE -> stream zip + token.
     resp = archive.archive_profile(profile_id=pid, db=db, current_user=admin)
     token = resp.headers["X-Archive-Token"]
-    # Consume the StreamingResponse body (sync or async iterator of bytes/str).
-    import asyncio
 
+    # Consume the StreamingResponse body (sync or async iterator of bytes/str).
     async def _drain(it):
         chunks = []
         async for c in it:
             chunks.append(c if isinstance(c, bytes) else c.encode())
         return b"".join(chunks)
 
-    zip_bytes = asyncio.get_event_loop().run_until_complete(_drain(resp.body_iterator))
+    zip_bytes = _run(_drain(resp.body_iterator))
     assert zip_bytes[:2] == b"PK"  # a real zip
 
     # DELETE without a token must fail.
@@ -125,9 +138,7 @@ def test_archive_delete_restore_roundtrip(ctx):
         async def read(self):
             return zip_bytes
 
-    result = asyncio.get_event_loop().run_until_complete(
-        archive.restore_profile(file=_UF(), db=db, _=admin)
-    )
+    result = _run(archive.restore_profile(file=_UF(), db=db, _=admin))
     assert result["profile_id"] == pid
     assert db.query(models.Profile).filter(models.Profile.id == pid).first() is not None
     assert db.query(models.DiscernmentJournal).filter_by(profile_id=pid).count() == 1
@@ -143,9 +154,7 @@ def test_archive_delete_restore_roundtrip(ctx):
             return zip_bytes
 
     with pytest.raises(HTTPException) as conflict:
-        asyncio.get_event_loop().run_until_complete(
-            archive.restore_profile(file=_UF2(), db=db, _=admin)
-        )
+        _run(archive.restore_profile(file=_UF2(), db=db, _=admin))
     assert conflict.value.status_code == 409
 
 
@@ -201,8 +210,6 @@ def test_restore_rejects_path_escape_upload_key(ctx):
     archive, models, storage, db = ctx
     admin = _Admin()
     admin.role = models.Role.admin
-    import asyncio
-
     zip_bytes = _make_archive_zip(archive, 4242, [("uploads/../evil.png", b"X")])
 
     class _UF:
@@ -210,9 +217,7 @@ def test_restore_rejects_path_escape_upload_key(ctx):
             return zip_bytes
 
     with pytest.raises(HTTPException) as exc:
-        asyncio.get_event_loop().run_until_complete(
-            archive.restore_profile(file=_UF(), db=db, _=admin)
-        )
+        _run(archive.restore_profile(file=_UF(), db=db, _=admin))
     assert exc.value.status_code == 400
 
 
@@ -220,8 +225,6 @@ def test_restore_refuses_to_overwrite_existing_blob(ctx):
     archive, models, storage, db = ctx
     admin = _Admin()
     admin.role = models.Role.admin
-    import asyncio
-
     # Pre-existing blob that a malicious archive tries to clobber.
     storage.get_storage().save("victim.png", b"ORIGINAL", "image/png")
     zip_bytes = _make_archive_zip(archive, 4243, [("uploads/victim.png", b"HACKED")])
@@ -231,9 +234,7 @@ def test_restore_refuses_to_overwrite_existing_blob(ctx):
             return zip_bytes
 
     with pytest.raises(HTTPException) as exc:
-        asyncio.get_event_loop().run_until_complete(
-            archive.restore_profile(file=_UF(), db=db, _=admin)
-        )
+        _run(archive.restore_profile(file=_UF(), db=db, _=admin))
     assert exc.value.status_code == 409
     # The original blob is untouched.
     assert storage.get_storage().read("victim.png") == b"ORIGINAL"

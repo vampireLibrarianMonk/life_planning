@@ -58,6 +58,15 @@ Resource IDs: see git-ignored `.arn-env`.
       corruption within ~1s. Add a daily timestamped copy of the SQLite replica
       to a separate S3 prefix/bucket with ~30-day retention for point-in-time
       recovery. (S3 versioning on the DB bucket partially covers this already.)
+- [~] **DB cross-region replication repair (2026-11-23).** Object Lock is
+      enabled on the East and West database buckets, but the `life-planning-s3-crr`
+      role lacked the required source reads `s3:GetObjectRetention` and
+      `s3:GetObjectLegalHold`. S3 marked DB objects after 03:55 UTC as `FAILED`;
+      East Litestream remains current, but West must not be treated as current
+      until the repaired role’s new objects become `COMPLETED` and the failed
+      range is backfilled with S3 Batch Replication. The two least-privilege
+      permissions were added to the existing role on 2026-11-23; validation is
+      intentionally still open.
 - [ ] **Run the redeploy-survival drill explicitly once.** We proved data
       survived multiple real redeploys tonight, but formalize it: write a
       sentinel record, force a new deployment, confirm the sentinel + existing

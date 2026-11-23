@@ -28,6 +28,9 @@ version remains the first line of [`VERSION`](VERSION).
   six-test live walkthrough passed.
 - Two controlled 40 MiB, five-part production uploads finalized successfully
   and their temporary gallery records were confirmed removed.
+- Repaired S3 Object Lock CRR permissions and backfilled all 458 previously
+  failed database-replica objects to West; a fresh replica and a historical
+  backfill both verified as complete.
 
 ## [0.7.0] - 2026-11-09
 

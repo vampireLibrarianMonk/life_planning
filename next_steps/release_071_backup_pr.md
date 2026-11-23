@@ -19,9 +19,12 @@ operational defect: the S3 CRR role lacked the two Object Lock source-read
 permissions AWS requires. Those least-privilege permissions were repaired live
 on 2026-11-23.
 
-The documentation deliberately does **not** mark West DR current yet: older DB
-objects failed replication and the new object queue still requires confirmation
-of `COMPLETED` status plus a controlled S3 Batch Replication backfill.
+The repair was verified after this record was started: a new DB segment reached
+`COMPLETED`/`REPLICA`, and Batch Replication job
+`f865f310-da1b-4ad8-bebf-12498cb278ce` backfilled all **458/458** failed DB
+objects with zero task failures. The independent daily snapshot remains open
+for point-in-time recovery, because Litestream is replication rather than a
+separate backup generation.
 
 ## Verification
 
